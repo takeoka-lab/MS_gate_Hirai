@@ -1,7 +1,30 @@
 import numpy as np
 import qutip as qp
 
+import multiprocessing as mp
+import os
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from functools import lru_cache
+
+
+_PARALLEL_THREAD_ENV_VARS = (
+    "OMP_NUM_THREADS",
+    "OPENBLAS_NUM_THREADS",
+    "MKL_NUM_THREADS",
+    "VECLIB_MAXIMUM_THREADS",
+    "NUMEXPR_NUM_THREADS",
+)
+
+
+def _configure_parallel_thread_env():
+    for env_var in _PARALLEL_THREAD_ENV_VARS:
+        os.environ.setdefault(env_var, "1")
+
+
+def _process_pool_executor_kwargs():
+    if "fork" not in mp.get_all_start_methods():
+        return {}
+    return {"mp_context": mp.get_context("fork")}
 
 
 def _validate_nonnegative(name, value):
@@ -353,6 +376,43 @@ def estimate_phonon_dim(n_bar, alpha_max):
     return max(get_optimal_nv_general(n_bar, alpha_max), 2)
 
 
+def _run_ms_gate_evolution_task(task):
+    (
+        n_bar_index,
+        sample_idx,
+        state_idx,
+        n_bar,
+        Nv,
+        laser_params,
+        simulation_params,
+    ) = task
+
+    tlist = simulation_params["tlist"]
+    rates = simulation_params["rates"]
+    input_state = build_input_states()[state_idx]
+    th = qp.thermal_dm(Nv, n_bar)
+    solver = _prepare_ms_solver(
+        phonon_dim=Nv,
+        eta=simulation_params["eta"],
+        use_full_order=simulation_params["use_full_order"],
+        time_grid=tlist,
+        detuning=laser_params["detuning"],
+        rho=laser_params["rho"],
+        effective_amplitude=laser_params["int_strn"],
+        heating_rate=rates["heating"],
+        dephasing_rate=rates["dephasing"],
+        spin_dephasing_rate=rates["spin"],
+        rayleigh_scattering_rate=rates["rayleigh"],
+        raman_scattering_rate=rates["raman"],
+        store_states=False,
+    )
+    result = solver.run(qp.tensor(input_state, th), tlist, e_ops=[])
+    final_state_total = _final_state_from_result(result)
+    final_state_ion = qp.ptrace(final_state_total, (0, 1))
+
+    return n_bar_index, sample_idx, state_idx, final_state_ion
+
+
 def run_ms_gate_simulation(
     A=0.125,
     delta=0.5,
@@ -373,11 +433,17 @@ def run_ms_gate_simulation(
     laser_noise_seed=1234,
     use_full_order=True,
     show_progress=True,
+    parallel_workers=30,
 ):
     if n_bar_list is None:
         n_bar_list = [0.01, 1, 2, 3, 4, 5]
     if laser_noise_samples < 1:
         raise ValueError("laser_noise_samples must be at least 1.")
+    if parallel_workers is None:
+        parallel_workers = 30
+    parallel_workers = int(parallel_workers)
+    if parallel_workers < 1:
+        raise ValueError("parallel_workers must be at least 1.")
 
     tlist = np.linspace(0, 2 * np.pi / delta, time_points)
     input_states_list = build_input_states()
@@ -431,34 +497,13 @@ def run_ms_gate_simulation(
         detuning_fluctuation=laser_detuning_fluctuation,
     )
 
-    results_list = []
-    try:
-        for n_bar in n_bar_list:
-            Nv = estimate_phonon_dim(
-                n_bar,
-                alpha_max_est,
-            )
-            th = qp.thermal_dm(Nv, n_bar)
-
-            current_output_states = [None] * len(input_states_list)
-            sampled_laser_params = []
-
-            if progress_bar is not None:
-                progress_bar.set_postfix(
-                    n_bar=n_bar,
-                    phonon_dim=Nv,
-                    sample=f"0/{effective_laser_samples}",
-                )
-
-            for sample_idx in range(effective_laser_samples):
-                if progress_bar is not None:
-                    progress_bar.set_postfix(
-                        n_bar=n_bar,
-                        phonon_dim=Nv,
-                        sample=f"{sample_idx + 1}/{effective_laser_samples}",
-                    )
-
-                laser_params = sample_laser_parameters(
+    results_list = [
+        {
+            "n_bar": n_bar,
+            "Nv": estimate_phonon_dim(n_bar, alpha_max_est),
+            "outputs": [None] * len(input_states_list),
+            "sampled_laser_params": [
+                sample_laser_parameters(
                     delta,
                     A,
                     rho0,
@@ -467,54 +512,151 @@ def run_ms_gate_simulation(
                     rotation_angle_fluctuation=laser_rotation_angle_fluctuation,
                     rng=rng,
                 )
-                sampled_laser_params.append(laser_params)
+                for _ in range(effective_laser_samples)
+            ],
+        }
+        for n_bar in n_bar_list
+    ]
 
-                solver = _prepare_ms_solver(
-                    phonon_dim=Nv,
-                    eta=eta,
-                    use_full_order=use_full_order,
-                    time_grid=tlist,
-                    detuning=laser_params["detuning"],
-                    rho=laser_params["rho"],
-                    effective_amplitude=laser_params["int_strn"],
-                    heating_rate=rates["heating"],
-                    dephasing_rate=rates["dephasing"],
-                    spin_dephasing_rate=rates["spin"],
-                    rayleigh_scattering_rate=rates["rayleigh"],
-                    raman_scattering_rate=rates["raman"],
-                    store_states=False,
+    try:
+        if parallel_workers > 1 and total_evolutions > 1:
+            _configure_parallel_thread_env()
+            simulation_params = {
+                "tlist": tlist,
+                "rates": rates,
+                "eta": eta,
+                "use_full_order": use_full_order,
+            }
+            tasks = [
+                (
+                    n_bar_index,
+                    sample_idx,
+                    state_idx,
+                    data["n_bar"],
+                    data["Nv"],
+                    laser_params,
+                    simulation_params,
                 )
+                for n_bar_index, data in enumerate(results_list)
+                for sample_idx, laser_params in enumerate(data["sampled_laser_params"])
+                for state_idx in range(len(input_states_list))
+            ]
+            completed_by_n_bar = [0] * len(results_list)
+            tasks_per_n_bar = effective_laser_samples * len(input_states_list)
+            max_workers = min(parallel_workers, len(tasks))
 
-                for state_idx, input_state in enumerate(input_states_list):
-                    result = solver.run(qp.tensor(input_state, th), tlist, e_ops=[])
-                    final_state_total = _final_state_from_result(result)
-                    final_state_ion = qp.ptrace(final_state_total, (0, 1))
-                    weighted_output = final_state_ion / effective_laser_samples
-
-                    if current_output_states[state_idx] is None:
-                        current_output_states[state_idx] = weighted_output
-                    else:
-                        current_output_states[state_idx] += weighted_output
-
-                    if progress_bar is not None:
-                        progress_bar.update(1)
-
-            results_list.append(
-                {
-                    "n_bar": n_bar,
-                    "Nv": Nv,
-                    "outputs": current_output_states,
-                    "sampled_laser_params": sampled_laser_params,
-                }
-            )
             if progress_bar is not None:
-                progress_bar.set_postfix(
-                    n_bar=n_bar,
-                    phonon_dim=Nv,
-                    sample=f"{effective_laser_samples}/{effective_laser_samples}",
-                )
-            elif progress_fallback:
-                print(f"n_bar = {n_bar} Simulation Finished (Dim: {Nv})")
+                progress_bar.set_postfix(workers=max_workers)
+
+            def store_task_result(task_result, executor_label):
+                n_bar_index, sample_idx, state_idx, final_state_ion = task_result
+                data = results_list[n_bar_index]
+                weighted_output = final_state_ion / effective_laser_samples
+
+                if data["outputs"][state_idx] is None:
+                    data["outputs"][state_idx] = weighted_output
+                else:
+                    data["outputs"][state_idx] += weighted_output
+
+                completed_by_n_bar[n_bar_index] += 1
+                if progress_bar is not None:
+                    progress_bar.update(1)
+                    progress_bar.set_postfix(
+                        workers=max_workers,
+                        executor=executor_label,
+                        n_bar=data["n_bar"],
+                        phonon_dim=data["Nv"],
+                        sample=f"{sample_idx + 1}/{effective_laser_samples}",
+                    )
+                elif (
+                    progress_fallback
+                    and completed_by_n_bar[n_bar_index] == tasks_per_n_bar
+                ):
+                    print(
+                        f"n_bar = {data['n_bar']} Simulation Finished "
+                        f"(Dim: {data['Nv']})"
+                    )
+
+            def collect_parallel_results(executor, executor_label):
+                if progress_bar is not None:
+                    progress_bar.set_postfix(workers=max_workers, executor=executor_label)
+                futures = [executor.submit(_run_ms_gate_evolution_task, task) for task in tasks]
+                for future in as_completed(futures):
+                    store_task_result(future.result(), executor_label)
+
+            try:
+                with ProcessPoolExecutor(
+                    max_workers=max_workers,
+                    **_process_pool_executor_kwargs(),
+                ) as executor:
+                    collect_parallel_results(executor, "process")
+            except PermissionError:
+                if progress_fallback:
+                    print(
+                        "Process-based parallelism is unavailable in this environment; "
+                        "falling back to serial execution."
+                    )
+                for task in tasks:
+                    store_task_result(_run_ms_gate_evolution_task(task), "serial")
+        else:
+            for data in results_list:
+                n_bar = data["n_bar"]
+                Nv = data["Nv"]
+                th = qp.thermal_dm(Nv, n_bar)
+
+                if progress_bar is not None:
+                    progress_bar.set_postfix(
+                        n_bar=n_bar,
+                        phonon_dim=Nv,
+                        sample=f"0/{effective_laser_samples}",
+                    )
+
+                for sample_idx, laser_params in enumerate(data["sampled_laser_params"]):
+                    if progress_bar is not None:
+                        progress_bar.set_postfix(
+                            n_bar=n_bar,
+                            phonon_dim=Nv,
+                            sample=f"{sample_idx + 1}/{effective_laser_samples}",
+                        )
+
+                    solver = _prepare_ms_solver(
+                        phonon_dim=Nv,
+                        eta=eta,
+                        use_full_order=use_full_order,
+                        time_grid=tlist,
+                        detuning=laser_params["detuning"],
+                        rho=laser_params["rho"],
+                        effective_amplitude=laser_params["int_strn"],
+                        heating_rate=rates["heating"],
+                        dephasing_rate=rates["dephasing"],
+                        spin_dephasing_rate=rates["spin"],
+                        rayleigh_scattering_rate=rates["rayleigh"],
+                        raman_scattering_rate=rates["raman"],
+                        store_states=False,
+                    )
+
+                    for state_idx, input_state in enumerate(input_states_list):
+                        result = solver.run(qp.tensor(input_state, th), tlist, e_ops=[])
+                        final_state_total = _final_state_from_result(result)
+                        final_state_ion = qp.ptrace(final_state_total, (0, 1))
+                        weighted_output = final_state_ion / effective_laser_samples
+
+                        if data["outputs"][state_idx] is None:
+                            data["outputs"][state_idx] = weighted_output
+                        else:
+                            data["outputs"][state_idx] += weighted_output
+
+                        if progress_bar is not None:
+                            progress_bar.update(1)
+
+                if progress_bar is not None:
+                    progress_bar.set_postfix(
+                        n_bar=n_bar,
+                        phonon_dim=Nv,
+                        sample=f"{effective_laser_samples}/{effective_laser_samples}",
+                    )
+                elif progress_fallback:
+                    print(f"n_bar = {n_bar} Simulation Finished (Dim: {Nv})")
     finally:
         if progress_bar is not None:
             progress_bar.close()
@@ -540,6 +682,7 @@ def run_ms_gate_simulation(
             "effective_laser_samples": effective_laser_samples,
             "laser_noise_seed": laser_noise_seed,
             "use_full_order": use_full_order,
+            "parallel_workers": parallel_workers,
         },
         "rates": rates,
         "tlist": tlist,
@@ -968,6 +1111,7 @@ def _zero_independent_noise_parameters(params):
         "laser_noise_seed",
         "use_full_order",
         "show_progress",
+        "parallel_workers",
     }
     params = {
         key: value
