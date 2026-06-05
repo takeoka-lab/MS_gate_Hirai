@@ -1,0 +1,16 @@
+[project]
+name = "ms-gate-hirai"
+version = "0.1.0"
+description = "Analysis notebooks and utilities for MS gate noise."
+requires-python = ">=3.9,<3.10"
+dependencies = [
+  "matplotlib>=3.5",
+  "numpy>=1.21",
+  "pandas>=1.3",
+  "qutip>=4.7",
+  "ipykernel>=6.0",
+]
+
+[tool.uv]
+package = false
+
