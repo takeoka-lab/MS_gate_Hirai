@@ -1,0 +1,6 @@
+nbar,F_avg_in_0_1,p_dep_in_0_1,sum_p_PT,sum_p_dep_probs,R_dep_shape_ok,R_PT_offdiag_norm
+0.01,True,True,0.9999999999999997,1.0,True,0.0
+1.0,True,True,1.0,1.0,True,0.0
+2.0,True,True,0.9999999999999999,1.0,True,0.0
+3.0,True,True,1.0000000000000004,1.0,True,0.0
+4.0,True,True,1.0,1.0,True,0.0
