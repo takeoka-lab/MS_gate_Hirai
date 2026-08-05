@@ -1,0 +1,11 @@
+pulse_type,nbar,F_avg,infidelity,model
+standard,0.01,0.9999999999999796,2.042810365310288e-14,first_order_noise_free_preview
+standard,1.0,0.9999999999999796,2.042810365310288e-14,first_order_noise_free_preview
+standard,2.0,0.9999999999999796,2.042810365310288e-14,first_order_noise_free_preview
+standard,3.0,0.9999999999999796,2.042810365310288e-14,first_order_noise_free_preview
+standard,4.0,0.9999999999999796,2.042810365310288e-14,first_order_noise_free_preview
+smooth_detuning,0.01,0.9999999673844867,3.2615513290146225e-08,first_order_noise_free_preview
+smooth_detuning,1.0,0.9999999048219592,9.517804078207348e-08,first_order_noise_free_preview
+smooth_detuning,2.0,0.9999998416274993,1.5837250066930153e-07,first_order_noise_free_preview
+smooth_detuning,3.0,0.9999997784330519,2.215669481220317e-07,first_order_noise_free_preview
+smooth_detuning,4.0,0.999999715238617,2.847613830292417e-07,first_order_noise_free_preview

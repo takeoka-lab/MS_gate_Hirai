@@ -1,0 +1,31 @@
+nbar,mechanism,smooth_advantage,definition
+0.01,noise_free_qpt_floor,0.00018741309784808813,I_standard(none) - I_smooth(none)
+0.01,heating_increment,0.0003141442943399575,difference of heating-only increments above none
+0.01,motional_dephasing_increment,0.00041184054391296687,difference of motional-dephasing-only increments above none
+0.01,motional_nonadditive_interaction,-4.479680313362877e-07,all-motional remainder after none and single-noise increments
+0.01,spin_optical_and_cross_remainder,-0.0010384539014494762,all-noise advantage minus all-motional advantage
+0.01,total_all_noise_advantage,-0.0001255039333798,I_standard(all_noise) - I_smooth(all_noise)
+1.0,noise_free_qpt_floor,0.00046948573363425616,I_standard(none) - I_smooth(none)
+1.0,heating_increment,0.00030712775841679196,difference of heating-only increments above none
+1.0,motional_dephasing_increment,0.0009372506791276436,difference of motional-dephasing-only increments above none
+1.0,motional_nonadditive_interaction,-1.1368401739986211e-06,all-motional remainder after none and single-noise increments
+1.0,spin_optical_and_cross_remainder,-0.0010382015713331929,all-noise advantage minus all-motional advantage
+1.0,total_all_noise_advantage,0.0006745257596715002,I_standard(all_noise) - I_smooth(all_noise)
+2.0,noise_free_qpt_floor,0.0007158017810103834,I_standard(none) - I_smooth(none)
+2.0,heating_increment,0.00030017996295295113,difference of heating-only increments above none
+2.0,motional_dephasing_increment,0.0014365036064724057,difference of motional-dephasing-only increments above none
+2.0,motional_nonadditive_interaction,-1.7906466953654387e-06,all-motional remainder after none and single-noise increments
+2.0,spin_optical_and_cross_remainder,-0.001036892985194075,all-noise advantage minus all-motional advantage
+2.0,total_all_noise_advantage,0.0014138017185462998,I_standard(all_noise) - I_smooth(all_noise)
+3.0,noise_free_qpt_floor,0.0009279918223676908,I_standard(none) - I_smooth(none)
+3.0,heating_increment,0.000293129399829839,difference of heating-only increments above none
+3.0,motional_dephasing_increment,0.0019035274109397982,difference of motional-dephasing-only increments above none
+3.0,motional_nonadditive_interaction,-2.3473630673676027e-06,all-motional remainder after none and single-noise increments
+3.0,spin_optical_and_cross_remainder,-0.00103471688023916,all-noise advantage minus all-motional advantage
+3.0,total_all_noise_advantage,0.0020875843898308004,I_standard(all_noise) - I_smooth(all_noise)
+4.0,noise_free_qpt_floor,0.001109138286955469,I_standard(none) - I_smooth(none)
+4.0,heating_increment,0.0002863212446004848,difference of heating-only increments above none
+4.0,motional_dephasing_increment,0.0023381754587096237,difference of motional-dephasing-only increments above none
+4.0,motional_nonadditive_interaction,-2.8592299218255235e-06,all-motional remainder after none and single-noise increments
+4.0,spin_optical_and_cross_remainder,-0.0010317325731342523,all-noise advantage minus all-motional advantage
+4.0,total_all_noise_advantage,0.0026990431872094996,I_standard(all_noise) - I_smooth(all_noise)

@@ -1,0 +1,36 @@
+{
+  "smooth_detuning": {
+    "j": 3,
+    "delta_max_hz": 400000.0,
+    "delta_min_hz": 22245.459873243974,
+    "tau_g_s": 5e-06,
+    "tau_d_s": 0.0001,
+    "t_hold_s": 1.58e-05,
+    "omega_plateau_hz": 6000.0
+  },
+  "standard": {
+    "gate_time_s": 0.0001,
+    "detuning_hz": 10000.0,
+    "effective_sideband_hz": 2500.0
+  },
+  "paper_reference_detuning_hz": {
+    "delta_max_hz": -400000.0,
+    "delta_min_hz": -21700.0
+  },
+  "simulator_sign_flip": true,
+  "hamiltonian_amplitude_mapping": "A = paper Omega_g / 2",
+  "noise": {
+    "heating_rate_phys": 10.0,
+    "dephasing_rate_phys": 18.0,
+    "T2_star": 0.3,
+    "rayleigh_rate_phys": 3.0,
+    "raman_rate_phys": 1.0
+  },
+  "run_mode": "quick",
+  "random_seed": 1234,
+  "parallel_workers": 1,
+  "solver_max_step_s": {
+    "standard": 2e-07,
+    "smooth_detuning": 5e-08
+  }
+}

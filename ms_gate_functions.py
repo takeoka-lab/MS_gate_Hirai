@@ -47,8 +47,46 @@ def _as_time_grid(time):
     return time_grid
 
 
-def _solver_options(store_states=True):
+def _as_control_values(name, values, time_grid):
+    """Return a real control waveform sampled on ``time_grid``.
+
+    Controls may be scalars, one-dimensional arrays with the same length as the
+    time grid, or callables evaluated as ``values(time_grid)``.  Keeping this
+    conversion in one place lets the original scalar MS-gate API remain fully
+    backward compatible while supporting shaped laser pulses.
+    """
+    if callable(values):
+        values = values(time_grid)
+
+    control = np.asarray(values, dtype=float)
+    if control.ndim == 0:
+        return np.full(time_grid.shape, float(control), dtype=float)
+    if control.shape != time_grid.shape:
+        raise ValueError(
+            f"{name} must be a scalar, callable, or an array with shape "
+            f"{time_grid.shape}; got {control.shape}."
+        )
+    if not np.all(np.isfinite(control)):
+        raise ValueError(f"{name} must contain only finite values.")
+    return control
+
+
+def _integrated_control_phase(detuning_values, time_grid):
+    """Return Phi(t) = integral detuning(s) ds using trapezoidal integration."""
+    phase = np.zeros_like(time_grid, dtype=float)
+    dt = np.diff(time_grid)
+    phase[1:] = np.cumsum(
+        0.5 * (detuning_values[1:] + detuning_values[:-1]) * dt
+    )
+    return phase
+
+
+def _solver_options(store_states=True, max_step=None):
     options = {"progress_bar": None, "atol": 10**-12, "rtol": 10**-9}
+    if max_step is not None:
+        if max_step <= 0:
+            raise ValueError("max_step must be positive when provided.")
+        options["max_step"] = float(max_step)
     if not store_states:
         options.update({"store_final_state": True, "store_states": False})
     return options
@@ -104,9 +142,14 @@ def _ms_gate_static_operators(phonon_dim, eta, use_full_order):
 
 def _build_ms_hamiltonian(operators, time_grid, detuning, rho, effective_amplitude):
     time_grid = _as_time_grid(time_grid)
-    phase_t = detuning * (time_grid - time_grid[0])
-    x_amp = effective_amplitude * np.cos(rho)
-    y_amp = effective_amplitude * np.sin(rho)
+    detuning_t = _as_control_values("detuning", detuning, time_grid)
+    rho_t = _as_control_values("rho", rho, time_grid)
+    amplitude_t = _as_control_values(
+        "effective_amplitude", effective_amplitude, time_grid
+    )
+    phase_t = _integrated_control_phase(detuning_t, time_grid)
+    x_amp = amplitude_t * np.cos(rho_t)
+    y_amp = amplitude_t * np.sin(rho_t)
 
     coef_x_minus = qp.coefficient(
         x_amp * np.exp(-1j * phase_t),
@@ -144,6 +187,8 @@ def _build_c_ops(
     spin_dephasing_rate=0.0,
     rayleigh_scattering_rate=0.0,
     raman_scattering_rate=0.0,
+    time_grid=None,
+    scattering_intensity_scale=None,
 ):
     c_ops = []
 
@@ -158,15 +203,66 @@ def _build_c_ops(
         c_ops.append(np.sqrt(spin_dephasing_rate / 2) * operators["spin_z_1"])
         c_ops.append(np.sqrt(spin_dephasing_rate / 2) * operators["spin_z_2"])
 
+    scattering_coefficient = None
+    if scattering_intensity_scale is not None:
+        if time_grid is None:
+            raise ValueError(
+                "time_grid is required when scattering_intensity_scale is provided."
+            )
+        time_grid = _as_time_grid(time_grid)
+        intensity_scale_t = _as_control_values(
+            "scattering_intensity_scale",
+            scattering_intensity_scale,
+            time_grid,
+        )
+        if np.any(intensity_scale_t < 0):
+            raise ValueError("scattering_intensity_scale must be non-negative.")
+        scattering_coefficient = qp.coefficient(
+            np.sqrt(intensity_scale_t),
+            tlist=time_grid,
+            order=1,
+        )
+
+    def scaled_scattering_operator(operator, base_rate):
+        operator = np.sqrt(base_rate) * operator
+        if scattering_coefficient is None:
+            return operator
+        return operator * scattering_coefficient
+
     if rayleigh_scattering_rate > 0:
-        c_ops.append(np.sqrt(rayleigh_scattering_rate) * operators["spin_z_1"])
-        c_ops.append(np.sqrt(rayleigh_scattering_rate) * operators["spin_z_2"])
+        c_ops.append(
+            scaled_scattering_operator(
+                operators["spin_z_1"], rayleigh_scattering_rate
+            )
+        )
+        c_ops.append(
+            scaled_scattering_operator(
+                operators["spin_z_2"], rayleigh_scattering_rate
+            )
+        )
 
     if raman_scattering_rate > 0:
-        c_ops.append(np.sqrt(raman_scattering_rate / 2) * operators["spin_plus_1"])
-        c_ops.append(np.sqrt(raman_scattering_rate / 2) * operators["spin_minus_1"])
-        c_ops.append(np.sqrt(raman_scattering_rate / 2) * operators["spin_plus_2"])
-        c_ops.append(np.sqrt(raman_scattering_rate / 2) * operators["spin_minus_2"])
+        raman_rate_per_jump = raman_scattering_rate / 2
+        c_ops.append(
+            scaled_scattering_operator(
+                operators["spin_plus_1"], raman_rate_per_jump
+            )
+        )
+        c_ops.append(
+            scaled_scattering_operator(
+                operators["spin_minus_1"], raman_rate_per_jump
+            )
+        )
+        c_ops.append(
+            scaled_scattering_operator(
+                operators["spin_plus_2"], raman_rate_per_jump
+            )
+        )
+        c_ops.append(
+            scaled_scattering_operator(
+                operators["spin_minus_2"], raman_rate_per_jump
+            )
+        )
 
     return c_ops
 
@@ -184,6 +280,8 @@ def _prepare_ms_solver(
     spin_dephasing_rate=0.0,
     rayleigh_scattering_rate=0.0,
     raman_scattering_rate=0.0,
+    scattering_intensity_scale=None,
+    solver_max_step=None,
     store_states=True,
 ):
     operators = _ms_gate_static_operators(phonon_dim, float(eta), bool(use_full_order))
@@ -201,8 +299,17 @@ def _prepare_ms_solver(
         spin_dephasing_rate=spin_dephasing_rate,
         rayleigh_scattering_rate=rayleigh_scattering_rate,
         raman_scattering_rate=raman_scattering_rate,
+        time_grid=time_grid,
+        scattering_intensity_scale=scattering_intensity_scale,
     )
-    return qp.MESolver(H, c_ops=c_ops, options=_solver_options(store_states=store_states))
+    return qp.MESolver(
+        H,
+        c_ops=c_ops,
+        options=_solver_options(
+            store_states=store_states,
+            max_step=solver_max_step,
+        ),
+    )
 
 
 def sample_laser_parameters(
@@ -256,6 +363,9 @@ def MSGate(
     enable_quasi_static_noise=True,
     store_states=True,
     rng=None,
+    laser_scattering_scales_with_intensity=False,
+    scattering_reference_amplitude=None,
+    solver_max_step=None,
 ):
     if rng is None:
         rng = np.random.default_rng()
@@ -279,6 +389,17 @@ def MSGate(
     else:
         effective_amplitude = eta * int_strn
 
+    scattering_intensity_scale = None
+    if laser_scattering_scales_with_intensity:
+        amplitude_t = _as_control_values("int_strn", effective_amplitude, time)
+        if scattering_reference_amplitude is None:
+            scattering_reference_amplitude = float(np.max(np.abs(amplitude_t)))
+        if scattering_reference_amplitude <= 0:
+            raise ValueError("scattering_reference_amplitude must be positive.")
+        scattering_intensity_scale = (
+            np.abs(amplitude_t) / float(scattering_reference_amplitude)
+        ) ** 2
+
     phonon_dim = phonon0.dims[0][0]
     solver = _prepare_ms_solver(
         phonon_dim=phonon_dim,
@@ -293,6 +414,8 @@ def MSGate(
         spin_dephasing_rate=spin_dephasing_rate,
         rayleigh_scattering_rate=rayleigh_scattering_rate,
         raman_scattering_rate=raman_scattering_rate,
+        scattering_intensity_scale=scattering_intensity_scale,
+        solver_max_step=solver_max_step,
         store_states=store_states,
     )
     result = solver.run(qp.tensor(Atom0, phonon0), time, e_ops=[])
@@ -368,8 +491,16 @@ def _scaled_noise_rates(
 
 
 def _estimate_alpha_max(A, delta, intensity_fluctuation=0.0, detuning_fluctuation=0.0):
-    detuning_floor = max(abs(delta) - 3.0 * detuning_fluctuation, 0.1 * abs(delta))
-    return 2 * abs(A) * (1.0 + 3.0 * intensity_fluctuation) / detuning_floor
+    amplitude_max = float(np.max(np.abs(np.asarray(A, dtype=float))))
+    detuning_abs = np.abs(np.asarray(delta, dtype=float))
+    detuning_min = float(np.min(detuning_abs))
+    detuning_floor = max(
+        detuning_min - 3.0 * detuning_fluctuation,
+        0.1 * detuning_min,
+    )
+    if detuning_floor <= 0:
+        raise ValueError("detuning magnitude must be positive.")
+    return 2 * amplitude_max * (1.0 + 3.0 * intensity_fluctuation) / detuning_floor
 
 
 def estimate_phonon_dim(n_bar, alpha_max):
@@ -391,6 +522,12 @@ def _run_ms_gate_evolution_task(task):
     rates = simulation_params["rates"]
     input_state = build_input_states()[state_idx]
     th = qp.thermal_dm(Nv, n_bar)
+    scattering_intensity_scale = None
+    if simulation_params["laser_scattering_scales_with_intensity"]:
+        scattering_intensity_scale = (
+            np.abs(laser_params["int_strn"])
+            / simulation_params["scattering_reference_amplitude"]
+        ) ** 2
     solver = _prepare_ms_solver(
         phonon_dim=Nv,
         eta=simulation_params["eta"],
@@ -404,6 +541,8 @@ def _run_ms_gate_evolution_task(task):
         spin_dephasing_rate=rates["spin"],
         rayleigh_scattering_rate=rates["rayleigh"],
         raman_scattering_rate=rates["raman"],
+        scattering_intensity_scale=scattering_intensity_scale,
+        solver_max_step=simulation_params["solver_max_step"],
         store_states=False,
     )
     result = solver.run(qp.tensor(input_state, th), tlist, e_ops=[])
@@ -434,6 +573,10 @@ def run_ms_gate_simulation(
     use_full_order=True,
     show_progress=True,
     parallel_workers=30,
+    t_gate_sim=None,
+    laser_scattering_scales_with_intensity=False,
+    scattering_reference_amplitude=None,
+    solver_max_step=None,
 ):
     if n_bar_list is None:
         n_bar_list = [0.01, 1, 2, 3, 4, 5]
@@ -445,7 +588,29 @@ def run_ms_gate_simulation(
     if parallel_workers < 1:
         raise ValueError("parallel_workers must be at least 1.")
 
-    tlist = np.linspace(0, 2 * np.pi / delta, time_points)
+    if t_gate_sim is None:
+        detuning_array = np.asarray(delta, dtype=float)
+        if detuning_array.ndim != 0:
+            raise ValueError(
+                "t_gate_sim is required when delta is a time-dependent waveform."
+            )
+        if float(detuning_array) == 0:
+            raise ValueError("delta must be non-zero when t_gate_sim is omitted.")
+        t_gate_sim = 2 * np.pi / abs(float(detuning_array))
+    if t_gate_sim <= 0:
+        raise ValueError("t_gate_sim must be positive.")
+
+    tlist = np.linspace(0, float(t_gate_sim), time_points)
+    amplitude_t = _as_control_values("A", A, tlist)
+    detuning_t = _as_control_values("delta", delta, tlist)
+    rho_t = _as_control_values("rho0", rho0, tlist)
+
+    if laser_scattering_scales_with_intensity:
+        if scattering_reference_amplitude is None:
+            scattering_reference_amplitude = float(np.max(np.abs(amplitude_t)))
+        scattering_reference_amplitude = float(scattering_reference_amplitude)
+        if scattering_reference_amplitude <= 0:
+            raise ValueError("scattering_reference_amplitude must be positive.")
     input_states_list = build_input_states()
     has_static_laser_noise = any(
         value > 0
@@ -491,8 +656,8 @@ def run_ms_gate_simulation(
         raman_rate_phys=raman_rate_phys,
     )
     alpha_max_est = _estimate_alpha_max(
-        A,
-        delta,
+        amplitude_t,
+        detuning_t,
         intensity_fluctuation=laser_intensity_fluctuation,
         detuning_fluctuation=laser_detuning_fluctuation,
     )
@@ -504,9 +669,9 @@ def run_ms_gate_simulation(
             "outputs": [None] * len(input_states_list),
             "sampled_laser_params": [
                 sample_laser_parameters(
-                    delta,
-                    A,
-                    rho0,
+                    detuning_t,
+                    amplitude_t,
+                    rho_t,
                     intensity_fluctuation=laser_intensity_fluctuation,
                     detuning_fluctuation=laser_detuning_fluctuation,
                     rotation_angle_fluctuation=laser_rotation_angle_fluctuation,
@@ -526,6 +691,11 @@ def run_ms_gate_simulation(
                 "rates": rates,
                 "eta": eta,
                 "use_full_order": use_full_order,
+                "laser_scattering_scales_with_intensity": (
+                    laser_scattering_scales_with_intensity
+                ),
+                "scattering_reference_amplitude": scattering_reference_amplitude,
+                "solver_max_step": solver_max_step,
             }
             tasks = [
                 (
@@ -619,6 +789,13 @@ def run_ms_gate_simulation(
                             sample=f"{sample_idx + 1}/{effective_laser_samples}",
                         )
 
+                    scattering_intensity_scale = None
+                    if laser_scattering_scales_with_intensity:
+                        scattering_intensity_scale = (
+                            np.abs(laser_params["int_strn"])
+                            / scattering_reference_amplitude
+                        ) ** 2
+
                     solver = _prepare_ms_solver(
                         phonon_dim=Nv,
                         eta=eta,
@@ -632,6 +809,8 @@ def run_ms_gate_simulation(
                         spin_dephasing_rate=rates["spin"],
                         rayleigh_scattering_rate=rates["rayleigh"],
                         raman_scattering_rate=rates["raman"],
+                        scattering_intensity_scale=scattering_intensity_scale,
+                        solver_max_step=solver_max_step,
                         store_states=False,
                     )
 
@@ -683,6 +862,12 @@ def run_ms_gate_simulation(
             "laser_noise_seed": laser_noise_seed,
             "use_full_order": use_full_order,
             "parallel_workers": parallel_workers,
+            "t_gate_sim": float(t_gate_sim),
+            "laser_scattering_scales_with_intensity": (
+                laser_scattering_scales_with_intensity
+            ),
+            "scattering_reference_amplitude": scattering_reference_amplitude,
+            "solver_max_step": solver_max_step,
         },
         "rates": rates,
         "tlist": tlist,

@@ -1,0 +1,11 @@
+pulse_type,nbar,alpha_final_abs,residual_spin_motion_infidelity,entangling_angle_infidelity,model
+standard,0.01,1.100576017491787e-13,0.0,2.042810365310288e-14,first_order_component_isolation
+standard,1.0,1.100576017491787e-13,0.0,2.042810365310288e-14,first_order_component_isolation
+standard,2.0,1.100576017491787e-13,0.0,2.042810365310288e-14,first_order_component_isolation
+standard,3.0,1.100576017491787e-13,0.0,2.042810365310288e-14,first_order_component_isolation
+standard,4.0,1.100576017491787e-13,0.0,2.042810365310288e-14,first_order_component_isolation
+smooth_detuning,0.01,0.0001405285612222253,3.222918532053143e-08,3.8632774757019206e-10,first_order_component_isolation
+smooth_detuning,1.0,0.0001405285612222253,9.479171292348099e-08,3.8632774757019206e-10,first_order_component_isolation
+smooth_detuning,2.0,0.0001405285612222253,1.5798617281070904e-07,3.8632774757019206e-10,first_order_component_isolation
+smooth_detuning,3.0,0.0001405285612222253,2.211806201524169e-07,3.8632774757019206e-10,first_order_component_isolation
+smooth_detuning,4.0,0.0001405285612222253,2.843750550596269e-07,3.8632774757019206e-10,first_order_component_isolation

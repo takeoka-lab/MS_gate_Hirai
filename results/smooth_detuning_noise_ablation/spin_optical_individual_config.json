@@ -1,0 +1,19 @@
+{
+  "noise_cases": [
+    "spin_dephasing_only",
+    "photon_scattering_only"
+  ],
+  "nbar_values": [
+    0.01,
+    1.0,
+    2.0,
+    3.0,
+    4.0
+  ],
+  "scattering_model": "constant_rate",
+  "spin_dephasing_T2_star_s": 0.3,
+  "rayleigh_rate_per_s": 3.0,
+  "raman_rate_per_s": 1.0,
+  "individual_error_definition": "I(noise_only) - I(none)",
+  "caveat": "Single-noise increments do not include cross terms and need not sum to the all-noise infidelity."
+}

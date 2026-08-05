@@ -1,0 +1,11 @@
+{
+  "delta_min_hz": 22245.459873243974,
+  "F_avg_noise_free_analytic": 0.9999999673844867,
+  "xx_angle_rad": 0.7854201386086438,
+  "entangling_angle_error_rad": 2.1975211195512934e-05,
+  "alpha_final_abs": 0.00014052856122202852,
+  "alpha_max_abs": 0.13533287374806435,
+  "alpha2_integral": 2.387006373693607e-06,
+  "gate_time_s": 0.0002258,
+  "integrated_omega2": 312029.51724793983
+}
