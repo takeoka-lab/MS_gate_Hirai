@@ -1,6 +1,6 @@
 {
-  "generated_at_timezone": "2026-08-05T14:31:25.971898+09:00",
-  "notebook": "/Users/hirainoa/Desktop/量子/project/Moon_shot__高橋PJ/MS_gate_Hirai/chi_error_element_nbar_fit.ipynb",
+  "generated_at_timezone": "2026-08-10T17:34:06.997505+09:00",
+  "notebook": "/workspace/chi_error_element_nbar_fit.ipynb",
   "simulation_parameters": {
     "A": 0.125,
     "delta": 0.5,
@@ -139,28 +139,28 @@
     "bootstrap_seed": 20260805
   },
   "publication_run_flags": {
-    "exact_full_chi_sweep": false,
-    "numerical_convergence": false,
-    "noise_source_ablation": false
+    "exact_full_chi_sweep": true,
+    "numerical_convergence": true,
+    "noise_source_ablation": true
   },
   "cache_status": {
     "target_element_points": 81,
     "pauli_diagonal_points": 81,
-    "exact_full_chi_points": 0,
+    "exact_full_chi_points": 81,
     "expected_sweep_points": 81,
-    "numerical_convergence_rows": 0,
-    "noise_ablation_attribution_rows": 0
+    "numerical_convergence_rows": 12,
+    "noise_ablation_attribution_rows": 80
   },
   "software_versions": {
-    "python": "3.9.6",
-    "numpy": "1.26.4",
-    "pandas": "2.2.2",
-    "scipy": "1.13.0",
-    "matplotlib": "3.8.4",
+    "python": "3.9.25",
+    "numpy": "2.0.2",
+    "pandas": "2.3.3",
+    "scipy": "1.13.1",
+    "matplotlib": "3.9.4",
     "qutip": "5.0.4"
   },
   "git": {
-    "commit": "d6e15b805c13fd78184e87a369c89b86a686add3",
-    "status_short": "M chi_heatmaps/exact_channel_chi_nbar_0p01.pdf\n M chi_heatmaps/exact_channel_chi_nbar_0p01.png\n M chi_heatmaps/exact_channel_chi_nbar_1p0.pdf\n M chi_heatmaps/exact_channel_chi_nbar_1p0.png\n M chi_heatmaps/exact_channel_chi_nbar_2p0.pdf\n M chi_heatmaps/exact_channel_chi_nbar_2p0.png\n M chi_heatmaps/exact_channel_chi_nbar_3p0.pdf\n M chi_heatmaps/exact_channel_chi_nbar_3p0.png\n M chi_heatmaps/post_gate_noise_chi_identity_removed_display_nbar_0p01.pdf\n M chi_heatmaps/post_gate_noise_chi_identity_removed_display_nbar_0p01.png\n M chi_heatmaps/post_gate_noise_chi_identity_removed_display_nbar_1p0.pdf\n M chi_heatmaps/post_gate_noise_chi_identity_removed_display_nbar_1p0.png\n M chi_heatmaps/post_gate_noise_chi_identity_removed_display_nbar_2p0.pdf\n M chi_heatmaps/post_gate_noise_chi_identity_removed_display_nbar_2p0.png\n M chi_heatmaps/post_gate_noise_chi_identity_removed_display_nbar_3p0.pdf\n M chi_heatmaps/post_gate_noise_chi_identity_removed_display_nbar_3p0.png\n M main.ipynb\n M ms_gate_functions.py\n D note.tex\n D out/note.dvi\n D out/note.pdf\n D out/note.synctex.gz\n D paper/Context-aware_gate_set_tomography-Improving_the_self-consistent_characterization_of_trapped-ion_universal_gate_sets_by_leveraging_non-Markovianity.pdf\n M pauli_twirled_error_probabilities.csv\n M pyproject.toml\n?? LASER_PULSE_OPTIMIZATION.md\n?? chi_error_element_nbar_fit.ipynb\n?? laser_pulse_optimization.py\n?? laser_pulse_optimization_outputs/\n?? results/chi_error_element_fit/\n?? results/smooth_detuning_comparison/\n?? results/smooth_detuning_nbar_sweep/\n?? results/smooth_detuning_noise_ablation/\n?? smooth_detuning_analysis.py\n?? smooth_detuning_laser_MS_comparison.ipynb\n?? smooth_detuning_noise_ablation.ipynb\n?? test_laser_pulse_optimization.py\n?? test_smooth_detuning_analysis.py"
+    "commit": "10bd2d072b464ca8bffcbcd10b7b3f49014bc4fa",
+    "status_short": "M results/chi_error_element_fit/fit_bootstrap_95ci.pdf\n M results/chi_error_element_fit/fit_bootstrap_95ci.png\n M results/chi_error_element_fit/fit_bootstrap_95ci_curves.csv\n M results/chi_error_element_fit/fit_bootstrap_coefficient_95ci.csv\n M results/chi_error_element_fit/fit_model_comparison_aicc_bic_cv.csv\n M results/chi_error_element_fit/fit_selected_models_publication.csv"
   }
 }
