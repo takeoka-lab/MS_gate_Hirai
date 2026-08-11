@@ -269,6 +269,7 @@ if not drive_amplitude_prediction_df.empty:
 
 QPT_CODE = r"""
 import hashlib
+import importlib
 import json
 import os
 import time
@@ -280,10 +281,15 @@ import pandas as pd
 import scipy.linalg
 import scipy.optimize
 
+import drive_calibration_qpt_analysis as dcqa
+dcqa = importlib.reload(dcqa)
+
 # Cell 31を飛ばしてもキャッシュ生成と既定並列数が壊れないようにする。
 ERROR_CHANNEL_CONVENTION = globals().get(
     "ERROR_CHANNEL_CONVENTION", "undo_before_actual"
 )
+CPTP_TOLERANCE = float(globals().get("CPTP_TOLERANCE", 1e-11))
+CPTP_MAX_ITERATIONS = int(globals().get("CPTP_MAX_ITERATIONS", 5000))
 if "FAST_PROCESS_WORKERS" not in globals():
     available_cores = os.cpu_count() or 1
     FAST_PROCESS_WORKERS = int(os.environ.get(
@@ -306,44 +312,12 @@ def _drive_calibration_nbar_stem(n_bar):
 
 
 def generator_observables_from_trace_normalized_chi(chi):
-    # CPTP-project one QPT result and extract hXX/gammaXX consistently.
-    projected_super, _, projected_chi, projection_status = (
-        project_chi_point_to_cptp({"chi": np.asarray(chi, dtype=complex)})
+    # Cell 33/35に依存せず、同一規約でCPTP射影とgenerator分解を行う。
+    return dcqa.extract_xx_generator_observables(
+        chi,
+        cptp_tolerance=CPTP_TOLERANCE,
+        cptp_max_iterations=CPTP_MAX_ITERATIONS,
     )
-    ptm = np.asarray(mg.superoperator_to_ptm(projected_super), dtype=complex)
-    generator_complex = scipy.linalg.logm(ptm)
-    generator = np.real(generator_complex)
-    skew_generator = 0.5 * (generator - generator.T)
-    h_coefficients = np.linalg.lstsq(
-        hamiltonian_design, skew_generator.reshape(-1), rcond=None
-    )[0]
-    h_fit = sum(
-        coefficient * HAMILTONIAN_GENERATOR_BASES[label]
-        for label, coefficient in zip(PAULI_LABELS[1:], h_coefficients)
-    )
-    symmetric_remaining = 0.5 * (
-        (generator - h_fit) + (generator - h_fit).T
-    )
-    gamma_coefficients, gamma_residual = scipy.optimize.nnls(
-        dissipator_design, symmetric_remaining.reshape(-1)
-    )
-    h_xx = float(h_coefficients[PAULI_LABELS[1:].index("XX")])
-    gamma_xx = float(gamma_coefficients[PAULI_LABELS[1:].index("XX")])
-    return {
-        "h_XX_rad_per_gate": h_xx,
-        "gamma_XX_per_gate": gamma_xx,
-        "average_infidelity": average_infidelity_from_trace_normalized_chi(
-            projected_chi
-        ),
-        "abs_chi_II_XX": float(abs(projected_chi[II_INDEX, XX_INDEX])),
-        "chi_XX_XX": float(np.real(projected_chi[XX_INDEX, XX_INDEX])),
-        "generator_imaginary_frobenius_norm": float(
-            np.linalg.norm(np.imag(generator_complex))
-        ),
-        "gamma_nnls_residual": float(gamma_residual),
-        "cptp_projection_iterations": int(projection_status["iterations"]),
-        "projected_chi": projected_chi,
-    }
 
 
 def drive_feedback_cache_path(n_bar, iteration, amplitude):
@@ -413,13 +387,15 @@ if not drive_amplitude_prediction_df.empty:
                     f"A={next_amplitude:.8f}, workers={FAST_PROCESS_WORKERS}"
                 )
                 started_at = time.perf_counter()
-                qpt_result = calculate_error_channel_batch(
+                qpt_result = dcqa.calculate_error_channel_batch(
                     [n_bar],
+                    SIMULATION_PARAMS,
                     {
                         "A": next_amplitude,
                         "parallel_workers": FAST_PROCESS_WORKERS,
                         "show_progress": False,
                     },
+                    convention=ERROR_CHANNEL_CONVENTION,
                 )[0]
                 qpt_result["metadata"].update({
                     "calibration_method": "hxx_quadratic_feedback",
@@ -429,7 +405,7 @@ if not drive_amplitude_prediction_df.empty:
                     "A_calibrated": next_amplitude,
                     "A_factor": amplitude_factor,
                 })
-                save_advanced_qpt_point(
+                dcqa.save_qpt_point(
                     cache_path,
                     n_bar,
                     f"hxx_feedback_iteration_{iteration}",
