@@ -268,6 +268,43 @@ if not drive_amplitude_prediction_df.empty:
 
 
 QPT_CODE = r"""
+import hashlib
+import json
+import os
+import time
+import warnings
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import scipy.linalg
+import scipy.optimize
+
+# Cell 31を飛ばしてもキャッシュ生成と既定並列数が壊れないようにする。
+ERROR_CHANNEL_CONVENTION = globals().get(
+    "ERROR_CHANNEL_CONVENTION", "undo_before_actual"
+)
+if "FAST_PROCESS_WORKERS" not in globals():
+    available_cores = os.cpu_count() or 1
+    FAST_PROCESS_WORKERS = int(os.environ.get(
+        "MS_GATE_WORKERS", max(1, min(available_cores - 1, 4))
+    ))
+
+
+def _drive_calibration_json_safe(value):
+    if isinstance(value, np.generic):
+        return value.item()
+    if isinstance(value, np.ndarray):
+        return value.tolist()
+    if isinstance(value, Path):
+        return str(value)
+    return str(value)
+
+
+def _drive_calibration_nbar_stem(n_bar):
+    return f"{float(n_bar):.12g}".replace("-", "m").replace(".", "p")
+
+
 def generator_observables_from_trace_normalized_chi(chi):
     # CPTP-project one QPT result and extract hXX/gammaXX consistently.
     projected_super, _, projected_chi, projection_status = (
@@ -326,10 +363,15 @@ def drive_feedback_cache_path(n_bar, iteration, amplitude):
         "convention": ERROR_CHANNEL_CONVENTION,
     }
     digest = hashlib.sha256(
-        json.dumps(payload, sort_keys=True, default=json_safe).encode("utf-8")
+        json.dumps(
+            payload,
+            sort_keys=True,
+            default=_drive_calibration_json_safe,
+        ).encode("utf-8")
     ).hexdigest()[:12]
     return DRIVE_CALIBRATION_QPT_DIR / (
-        f"hxx_feedback_i{int(iteration):02d}__nbar_{_safe_nbar_stem(n_bar)}__{digest}.npz"
+        f"hxx_feedback_i{int(iteration):02d}__nbar_"
+        f"{_drive_calibration_nbar_stem(n_bar)}__{digest}.npz"
     )
 
 
