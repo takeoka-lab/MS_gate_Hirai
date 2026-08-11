@@ -60,8 +60,47 @@ Kirchhoff–Wilhelm–Motzoi, PRX Quantum **6**, 010328 (2025) の Eqs. (32), (3
 
 
 PREDICTION_CODE = r"""
+from pathlib import Path
+import importlib
+import json
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from IPython.display import display
+
 import drive_amplitude_calibration as dac
 dac = importlib.reload(dac)
+
+# この節だけを再実行しても保存先と軽量な入力表を復元できるようにする。
+OUTPUT_DIR = Path(globals().get("OUTPUT_DIR", "results/chi_error_element_fit"))
+ADVANCED_DIR = Path(globals().get(
+    "ADVANCED_DIR", OUTPUT_DIR / "advanced_publication_validation"
+))
+ADVANCED_DIR.mkdir(parents=True, exist_ok=True)
+
+if "SIMULATION_PARAMS" not in globals():
+    manifest_path = OUTPUT_DIR / "publication_reproducibility_manifest.json"
+    if not manifest_path.exists():
+        raise RuntimeError(
+            "SIMULATION_PARAMS is unavailable. Run Cells 2-4 first, or generate "
+            "publication_reproducibility_manifest.json by running the notebook above."
+        )
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    SIMULATION_PARAMS = manifest["simulation_parameters"]
+    print(f"Loaded SIMULATION_PARAMS from {manifest_path}")
+
+if "generator_df" not in globals():
+    generator_summary_path = (
+        ADVANCED_DIR / "error_generator" / "error_generator_summary.csv"
+    )
+    if not generator_summary_path.exists():
+        raise RuntimeError(
+            "generator_df is unavailable. Run Cell 35 first, or generate "
+            "error_generator_summary.csv by running the notebook above."
+        )
+    generator_df = pd.read_csv(generator_summary_path)
+    print(f"Loaded generator_df from {generator_summary_path}")
 
 DRIVE_CALIBRATION_DIR = ADVANCED_DIR / "hxx_drive_amplitude_calibration"
 DRIVE_CALIBRATION_QPT_DIR = DRIVE_CALIBRATION_DIR / "qpt_cache"
