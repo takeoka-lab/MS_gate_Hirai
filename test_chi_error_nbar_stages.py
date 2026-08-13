@@ -42,3 +42,10 @@ def test_robustness_stage_defines_nine_nonbaseline_conditions():
 def test_kirchhoff_direct_comparison_requires_a_physical_reference():
     with pytest.raises(ValueError, match="mode_frequency_hz or reference_k"):
         stages.run_kirchhoff_direct_comparison_stage(workflow.default_config())
+
+
+def test_default_control_and_robustness_nbar_ranges_are_low_temperature():
+    config = workflow.default_config()
+    expected = [0.01, 1.0, 2.0, 3.0, 4.0]
+    assert config["CONTROL_VALIDATION_NBARS"] == expected
+    assert config["ROBUSTNESS_NBARS"] == expected

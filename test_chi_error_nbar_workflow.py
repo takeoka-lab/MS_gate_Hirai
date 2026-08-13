@@ -61,3 +61,7 @@ def test_notebook_contains_configuration_calls_but_no_function_definitions():
         "independent-control",
         "independent-robustness",
     } <= cell_ids
+    assert "CONTROL_QPT_NBARS = [0.01, 1.0, 2.0, 3.0, 4.0]" in code
+    assert "ROBUSTNESS_QPT_NBARS = [0.01, 1.0, 2.0, 3.0, 4.0]" in code
+    assert "SHOW_CONTROL_PROGRESS = True" in code
+    assert "SHOW_ROBUSTNESS_PROGRESS = True" in code

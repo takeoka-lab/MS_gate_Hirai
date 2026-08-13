@@ -1,8 +1,8 @@
 {
-  "generated_at_timezone": "2026-08-11T16:21:12.565692+09:00",
+  "generated_at_timezone": "2026-08-13T19:08:35.672579+09:00",
   "machine": {
-    "physical_cores": 24,
-    "memory_gib": 503.1185302734375,
+    "physical_cores": 8,
+    "memory_gib": 16.0,
     "qpt_process_workers": 4
   },
   "flags": {
@@ -19,12 +19,12 @@
   },
   "qpt_completion": {
     "physical_control_points": 0,
-    "physical_control_expected": 33,
-    "hxx_drive_calibration_temperatures": 1,
+    "physical_control_expected": 55,
+    "hxx_drive_calibration_temperatures": 7,
     "hxx_drive_calibration_expected": 10,
-    "hxx_drive_calibration_converged": 1,
+    "hxx_drive_calibration_converged": 7,
     "robustness_points": 0,
-    "robustness_expected": 27
+    "robustness_expected": 45
   },
   "checklist": [
     {
@@ -50,17 +50,17 @@
     {
       "check": "hXX-derived drive calibration re-QPT",
       "status": "pending",
-      "result": "1/10 temperatures re-QPT; 1 with |h_XX| <= 2.0e-03 rad/gate"
+      "result": "7/10 temperatures re-QPT; 7 with |h_XX| <= 2.0e-03 rad/gate"
     },
     {
       "check": "Physical-control re-QPT",
       "status": "pending",
-      "result": "0/33 non-baseline QPT points"
+      "result": "0/55 non-baseline QPT points"
     },
     {
       "check": "Parameter robustness re-QPT",
       "status": "pending",
-      "result": "0/27 non-baseline QPT points"
+      "result": "0/45 non-baseline QPT points"
     },
     {
       "check": "Thermal physical-model comparison",

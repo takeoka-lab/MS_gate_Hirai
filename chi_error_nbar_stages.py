@@ -18,6 +18,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+try:
+    from tqdm.auto import tqdm
+except ImportError:  # pragma: no cover - minimal environments use plain iteration
+    def tqdm(iterable, **_kwargs):
+        return iterable
+
 import drive_amplitude_calibration as amplitude_calibration
 import drive_calibration_qpt_analysis as qpt_analysis
 import ms_gate_functions as mg
@@ -645,6 +651,7 @@ def run_physical_control_stage(
     *,
     run_qpt: bool = False,
     force_recompute: bool = False,
+    show_progress: bool = True,
     amplitude_factors=(0.95, 1.00, 1.05, 1.10, 1.15, 1.20),
     gate_time_factors=(0.97, 1.03),
     detuning_factors=(0.97, 1.03),
@@ -664,7 +671,15 @@ def run_physical_control_stage(
     )
     pending = []
 
-    for candidate in candidates:
+    candidate_iterator = tqdm(
+        candidates,
+        desc="Physical controls",
+        unit="control",
+        disable=not show_progress,
+    )
+    for candidate in candidate_iterator:
+        if show_progress and hasattr(candidate_iterator, "set_postfix_str"):
+            candidate_iterator.set_postfix_str(candidate["name"])
         missing = [
             n_bar
             for n_bar in selected_nbars
@@ -677,7 +692,9 @@ def run_physical_control_stage(
             overrides = dict(candidate["overrides"])
             overrides.update({
                 "parallel_workers": int(config.get("FAST_PROCESS_WORKERS", 4)),
-                "show_progress": False,
+                # ms_gate_functions displays evolution-level progress for the
+                # five nbar points within the current control candidate.
+                "show_progress": bool(show_progress),
             })
             for result in qpt_analysis.calculate_error_channel_batch(
                 missing,
@@ -837,6 +854,7 @@ def run_parameter_robustness_stage(
     *,
     run_qpt: bool = False,
     force_recompute: bool = False,
+    show_progress: bool = True,
     eta_factors=(0.8, 1.2),
     a_over_delta_factors=(0.9, 1.1),
     gate_time_factors=(0.95, 1.05),
@@ -857,7 +875,15 @@ def run_parameter_robustness_stage(
     )
     pending = []
 
-    for condition in conditions:
+    condition_iterator = tqdm(
+        conditions,
+        desc="Parameter robustness",
+        unit="condition",
+        disable=not show_progress,
+    )
+    for condition in condition_iterator:
+        if show_progress and hasattr(condition_iterator, "set_postfix_str"):
+            condition_iterator.set_postfix_str(condition["name"])
         missing = [
             n_bar
             for n_bar in selected_nbars
@@ -870,7 +896,9 @@ def run_parameter_robustness_stage(
             overrides = dict(condition["overrides"])
             overrides.update({
                 "parallel_workers": int(config.get("FAST_PROCESS_WORKERS", 4)),
-                "show_progress": False,
+                # ms_gate_functions displays evolution-level progress for the
+                # five nbar points within the current robustness condition.
+                "show_progress": bool(show_progress),
             })
             for result in qpt_analysis.calculate_error_channel_batch(
                 missing,

@@ -143,8 +143,8 @@ CONFIG.update({
     "FORCE_RECOMPUTE_ADVANCED_QPT": False,
     "RUN_PHYSICAL_CONTROL_QPT": False,
     "RUN_PARAMETER_ROBUSTNESS_QPT": False,
-    "CONTROL_VALIDATION_NBARS": [0.01, 4.0, 20.0],
-    "ROBUSTNESS_NBARS": [0.01, 4.0, 20.0],
+    "CONTROL_VALIDATION_NBARS": [0.01, 1.0, 2.0, 3.0, 4.0],
+    "ROBUSTNESS_NBARS": [0.01, 1.0, 2.0, 3.0, 4.0],
 })
 """,
     ),
@@ -250,15 +250,16 @@ else:
         r"""
 ## 8. 独立実行：他の物理制御との比較
 
-固定drive scan、gate time、detuning、$\sin^2$ pulse、Blackman pulseを同じfull-Hamiltonian QPTとCPTP指標で比較します。既定条件は11候補×3温度=33点です。
+固定drive scan、gate time、detuning、$\sin^2$ pulse、Blackman pulseを同じfull-Hamiltonian QPTとCPTP指標で比較します。既定条件は11候補×5温度=55点です。候補全体と各候補内のQPT evolutionを2段のprogress barで表示します。
 """,
     ),
     _code(
         "independent-control",
         r"""
-CONTROL_QPT_NBARS = [0.01, 4.0, 20.0]
+CONTROL_QPT_NBARS = [0.01, 1.0, 2.0, 3.0, 4.0]
 RUN_CONTROL_QPT = False
 FORCE_CONTROL_QPT = False
+SHOW_CONTROL_PROGRESS = True
 
 DRIVE_AMPLITUDE_FACTORS = [0.95, 1.00, 1.05, 1.10, 1.15, 1.20]
 GATE_TIME_FACTORS = [0.97, 1.03]
@@ -270,6 +271,7 @@ PHYSICAL_CONTROL_RESULT = stages.run_physical_control_stage(
     CONTROL_QPT_NBARS,
     run_qpt=RUN_CONTROL_QPT,
     force_recompute=FORCE_CONTROL_QPT,
+    show_progress=SHOW_CONTROL_PROGRESS,
     amplitude_factors=DRIVE_AMPLITUDE_FACTORS,
     gate_time_factors=GATE_TIME_FACTORS,
     detuning_factors=DETUNING_FACTORS,
@@ -285,15 +287,16 @@ display(PHYSICAL_CONTROL_RESULT["best"])
         r"""
 ## 9. 独立実行：パラメータ頑健性
 
-$\eta$、$A/\delta$、gate time、motional dephasing rateを個別に変更し、$h_{XX}$、$\gamma_{XX}$、average infidelityを再評価します。既定条件は9条件×3温度=27点です。
+$\eta$、$A/\delta$、gate time、motional dephasing rateを個別に変更し、$h_{XX}$、$\gamma_{XX}$、average infidelityを再評価します。既定条件は9条件×5温度=45点です。条件全体と各条件内のQPT evolutionを2段のprogress barで表示します。
 """,
     ),
     _code(
         "independent-robustness",
         r"""
-ROBUSTNESS_QPT_NBARS = [0.01, 4.0, 20.0]
+ROBUSTNESS_QPT_NBARS = [0.01, 1.0, 2.0, 3.0, 4.0]
 RUN_ROBUSTNESS_QPT = False
 FORCE_ROBUSTNESS_QPT = False
+SHOW_ROBUSTNESS_PROGRESS = True
 
 ETA_FACTORS = [0.8, 1.2]
 A_OVER_DELTA_FACTORS = [0.9, 1.1]
@@ -305,6 +308,7 @@ ROBUSTNESS_RESULT = stages.run_parameter_robustness_stage(
     ROBUSTNESS_QPT_NBARS,
     run_qpt=RUN_ROBUSTNESS_QPT,
     force_recompute=FORCE_ROBUSTNESS_QPT,
+    show_progress=SHOW_ROBUSTNESS_PROGRESS,
     eta_factors=ETA_FACTORS,
     a_over_delta_factors=A_OVER_DELTA_FACTORS,
     gate_time_factors=ROBUSTNESS_GATE_TIME_FACTORS,
