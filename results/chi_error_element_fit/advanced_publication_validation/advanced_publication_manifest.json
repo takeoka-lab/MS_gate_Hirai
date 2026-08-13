@@ -1,8 +1,8 @@
 {
-  "generated_at_timezone": "2026-08-13T23:29:57.000917+09:00",
+  "generated_at_timezone": "2026-08-14T01:29:24.630315+09:00",
   "machine": {
-    "physical_cores": 24,
-    "memory_gib": 503.11855697631836,
+    "physical_cores": 8,
+    "memory_gib": 16.0,
     "qpt_process_workers": 24
   },
   "flags": {
@@ -20,9 +20,9 @@
   "qpt_completion": {
     "physical_control_points": 7,
     "physical_control_expected": 55,
-    "hxx_drive_calibration_temperatures": 8,
+    "hxx_drive_calibration_temperatures": 10,
     "hxx_drive_calibration_expected": 10,
-    "hxx_drive_calibration_converged": 8,
+    "hxx_drive_calibration_converged": 10,
     "robustness_points": 0,
     "robustness_expected": 45
   },
@@ -49,8 +49,8 @@
     },
     {
       "check": "hXX-derived drive calibration re-QPT",
-      "status": "pending",
-      "result": "8/10 temperatures re-QPT; 8 with |h_XX| <= 2.0e-03 rad/gate"
+      "status": "complete",
+      "result": "10/10 temperatures re-QPT; 10 with |h_XX| <= 2.0e-03 rad/gate"
     },
     {
       "check": "Physical-control re-QPT",

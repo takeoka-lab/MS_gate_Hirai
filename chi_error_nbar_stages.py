@@ -14,6 +14,8 @@ import time
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -27,6 +29,7 @@ except ImportError:  # pragma: no cover - minimal environments use plain iterati
 import drive_amplitude_calibration as amplitude_calibration
 import drive_calibration_qpt_analysis as qpt_analysis
 import ms_gate_functions as mg
+import phonon_xx_angle_analysis as phonon_angle
 
 
 def _paths(config: Mapping[str, Any]) -> dict[str, Path]:
@@ -42,6 +45,7 @@ def _paths(config: Mapping[str, Any]) -> dict[str, Path]:
         "generator": advanced / "error_generator",
         "drive": drive,
         "drive_qpt": drive / "qpt_cache",
+        "fock_angle": advanced / "fock_resolved_xx_angle",
         "control": control,
         "robustness": robustness,
     }
@@ -156,6 +160,53 @@ def _drive_cache_path(
     )
 
 
+def _resolve_drive_cache_path(
+    paths: Mapping[str, Path],
+    config: Mapping[str, Any],
+    n_bar: float,
+    iteration: int,
+    amplitude: float,
+) -> Path:
+    """Find a drive cache even if CSV float round-tripping changed its hash.
+
+    The historical filename digest contains the full-precision amplitude.
+    Reading the baseline generator through CSV can perturb the final binary
+    digit and consequently produce a different digest for the same physical
+    point.  Metadata matching makes cache lookup insensitive to that harmless
+    serialization difference.
+    """
+
+    exact_path = _drive_cache_path(
+        paths, config, n_bar, iteration, amplitude
+    )
+    if exact_path.exists():
+        return exact_path
+    pattern = (
+        f"hxx_feedback_i{int(iteration):02d}__nbar_"
+        f"{_compact_nbar_stem(n_bar)}__*.npz"
+    )
+    for candidate in sorted(paths["drive_qpt"].glob(pattern)):
+        try:
+            with np.load(candidate, allow_pickle=False) as data:
+                cached_n_bar = float(np.asarray(data["n_bar"]).item())
+                metadata = json.loads(
+                    str(np.asarray(data["metadata_json"]).item())
+                )
+            cached_amplitude = float(metadata["A_calibrated"])
+            cached_iteration = int(metadata.get("iteration", iteration))
+        except (KeyError, TypeError, ValueError, json.JSONDecodeError):
+            continue
+        if (
+            np.isclose(cached_n_bar, n_bar, rtol=0.0, atol=1e-12)
+            and cached_iteration == int(iteration)
+            and np.isclose(
+                cached_amplitude, amplitude, rtol=1e-12, atol=1e-14
+            )
+        ):
+            return candidate
+    return exact_path
+
+
 def _baseline_drive_rows(
     paths: Mapping[str, Path],
     config: Mapping[str, Any],
@@ -238,6 +289,87 @@ def _plot_drive_summary(frame: pd.DataFrame, output_dir: Path) -> None:
     plt.close(figure)
 
 
+def _refresh_drive_completion_artifacts(
+    paths: Mapping[str, Path],
+    config: Mapping[str, Any],
+    summary: pd.DataFrame,
+) -> dict[str, Any]:
+    """Synchronize the publication checklist with the current drive summary."""
+
+    expected_nbars = [
+        float(value)
+        for value in config.get(
+            "HXX_DRIVE_CALIBRATION_NBARS",
+            summary.get("n_bar", pd.Series(dtype=float)).tolist(),
+        )
+    ]
+    completed = 0
+    converged = 0
+    if not summary.empty:
+        for n_bar in expected_nbars:
+            match = summary.loc[
+                np.isclose(summary["n_bar"].astype(float), n_bar)
+            ]
+            if match.empty:
+                continue
+            completed += 1
+            if bool(match.iloc[-1].get("h_XX_converged", False)):
+                converged += 1
+
+    expected = len(expected_nbars)
+    tolerance = float(config.get("HXX_CONVERGENCE_TOL_RAD", 2e-3))
+    row = {
+        "check": "hXX-derived drive calibration re-QPT",
+        "status": "complete" if completed >= expected else "pending",
+        "result": (
+            f"{completed}/{expected} temperatures re-QPT; "
+            f"{converged} with |h_XX| <= {tolerance:.1e} rad/gate"
+        ),
+    }
+
+    checklist_path = paths["advanced"] / "advanced_publication_checklist.csv"
+    if checklist_path.exists():
+        checklist = pd.read_csv(checklist_path)
+        mask = checklist["check"] == row["check"]
+        if mask.any():
+            for key in ("status", "result"):
+                checklist.loc[mask, key] = row[key]
+        else:
+            checklist = pd.concat(
+                [checklist, pd.DataFrame([row])], ignore_index=True
+            )
+        checklist.to_csv(checklist_path, index=False)
+    else:
+        checklist = pd.DataFrame([row])
+
+    manifest_path = paths["advanced"] / "advanced_publication_manifest.json"
+    if manifest_path.exists():
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        completion = manifest.setdefault("qpt_completion", {})
+        completion.update({
+            "hxx_drive_calibration_temperatures": int(completed),
+            "hxx_drive_calibration_expected": int(expected),
+            "hxx_drive_calibration_converged": int(converged),
+        })
+        manifest["checklist"] = checklist.to_dict(orient="records")
+        manifest["generated_at_timezone"] = pd.Timestamp.now(
+            tz="Asia/Tokyo"
+        ).isoformat()
+        manifest_path.write_text(
+            json.dumps(manifest, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+
+    return {
+        "completed_count": completed,
+        "expected_count": expected,
+        "converged_count": converged,
+        "checklist_row": row,
+        "checklist_path": checklist_path,
+        "manifest_path": manifest_path,
+    }
+
+
 def run_drive_feedback_stage(
     config: Mapping[str, Any],
     nbar_values: Iterable[float],
@@ -261,6 +393,44 @@ def run_drive_feedback_stage(
     convergence_tolerance = float(
         config.get("HXX_CONVERGENCE_TOL_RAD", 2e-3)
     )
+    final_summary_path = (
+        paths["drive"] / "hxx_drive_calibration_final_summary.csv"
+    )
+    iterations_path = paths["drive"] / "hxx_drive_feedback_qpt_iterations.csv"
+    if not run_qpt and not force_recompute and final_summary_path.exists():
+        cached_summary = pd.read_csv(final_summary_path).sort_values(
+            "n_bar"
+        ).reset_index(drop=True)
+        has_every_requested_point = all(
+            np.isclose(
+                cached_summary["n_bar"].astype(float), n_bar
+            ).any()
+            for n_bar in selected_nbars
+        )
+        if has_every_requested_point:
+            cached_iterations = (
+                pd.read_csv(iterations_path)
+                if iterations_path.exists()
+                else pd.DataFrame()
+            )
+            status = {
+                "requested_nbars": selected_nbars,
+                "completed_nbars": sorted(set(selected_nbars)),
+                "completed_count": len(set(selected_nbars)),
+                "expected_count": len(selected_nbars),
+                "pending": [],
+                "run_qpt": False,
+                "loaded_final_summary_cache": True,
+            }
+            completion = _refresh_drive_completion_artifacts(
+                paths, config, cached_summary
+            )
+            status["publication_completion"] = completion
+            return {
+                "iterations": cached_iterations,
+                "summary": cached_summary,
+                "status": status,
+            }
     max_amplitude_factor = float(config.get("HXX_MAX_AMPLITUDE_FACTOR", 1.6))
     base_amplitude = float(np.asarray(params["A"]))
     rows = []
@@ -286,7 +456,7 @@ def run_drive_feedback_stage(
                     f"n_bar={n_bar:g}: A/A0={amplitude_factor:.4f} exceeds "
                     f"HXX_MAX_AMPLITUDE_FACTOR={max_amplitude_factor:.4f}"
                 )
-            cache_path = _drive_cache_path(
+            cache_path = _resolve_drive_cache_path(
                 paths,
                 config,
                 n_bar,
@@ -356,7 +526,6 @@ def run_drive_feedback_stage(
             if abs(current_h_xx) <= convergence_tolerance:
                 break
 
-    iterations_path = paths["drive"] / "hxx_drive_feedback_qpt_iterations.csv"
     existing = (
         pd.read_csv(iterations_path)
         if iterations_path.exists() and not force_recompute
@@ -409,10 +578,7 @@ def run_drive_feedback_stage(
             np.abs(summary["h_XX_after_rad_per_gate"])
             <= convergence_tolerance
         )
-        summary.to_csv(
-            paths["drive"] / "hxx_drive_calibration_final_summary.csv",
-            index=False,
-        )
+        summary.to_csv(final_summary_path, index=False)
         _plot_drive_summary(summary, paths["drive"])
 
     selected_completed = sorted(
@@ -427,7 +593,239 @@ def run_drive_feedback_stage(
         "pending": pending,
         "run_qpt": bool(run_qpt),
     }
+    completion = _refresh_drive_completion_artifacts(
+        paths, config, summary
+    )
+    status["publication_completion"] = completion
     return {"iterations": iterations, "summary": summary, "status": status}
+
+
+def run_fock_xx_angle_stage(
+    config: Mapping[str, Any],
+    reference_nbars: Iterable[float],
+    *,
+    thermal_tail_tolerance: float = 1e-5,
+    max_fock_n: int | None = None,
+    plot_max_fock_n: int = 80,
+    phonon_buffer: int = 24,
+    force_recompute: bool = False,
+    show_progress: bool = True,
+) -> dict[str, Any]:
+    """Resolve the XX angle by initial Fock number and thermally average it.
+
+    This is a noise-free conditional-branch calculation, not another QPT
+    sweep.  It therefore isolates the thermal Hamiltonian mechanism and then
+    compares its prediction with the existing noisy full-Hamiltonian QPT.
+    """
+
+    paths = _paths(config)
+    params = _simulation_params(config)
+    target_angle = float(config.get("TARGET_XX_ANGLE_RAD", np.pi / 4.0))
+    selected_nbars = sorted({float(value) for value in reference_nbars})
+    if not selected_nbars:
+        raise ValueError("reference_nbars must contain at least one value")
+    if min(selected_nbars) < 0.0:
+        raise ValueError("reference_nbars must be non-negative")
+    if max_fock_n is None:
+        resolved_max_fock_n = max(
+            phonon_angle.required_fock_cutoff(
+                n_bar, thermal_tail_tolerance
+            )
+            for n_bar in selected_nbars
+        )
+    else:
+        resolved_max_fock_n = int(max_fock_n)
+
+    drive_path = paths["drive"] / "hxx_drive_calibration_final_summary.csv"
+    if not drive_path.exists():
+        raise FileNotFoundError(
+            f"Missing {drive_path}. Run the drive calibration cell first."
+        )
+    drive_summary = pd.read_csv(drive_path)
+    missing_drive_nbars = [
+        n_bar
+        for n_bar in selected_nbars
+        if not np.isclose(
+            drive_summary["n_bar"].astype(float), n_bar
+        ).any()
+    ]
+    if missing_drive_nbars:
+        # The main workflow may have overwritten the summary with only the
+        # exact-hash hits.  Rebuild it from all existing metadata-matched QPT
+        # caches before rejecting the Fock analysis request.
+        rebuilt = run_drive_feedback_stage(
+            config,
+            config.get(
+                "HXX_DRIVE_CALIBRATION_NBARS", selected_nbars
+            ),
+            run_qpt=False,
+            force_recompute=False,
+        )
+        drive_summary = rebuilt["summary"]
+    conditions = [{
+        "condition": "baseline",
+        "label": "baseline rectangular",
+        "calibration_n_bar": np.nan,
+        "amplitude": float(np.asarray(params["A"])),
+    }]
+    for n_bar in selected_nbars:
+        match = drive_summary.loc[
+            np.isclose(drive_summary["n_bar"].astype(float), n_bar)
+        ]
+        if match.empty:
+            raise ValueError(
+                f"No completed drive-calibration row for n_bar={n_bar:g}"
+            )
+        conditions.append({
+            "condition": f"drive_calibrated_nbar_{_compact_nbar_stem(n_bar)}",
+            "label": rf"$h_{{XX}}$ calibrated at $\bar n={n_bar:g}$",
+            "calibration_n_bar": n_bar,
+            "amplitude": float(match.iloc[-1]["A_calibrated"]),
+        })
+
+    cache_dir = paths["fock_angle"] / "cache"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    curve_frames = []
+    iterator = tqdm(
+        conditions,
+        desc="Fock-resolved XX curves",
+        unit="drive",
+        disable=not show_progress,
+    )
+    for condition in iterator:
+        signature = phonon_angle.fock_curve_signature(
+            params,
+            amplitude=condition["amplitude"],
+            max_fock_n=resolved_max_fock_n,
+            phonon_buffer=phonon_buffer,
+            target_xx_angle_rad=target_angle,
+        )
+        cache_path = cache_dir / (
+            f"{condition['condition']}__{signature}.npz"
+        )
+        if force_recompute or not cache_path.exists():
+            curve = phonon_angle.calculate_fock_resolved_xx_angles(
+                params,
+                amplitude=condition["amplitude"],
+                max_fock_n=resolved_max_fock_n,
+                phonon_buffer=phonon_buffer,
+                target_xx_angle_rad=target_angle,
+            )
+            phonon_angle.save_fock_curve(cache_path, curve)
+        else:
+            curve = phonon_angle.load_fock_curve(cache_path)
+        curve = curve.assign(
+            condition=condition["condition"],
+            label=condition["label"],
+            calibration_n_bar=condition["calibration_n_bar"],
+            amplitude=condition["amplitude"],
+            cache_path=str(cache_path),
+        )
+        curve_frames.append(curve)
+
+    curves = pd.concat(curve_frames, ignore_index=True)
+    curves_path = paths["fock_angle"] / "fock_resolved_xx_angle_curves.csv"
+    curves.to_csv(curves_path, index=False)
+
+    generator = _load_generator(paths)
+    summary_rows = []
+    for condition in conditions:
+        condition_curve = curves.loc[
+            curves["condition"] == condition["condition"]
+        ]
+        for thermal_n_bar in selected_nbars:
+            prediction = phonon_angle.summarize_thermal_xx_angle(
+                condition_curve, thermal_n_bar,
+                target_xx_angle_rad=target_angle,
+            )
+            is_baseline = condition["condition"] == "baseline"
+            is_matched = is_baseline or np.isclose(
+                float(condition["calibration_n_bar"]), thermal_n_bar
+            )
+            qpt_h_xx = np.nan
+            qpt_gamma_xx = np.nan
+            qpt_infidelity = np.nan
+            if is_baseline:
+                generator_match = generator.loc[
+                    np.isclose(generator["n_bar"].astype(float), thermal_n_bar)
+                ]
+                if not generator_match.empty:
+                    qpt_h_xx = float(
+                        generator_match.iloc[-1]["h_XX_rad_per_gate"]
+                    )
+                    qpt_gamma_xx = float(
+                        generator_match.iloc[-1]["gamma_XX_per_gate"]
+                    )
+                    baseline_chi = _load_cptp_chi(
+                        paths, thermal_n_bar
+                    )
+                    labels = [
+                        label for label, _ in mg.pauli_labels_and_weights()
+                    ]
+                    qpt_infidelity = 4.0 / 5.0 * (
+                        1.0
+                        - float(
+                            np.real(
+                                baseline_chi[
+                                    labels.index("II"), labels.index("II")
+                                ]
+                            )
+                        )
+                    )
+            elif is_matched:
+                calibrated_match = drive_summary.loc[
+                    np.isclose(
+                        drive_summary["n_bar"].astype(float), thermal_n_bar
+                    )
+                ]
+                if not calibrated_match.empty:
+                    calibrated_row = calibrated_match.iloc[-1]
+                    qpt_h_xx = float(
+                        calibrated_row["h_XX_after_rad_per_gate"]
+                    )
+                    qpt_gamma_xx = float(
+                        calibrated_row["gamma_XX_after_per_gate"]
+                    )
+                    qpt_infidelity = float(
+                        calibrated_row["average_infidelity_after"]
+                    )
+            summary_rows.append({
+                "condition": condition["condition"],
+                "label": condition["label"],
+                "calibration_n_bar": condition["calibration_n_bar"],
+                "amplitude": condition["amplitude"],
+                "is_matched_calibration": bool(is_matched),
+                **prediction,
+                "qpt_h_XX_rad_per_gate": qpt_h_xx,
+                "qpt_gamma_XX_per_gate": qpt_gamma_xx,
+                "qpt_average_infidelity": qpt_infidelity,
+            })
+
+    summary = pd.DataFrame(summary_rows)
+    summary_path = paths["fock_angle"] / "thermal_xx_angle_summary.csv"
+    summary.to_csv(summary_path, index=False)
+    figure_path = phonon_angle.plot_fock_angle_comparison(
+        curves,
+        summary,
+        output_dir=paths["fock_angle"],
+        plot_max_fock_n=plot_max_fock_n,
+        target_xx_angle_rad=target_angle,
+    )
+    matched = summary.loc[summary["is_matched_calibration"]].copy()
+    return {
+        "curves": curves,
+        "summary": summary,
+        "matched_summary": matched,
+        "figure_path": figure_path,
+        "curves_path": curves_path,
+        "summary_path": summary_path,
+        "status": {
+            "reference_nbars": selected_nbars,
+            "max_fock_n": resolved_max_fock_n,
+            "thermal_tail_tolerance": float(thermal_tail_tolerance),
+            "condition_count": len(conditions),
+        },
+    }
 
 
 def run_kirchhoff_direct_comparison_stage(

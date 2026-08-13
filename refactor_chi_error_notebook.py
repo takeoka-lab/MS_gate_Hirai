@@ -194,13 +194,13 @@ print("analysis completed")
         r"""
 ## 6. 独立実行：drive補正後のfull-Hamiltonian再QPT
 
-未完了の9温度点だけを対象にします。`RUN_DRIVE_RE_QPT=True`で計算し、完了済み点はキャッシュから自動的に飛ばします。
+10温度点を集計します。`RUN_DRIVE_RE_QPT=True`で不足点だけを計算し、完了済み点はキャッシュから自動的に読みます。実行後は論文用チェックリストも即座に更新されます。
 """,
     ),
     _code(
         "independent-drive-qpt",
         r"""
-DRIVE_RE_QPT_NBARS = [1.0, 2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 16.0, 20.0]
+DRIVE_RE_QPT_NBARS = list(CONFIG["HXX_DRIVE_CALIBRATION_NBARS"])
 RUN_DRIVE_RE_QPT = False
 FORCE_DRIVE_RE_QPT = False
 
@@ -217,9 +217,59 @@ if not DRIVE_RE_QPT_RESULT["summary"].empty:
 """,
     ),
     _markdown(
+        "independent-fock-xx-angle-intro",
+        r"""
+## 7. フォノン数ごとのXX角
+
+熱平均の $\bar n$ ではなく、各Fock状態 $|n\rangle$ から出発したときのXX角
+$\theta_{XX}^{(n)}=\tfrac12\arg\langle n|U_{S_x=+2}(T)|n\rangle$ を出します。
+$h_{XX}^{(n)}=\pi/4-\theta_{XX}^{(n)}$ です。この計算はLindbladノイズを外し、full-order Hamiltonianが生む熱的な角ずれと残留spin-motion entanglementを切り分けます。
+
+既定は代表的な低温・中間・高温の3校正振幅とbaselineの計4曲線です。`FOCK_ANGLE_REFERENCE_NBARS`を変えれば比較点を追加できます。
+""",
+    ),
+    _code(
+        "independent-fock-xx-angle",
+        r"""
+import importlib
+from IPython.display import Image
+
+stages = importlib.reload(stages)
+
+FOCK_ANGLE_REFERENCE_NBARS = [0.01, 4.0, 20.0]
+FOCK_THERMAL_TAIL_TOLERANCE = 1e-5
+FOCK_MAX_N = None  # None: 最大bar-nとtail toleranceから自動決定
+FOCK_PLOT_MAX_N = 80
+FOCK_PHONON_BUFFER = 24
+FORCE_FOCK_ANGLE_RECOMPUTE = False
+SHOW_FOCK_ANGLE_PROGRESS = True
+
+FOCK_XX_RESULT = stages.run_fock_xx_angle_stage(
+    CONFIG,
+    FOCK_ANGLE_REFERENCE_NBARS,
+    thermal_tail_tolerance=FOCK_THERMAL_TAIL_TOLERANCE,
+    max_fock_n=FOCK_MAX_N,
+    plot_max_fock_n=FOCK_PLOT_MAX_N,
+    phonon_buffer=FOCK_PHONON_BUFFER,
+    force_recompute=FORCE_FOCK_ANGLE_RECOMPUTE,
+    show_progress=SHOW_FOCK_ANGLE_PROGRESS,
+)
+print(FOCK_XX_RESULT["status"])
+display(FOCK_XX_RESULT["matched_summary"][[
+    "condition", "thermal_n_bar", "amplitude",
+    "effective_theta_xx_rad", "predicted_h_XX_rad_per_gate",
+    "gamma_XX_phase_dispersion_per_gate",
+    "gamma_XX_with_residual_motion_per_gate",
+    "qpt_h_XX_rad_per_gate", "qpt_gamma_XX_per_gate",
+    "thermal_tail_mass",
+]])
+display(Image(filename=str(FOCK_XX_RESULT["figure_path"])))
+""",
+    ),
+    _markdown(
         "independent-kirchhoff-intro",
         r"""
-## 7. 独立実行：Kirchhoff解析式との直接比較
+## 8. 独立実行：Kirchhoff解析式との直接比較
 
 `K=f_mode[Hz] * t_gate[s]`です。実機のmode周波数を設定するか、既知の`K`を直接設定してください。両方が`None`の場合は計算せず待機します。
 """,
@@ -248,7 +298,7 @@ else:
     _markdown(
         "independent-control-intro",
         r"""
-## 8. 独立実行：他の物理制御との比較
+## 9. 独立実行：他の物理制御との比較
 
 固定drive scan、gate time、detuning、$\sin^2$ pulse、Blackman pulseを同じfull-Hamiltonian QPTとCPTP指標で比較します。既定条件は11候補×5温度=55点です。候補全体と各候補内のQPT evolutionを2段のprogress barで表示します。
 """,
@@ -285,7 +335,7 @@ display(PHYSICAL_CONTROL_RESULT["best"])
     _markdown(
         "independent-robustness-intro",
         r"""
-## 9. 独立実行：パラメータ頑健性
+## 10. 独立実行：パラメータ頑健性
 
 $\eta$、$A/\delta$、gate time、motional dephasing rateを個別に変更し、$h_{XX}$、$\gamma_{XX}$、average infidelityを再評価します。既定条件は9条件×5温度=45点です。条件全体と各条件内のQPT evolutionを2段のprogress barで表示します。
 """,
@@ -321,7 +371,7 @@ display(ROBUSTNESS_RESULT["summary"])
     ),
     _markdown(
         "workflow-results-intro",
-        "## 10. 主要結果\n\n詳細なCSV・PNG・PDFは`CONFIG[\"OUTPUT_DIR\"]`以下へ保存されます。",
+        "## 11. 主要結果\n\n詳細なCSV・PNG・PDFは`CONFIG[\"OUTPUT_DIR\"]`以下へ保存されます。",
     ),
     _code(
         "workflow-results",

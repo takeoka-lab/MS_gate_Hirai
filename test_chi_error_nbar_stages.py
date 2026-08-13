@@ -1,4 +1,8 @@
 import pytest
+import json
+
+import numpy as np
+import pandas as pd
 
 import chi_error_nbar_stages as stages
 import chi_error_nbar_workflow as workflow
@@ -49,3 +53,64 @@ def test_default_control_and_robustness_nbar_ranges_are_low_temperature():
     expected = [0.01, 1.0, 2.0, 3.0, 4.0]
     assert config["CONTROL_VALIDATION_NBARS"] == expected
     assert config["ROBUSTNESS_NBARS"] == expected
+
+
+def test_drive_completion_refreshes_checklist_and_manifest(tmp_path):
+    advanced = tmp_path / "advanced_publication_validation"
+    advanced.mkdir()
+    checklist_path = advanced / "advanced_publication_checklist.csv"
+    pd.DataFrame([{
+        "check": "hXX-derived drive calibration re-QPT",
+        "status": "pending",
+        "result": "8/10 temperatures re-QPT",
+    }]).to_csv(checklist_path, index=False)
+    manifest_path = advanced / "advanced_publication_manifest.json"
+    manifest_path.write_text(
+        json.dumps({"qpt_completion": {}, "checklist": []}),
+        encoding="utf-8",
+    )
+    nbar_values = [0.01, 1.0, 2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 16.0, 20.0]
+    summary = pd.DataFrame({
+        "n_bar": nbar_values,
+        "h_XX_converged": [True] * 10,
+    })
+    config = workflow.default_config()
+
+    result = stages._refresh_drive_completion_artifacts(
+        {"advanced": advanced}, config, summary
+    )
+
+    refreshed = pd.read_csv(checklist_path).iloc[0]
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert result["completed_count"] == 10
+    assert refreshed["status"] == "complete"
+    assert refreshed["result"].startswith("10/10")
+    assert manifest["qpt_completion"][
+        "hxx_drive_calibration_temperatures"
+    ] == 10
+
+
+def test_drive_cache_resolver_tolerates_csv_float_round_trip(tmp_path):
+    config = workflow.default_config()
+    paths = stages._paths({**config, "OUTPUT_DIR": tmp_path})
+    n_bar = 4.0
+    iteration = 1
+    stored_amplitude = 0.1312216323146464
+    requested_amplitude = np.nextafter(stored_amplitude, np.inf)
+    candidate = paths["drive_qpt"] / (
+        "hxx_feedback_i01__nbar_4__historicalhash.npz"
+    )
+    np.savez_compressed(
+        candidate,
+        n_bar=np.asarray(n_bar),
+        metadata_json=np.asarray(json.dumps({
+            "iteration": iteration,
+            "A_calibrated": stored_amplitude,
+        })),
+    )
+
+    resolved = stages._resolve_drive_cache_path(
+        paths, config, n_bar, iteration, requested_amplitude
+    )
+
+    assert resolved == candidate

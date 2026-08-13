@@ -2365,6 +2365,38 @@ def drive_feedback_cache_path(n_bar, iteration, amplitude):
     )
 
 
+def resolve_drive_feedback_cache_path(n_bar, iteration, amplitude):
+    """Resolve historical caches despite harmless CSV float round-tripping."""
+
+    exact_path = drive_feedback_cache_path(n_bar, iteration, amplitude)
+    if exact_path.exists():
+        return exact_path
+    pattern = (
+        f"hxx_feedback_i{int(iteration):02d}__nbar_"
+        f"{_drive_calibration_nbar_stem(n_bar)}__*.npz"
+    )
+    for candidate in sorted(DRIVE_CALIBRATION_QPT_DIR.glob(pattern)):
+        try:
+            with np.load(candidate, allow_pickle=False) as data:
+                cached_n_bar = float(np.asarray(data["n_bar"]).item())
+                metadata = json.loads(
+                    str(np.asarray(data["metadata_json"]).item())
+                )
+            cached_amplitude = float(metadata["A_calibrated"])
+            cached_iteration = int(metadata.get("iteration", iteration))
+        except (KeyError, TypeError, ValueError, json.JSONDecodeError):
+            continue
+        if (
+            np.isclose(cached_n_bar, n_bar, rtol=0.0, atol=1e-12)
+            and cached_iteration == int(iteration)
+            and np.isclose(
+                cached_amplitude, amplitude, rtol=1e-12, atol=1e-14
+            )
+        ):
+            return candidate
+    return exact_path
+
+
 drive_feedback_rows = []
 if not drive_amplitude_prediction_df.empty:
     for n_bar in HXX_DRIVE_CALIBRATION_NBARS:
@@ -2388,7 +2420,7 @@ if not drive_amplitude_prediction_df.empty:
                     f"exceeds HXX_MAX_AMPLITUDE_FACTOR={HXX_MAX_AMPLITUDE_FACTOR:.3f}"
                 )
 
-            cache_path = drive_feedback_cache_path(
+            cache_path = resolve_drive_feedback_cache_path(
                 n_bar, iteration, next_amplitude
             )
             if FORCE_RECOMPUTE_HXX_DRIVE_QPT or not cache_path.exists():

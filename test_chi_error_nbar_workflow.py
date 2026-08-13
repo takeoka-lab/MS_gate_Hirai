@@ -57,11 +57,16 @@ def test_notebook_contains_configuration_calls_but_no_function_definitions():
     cell_ids = {cell.get("id") for cell in notebook["cells"]}
     assert {
         "independent-drive-qpt",
+        "independent-fock-xx-angle",
         "independent-kirchhoff",
         "independent-control",
         "independent-robustness",
     } <= cell_ids
-    assert "CONTROL_QPT_NBARS = [0.01, 1.0, 2.0, 3.0, 4.0]" in code
-    assert "ROBUSTNESS_QPT_NBARS = [0.01, 1.0, 2.0, 3.0, 4.0]" in code
+    assert (
+        'DRIVE_RE_QPT_NBARS = list(CONFIG["HXX_DRIVE_CALIBRATION_NBARS"])'
+        in code
+    )
+    assert "CONTROL_QPT_NBARS =" in code
+    assert "ROBUSTNESS_QPT_NBARS =" in code
     assert "SHOW_CONTROL_PROGRESS = True" in code
     assert "SHOW_ROBUSTNESS_PROGRESS = True" in code
