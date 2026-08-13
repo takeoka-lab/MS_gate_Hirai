@@ -1,5 +1,5 @@
 {
-  "generated_at_timezone": "2026-08-11T16:20:19.342585+09:00",
+  "generated_at_timezone": "2026-08-13T19:17:15.462379+09:00",
   "notebook": "/workspace/chi_error_element_nbar_fit.ipynb",
   "simulation_parameters": {
     "A": 0.125,
@@ -160,7 +160,7 @@
     "qutip": "5.0.4"
   },
   "git": {
-    "commit": "c9a6e14f6bdb14f21a0d27f86be492113bdd4197",
-    "status_short": "M results/chi_error_element_fit/chi_II_XX_complex_components.png\n M results/chi_error_element_fit/chi_error_element_fit_curves.csv\n M results/chi_error_element_fit/chi_error_element_fit_summary.csv\n M results/chi_error_element_fit/chi_error_elements_vs_nbar_fit.pdf\n M results/chi_error_element_fit/chi_error_elements_vs_nbar_fit.png\n M results/chi_error_element_fit/chi_other_major_noise_fit_curves.csv\n M results/chi_error_element_fit/chi_other_major_noise_fit_summary.csv\n M results/chi_error_element_fit/chi_other_major_noise_vs_nbar_fit.pdf\n M results/chi_error_element_fit/chi_other_major_noise_vs_nbar_fit.png\n M results/chi_error_element_fit/chi_pauli_diagonal_noise_ranking.csv\n M results/chi_error_element_fit/exact_full_chi/full_chi_component_ranking.csv\n M results/chi_error_element_fit/exact_full_chi/full_chi_components_long.csv\n M results/chi_error_element_fit/exact_full_chi/full_chi_top_components.pdf\n M results/chi_error_element_fit/exact_full_chi/full_chi_top_components.png\n M results/chi_error_element_fit/fit_bootstrap_95ci.pdf\n M results/chi_error_element_fit/fit_bootstrap_95ci.png\n M results/chi_error_element_fit/fit_bootstrap_95ci_curves.csv\n M results/chi_error_element_fit/fit_bootstrap_coefficient_95ci.csv\n M results/chi_error_element_fit/fit_model_comparison_aicc_bic_cv.csv\n M results/chi_error_element_fit/fit_selected_models_publication.csv\n M results/chi_error_element_fit/noise_source_ablation/noise_ablation_attribution.csv\n M results/chi_error_element_fit/noise_source_ablation/noise_ablation_leave_one_out.pdf\n M results/chi_error_element_fit/noise_source_ablation/noise_ablation_leave_one_out.png\n M results/chi_error_element_fit/noise_source_ablation/noise_ablation_raw_observables.csv\n M results/chi_error_element_fit/numerical_convergence/numerical_convergence.pdf\n M results/chi_error_element_fit/numerical_convergence/numerical_convergence.png\n M results/chi_error_element_fit/numerical_convergence/numerical_convergence_summary.csv"
+    "commit": "a15c3dfefbc3382bdc7ccd6e3767fc03e41e702c",
+    "status_short": "M chi_error_element_nbar_fit.ipynb\n M results/chi_error_element_fit/chi_error_elements_vs_nbar_fit.pdf\n M results/chi_error_element_fit/chi_other_major_noise_vs_nbar_fit.pdf\n M results/chi_error_element_fit/exact_full_chi/full_chi_top_components.pdf\n M results/chi_error_element_fit/fit_bootstrap_95ci.pdf\n M results/chi_error_element_fit/noise_source_ablation/noise_ablation_leave_one_out.pdf\n M results/chi_error_element_fit/numerical_convergence/numerical_convergence.pdf"
   }
 }
