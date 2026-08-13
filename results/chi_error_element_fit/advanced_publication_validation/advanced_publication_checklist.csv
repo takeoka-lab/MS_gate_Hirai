@@ -4,6 +4,6 @@ CPTP conclusion stability,complete,"Top-12 overlap=12/12, max ||delta chi||_F=4.
 XX error-generator separation,complete,h_XX: 1.3736e-02 -> 2.6508e-01 rad/gate; gamma_XX: 1.6386e-04 -> 5.0513e-02 /gate
 Channel-level XX compensation,complete,n_bar=20: avg infidelity 9.8530e-02 -> 4.9633e-02 (1.99x reduction)
 hXX-derived drive calibration re-QPT,pending,8/10 temperatures re-QPT; 8 with |h_XX| <= 2.0e-03 rad/gate
-Physical-control re-QPT,pending,0/33 non-baseline QPT points
-Parameter robustness re-QPT,pending,0/27 non-baseline QPT points
+Physical-control re-QPT,pending,7/55 non-baseline QPT points
+Parameter robustness re-QPT,pending,0/45 non-baseline QPT points
 Thermal physical-model comparison,complete,best physical model saved for 6 targets; generic quartic remains AICc-best for 6 targets
