@@ -333,6 +333,39 @@ display(PHYSICAL_CONTROL_RESULT["best"])
 """,
     ),
     _markdown(
+        "independent-control-screening-report-intro",
+        r"""
+### 9.1 screening結果の集計とグラフ
+
+保存済みQPTだけを読み、$|h_{XX}|$、$\gamma_{XX}$、physical average infidelity、baseline比を1枚にまとめます。このセルはQPTを再実行しません。
+""",
+    ),
+    _code(
+        "independent-control-screening-report",
+        r"""
+import importlib
+from IPython.display import Image
+
+stages = importlib.reload(stages)
+SCREENING_REPORT_NBARS = [0.01, 2.0, 4.0, 10.0, 20.0]
+
+CONTROL_SCREENING_REPORT = stages.run_physical_control_screening_report(
+    CONFIG,
+    SCREENING_REPORT_NBARS,
+)
+print(CONTROL_SCREENING_REPORT["status"])
+display(CONTROL_SCREENING_REPORT["winners"][[
+    "n_bar",
+    "best_abs_h_XX_candidate", "h_XX_reduction_factor",
+    "best_infidelity_candidate", "infidelity_improvement_factor",
+    "best_infidelity_abs_h_XX_ratio",
+    "best_infidelity_gamma_XX_ratio",
+    "best_control_score_candidate",
+]])
+display(Image(filename=str(CONTROL_SCREENING_REPORT["figure_path"])))
+""",
+    ),
+    _markdown(
         "independent-robustness-intro",
         r"""
 ## 10. 独立実行：パラメータ頑健性

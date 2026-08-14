@@ -114,3 +114,53 @@ def test_drive_cache_resolver_tolerates_csv_float_round_trip(tmp_path):
     )
 
     assert resolved == candidate
+
+
+def test_physical_control_screening_report_selects_metric_winners(tmp_path):
+    config = workflow.default_config()
+    config["OUTPUT_DIR"] = tmp_path
+    paths = stages._paths(config)
+    rows = []
+    for n_bar in [0.01, 2.0]:
+        rows.extend([
+            {
+                "n_bar": n_bar,
+                "candidate": "baseline",
+                "kind": "baseline",
+                "factor": 1.0,
+                "h_XX_rad_per_gate": 0.10,
+                "gamma_XX_per_gate": 0.01,
+                "average_infidelity": 0.04,
+                "control_score": 0.05,
+                "gamma_nnls_residual": 0.01,
+                "generator_imaginary_frobenius_norm": 0.0,
+            },
+            {
+                "n_bar": n_bar,
+                "candidate": "amplitude_1.100",
+                "kind": "amplitude",
+                "factor": 1.1,
+                "h_XX_rad_per_gate": 0.01,
+                "gamma_XX_per_gate": 0.02,
+                "average_infidelity": 0.03,
+                "control_score": 0.025,
+                "gamma_nnls_residual": 0.02,
+                "generator_imaginary_frobenius_norm": 0.0,
+            },
+        ])
+    pd.DataFrame(rows).to_csv(
+        paths["control"] / "physical_control_qpt_summary.csv", index=False
+    )
+
+    report = stages.run_physical_control_screening_report(
+        config, [0.01, 2.0]
+    )
+
+    assert report["status"]["completed_points"] == 4
+    assert set(report["winners"]["best_infidelity_candidate"]) == {
+        "amplitude_1.100"
+    }
+    assert np.allclose(
+        report["winners"]["h_XX_reduction_factor"], 10.0
+    )
+    assert report["figure_path"].exists()

@@ -1196,6 +1196,241 @@ def run_physical_control_stage(
     }
 
 
+def run_physical_control_screening_report(
+    config: Mapping[str, Any],
+    nbar_values: Iterable[float],
+) -> dict[str, Any]:
+    """Create a read-only report from completed physical-control screening.
+
+    No QPT is run here.  The report shows every candidate, baseline-normalized
+    ratios, and separate winners for coherent-angle suppression, physical
+    infidelity, and the chi-based aggregate control score.
+    """
+
+    paths = _paths(config)
+    summary_path = paths["control"] / "physical_control_qpt_summary.csv"
+    if not summary_path.exists():
+        raise FileNotFoundError(
+            f"Missing {summary_path}. Run the physical-control cell first."
+        )
+    requested_nbars = sorted({float(value) for value in nbar_values})
+    if not requested_nbars:
+        raise ValueError("nbar_values must contain at least one value")
+    full_summary = pd.read_csv(summary_path)
+    selected_parts = [
+        full_summary.loc[
+            np.isclose(full_summary["n_bar"].astype(float), n_bar)
+        ]
+        for n_bar in requested_nbars
+    ]
+    missing_nbars = [
+        n_bar
+        for n_bar, part in zip(requested_nbars, selected_parts)
+        if part.empty
+    ]
+    if missing_nbars:
+        raise ValueError(
+            "Physical-control summary is missing n_bar="
+            + ", ".join(f"{value:g}" for value in missing_nbars)
+        )
+    screening = pd.concat(selected_parts, ignore_index=True).copy()
+    screening["abs_h_XX_rad_per_gate"] = np.abs(
+        screening["h_XX_rad_per_gate"].astype(float)
+    )
+    baseline = screening.loc[
+        screening["candidate"] == "baseline",
+        [
+            "n_bar",
+            "abs_h_XX_rad_per_gate",
+            "gamma_XX_per_gate",
+            "average_infidelity",
+            "control_score",
+        ],
+    ].rename(columns={
+        "abs_h_XX_rad_per_gate": "baseline_abs_h_XX_rad_per_gate",
+        "gamma_XX_per_gate": "baseline_gamma_XX_per_gate",
+        "average_infidelity": "baseline_average_infidelity",
+        "control_score": "baseline_control_score",
+    })
+    if baseline["n_bar"].nunique() != len(requested_nbars):
+        raise ValueError("Each requested n_bar must have exactly one baseline row")
+    screening = screening.merge(baseline, on="n_bar", how="left")
+    screening["abs_h_XX_ratio_to_baseline"] = (
+        screening["abs_h_XX_rad_per_gate"]
+        / np.maximum(screening["baseline_abs_h_XX_rad_per_gate"], 1e-15)
+    )
+    screening["gamma_XX_ratio_to_baseline"] = (
+        screening["gamma_XX_per_gate"]
+        / np.maximum(screening["baseline_gamma_XX_per_gate"], 1e-15)
+    )
+    screening["infidelity_ratio_to_baseline"] = (
+        screening["average_infidelity"]
+        / np.maximum(screening["baseline_average_infidelity"], 1e-15)
+    )
+    screening["control_score_ratio_to_baseline"] = (
+        screening["control_score"]
+        / np.maximum(screening["baseline_control_score"], 1e-15)
+    )
+    screening["generator_fit_warning"] = (
+        screening["gamma_nnls_residual"].astype(float) > 0.2
+    ) | (
+        screening["generator_imaginary_frobenius_norm"].astype(float) > 1e-6
+    )
+
+    winner_rows = []
+    for n_bar, group in screening.groupby("n_bar", sort=True):
+        baseline_row = group.loc[group["candidate"] == "baseline"].iloc[0]
+        best_h = group.loc[group["abs_h_XX_rad_per_gate"].idxmin()]
+        best_infidelity = group.loc[group["average_infidelity"].idxmin()]
+        best_score = group.loc[group["control_score"].idxmin()]
+        pulse_rows = group.loc[group["kind"] == "pulse"]
+        winner_rows.append({
+            "n_bar": float(n_bar),
+            "best_abs_h_XX_candidate": best_h["candidate"],
+            "best_abs_h_XX_rad_per_gate": best_h[
+                "abs_h_XX_rad_per_gate"
+            ],
+            "h_XX_reduction_factor": (
+                baseline_row["abs_h_XX_rad_per_gate"]
+                / max(float(best_h["abs_h_XX_rad_per_gate"]), 1e-15)
+            ),
+            "best_infidelity_candidate": best_infidelity["candidate"],
+            "best_average_infidelity": best_infidelity[
+                "average_infidelity"
+            ],
+            "infidelity_improvement_factor": (
+                baseline_row["average_infidelity"]
+                / max(float(best_infidelity["average_infidelity"]), 1e-15)
+            ),
+            "best_infidelity_abs_h_XX_ratio": best_infidelity[
+                "abs_h_XX_ratio_to_baseline"
+            ],
+            "best_infidelity_gamma_XX_ratio": best_infidelity[
+                "gamma_XX_ratio_to_baseline"
+            ],
+            "best_control_score_candidate": best_score["candidate"],
+            "control_score_improvement_factor": (
+                baseline_row["control_score"]
+                / max(float(best_score["control_score"]), 1e-15)
+            ),
+            "best_pulse_infidelity": (
+                float(pulse_rows["average_infidelity"].min())
+                if not pulse_rows.empty else np.nan
+            ),
+        })
+    winners = pd.DataFrame(winner_rows)
+
+    report_dir = paths["control"] / "screening_report"
+    report_dir.mkdir(parents=True, exist_ok=True)
+    screening_path = report_dir / "physical_control_screening_selected.csv"
+    winners_path = report_dir / "physical_control_screening_winners.csv"
+    screening.to_csv(screening_path, index=False)
+    winners.to_csv(winners_path, index=False)
+
+    candidates = screening[
+        ["candidate", "kind", "factor"]
+    ].drop_duplicates().sort_values(["kind", "factor", "candidate"])
+    color_maps = {
+        "amplitude": plt.get_cmap("Blues"),
+        "detuning": plt.get_cmap("Oranges"),
+        "gate_time": plt.get_cmap("Greens"),
+        "pulse": plt.get_cmap("Reds"),
+    }
+    styles = {"baseline": {"color": "black", "linewidth": 3.0}}
+    for kind, kind_rows in candidates.loc[
+        candidates["kind"] != "baseline"
+    ].groupby("kind", sort=False):
+        values = np.linspace(0.45, 0.9, len(kind_rows))
+        for shade, (_, row) in zip(values, kind_rows.iterrows()):
+            styles[str(row["candidate"])] = {
+                "color": color_maps.get(kind, plt.get_cmap("Purples"))(shade),
+                "linewidth": 1.8,
+                "linestyle": "--" if kind == "pulse" else "-",
+            }
+
+    figure, axes = plt.subplots(2, 2, figsize=(15.5, 10.0))
+    panels = [
+        (
+            axes[0, 0], "abs_h_XX_rad_per_gate",
+            r"$|h_{XX}|$ [rad/gate]", True,
+        ),
+        (
+            axes[0, 1], "gamma_XX_per_gate",
+            r"$\gamma_{XX}$ [/gate]", True,
+        ),
+        (
+            axes[1, 0], "average_infidelity",
+            r"Physical average infidelity $1-F_{\rm avg}$", True,
+        ),
+        (
+            axes[1, 1], "infidelity_ratio_to_baseline",
+            "Infidelity / baseline", True,
+        ),
+    ]
+    for candidate, group in screening.groupby("candidate", sort=False):
+        group = group.sort_values("n_bar")
+        style = styles.get(str(candidate), {})
+        label = str(candidate).replace("_", " ")
+        for axis, metric, _, log_scale in panels:
+            values = group[metric].to_numpy(dtype=float)
+            if log_scale:
+                values = np.maximum(values, 1e-8)
+            axis.plot(
+                group["n_bar"], values, marker="o", markersize=4.5,
+                label=label, **style,
+            )
+    for axis, _, ylabel, log_scale in panels:
+        axis.set_xlabel(r"Mean phonon number $\bar n$")
+        axis.set_ylabel(ylabel)
+        axis.set_xticks(requested_nbars)
+        if log_scale:
+            axis.set_yscale("log")
+        axis.grid(True, which="both", alpha=0.25)
+    axes[1, 1].axhline(1.0, color="black", linestyle=":", linewidth=1.4)
+    figure.suptitle(
+        "Physical-control screening: full-Hamiltonian QPT",
+        y=0.995,
+    )
+    handles, labels = axes[0, 0].get_legend_handles_labels()
+    figure.legend(
+        handles, labels, loc="lower center", ncol=4, fontsize=8,
+        bbox_to_anchor=(0.5, 0.005),
+    )
+    figure.text(
+        0.5, 0.09,
+        "Dashed pulse curves use RMS-normalized, angle-uncalibrated pulses; "
+        "their hXX/gamma generator values are not a fair calibrated comparison.",
+        ha="center", fontsize=9, color="#8B0000",
+    )
+    figure.tight_layout(rect=(0.0, 0.12, 1.0, 0.97))
+    figure_path = report_dir / "physical_control_screening_overview.png"
+    figure.savefig(figure_path, dpi=300, bbox_inches="tight")
+    figure.savefig(
+        report_dir / "physical_control_screening_overview.pdf",
+        bbox_inches="tight",
+    )
+    plt.close(figure)
+
+    candidate_count = screening["candidate"].nunique()
+    expected_points = len(requested_nbars) * candidate_count
+    return {
+        "screening": screening,
+        "winners": winners,
+        "figure_path": figure_path,
+        "screening_path": screening_path,
+        "winners_path": winners_path,
+        "status": {
+            "nbar_values": requested_nbars,
+            "candidate_count_including_baseline": int(candidate_count),
+            "completed_points": int(len(screening)),
+            "expected_points": int(expected_points),
+            "generator_warning_points": int(
+                screening["generator_fit_warning"].sum()
+            ),
+        },
+    }
+
+
 def _robustness_conditions(
     params: Mapping[str, Any],
     eta_factors: Iterable[float],

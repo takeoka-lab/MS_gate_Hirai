@@ -60,6 +60,7 @@ def test_notebook_contains_configuration_calls_but_no_function_definitions():
         "independent-fock-xx-angle",
         "independent-kirchhoff",
         "independent-control",
+        "independent-control-screening-report",
         "independent-robustness",
     } <= cell_ids
     assert (
