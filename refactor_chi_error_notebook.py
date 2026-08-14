@@ -430,6 +430,107 @@ else:
 """,
     ),
     _markdown(
+        "independent-publication-control-validation-intro",
+        r"""
+### 9.3 論文用の最終制御検証
+
+9.2で得た候補を初期値とし、次の3点だけを固めます。
+
+1. **公平性**: $\sin^2$/Blackmanの閉軌道$\alpha(T)=0$を保ち、各$\bar n$でpulse固有の$A$を局所再最適化する。既定は全制御共通のpeak-power上限$P_{\max}/P_0=16$。
+2. **高温数値検証**: $\bar n=20$の6制御すべてでphonon cutoffを1.15倍、time pointsを2倍にし、単独変更と同時変更を比較する。
+3. **クロスオーバー**: $\bar n=12,16$で$A$校正rectangularと高温側の最良shaped pulseを局所再最適化し、infidelityが交差する$\bar n$を推定する。
+
+9.2の中心点は再利用し、新規計算は既定で公平性20点、収束18点、クロスオーバー12点の合計50 QPT点です。各検証は独立フラグと独立cacheを持つため、**一つずつ`True`にして実行**してください。局所最適値が0.98/1.02の境界に来た場合だけ、振幅範囲を広げます。
+""",
+    ),
+    _code(
+        "independent-publication-control-validation",
+        r"""
+import importlib
+from IPython.display import Image
+
+stages = importlib.reload(stages)
+
+PAPER_FAIRNESS_NBARS = [0.01, 2.0, 4.0, 10.0, 20.0]
+LOCAL_AMPLITUDE_SCALE_FACTORS = [0.98, 1.00, 1.02]
+
+PAPER_RESOURCE_MODE = "peak_power"
+COMMON_MAX_PEAK_POWER_FACTOR = 16.0
+COMMON_MAX_PULSE_ENERGY_FACTOR = 5.0
+
+HIGH_TEMPERATURE_NBAR = 20.0
+PHONON_CUTOFF_FACTOR = 1.15
+TIME_POINTS_FACTOR = 2.0
+
+CROSSOVER_NBARS = [12.0, 16.0]
+CROSSOVER_SHAPE = "auto"
+
+# 重いため、fairness -> convergence -> crossoverの順に
+# 一つずつTrueにする。完了点はcacheから再利用される。
+RUN_PAPER_FAIRNESS_QPT = False
+RUN_HIGH_TEMPERATURE_CONVERGENCE_QPT = False
+RUN_CROSSOVER_QPT = False
+FORCE_PUBLICATION_CONTROL_RECOMPUTE = False
+SHOW_PUBLICATION_CONTROL_PROGRESS = True
+
+PUBLICATION_CONTROL_RESULT = stages.run_publication_control_validation_stage(
+    CONFIG,
+    fairness_nbars=PAPER_FAIRNESS_NBARS,
+    amplitude_scale_factors=LOCAL_AMPLITUDE_SCALE_FACTORS,
+    resource_mode=PAPER_RESOURCE_MODE,
+    max_peak_power_factor=COMMON_MAX_PEAK_POWER_FACTOR,
+    max_pulse_energy_factor=COMMON_MAX_PULSE_ENERGY_FACTOR,
+    convergence_nbar=HIGH_TEMPERATURE_NBAR,
+    phonon_cutoff_factor=PHONON_CUTOFF_FACTOR,
+    time_points_factor=TIME_POINTS_FACTOR,
+    crossover_nbars=CROSSOVER_NBARS,
+    crossover_shape=CROSSOVER_SHAPE,
+    run_fairness_qpt=RUN_PAPER_FAIRNESS_QPT,
+    run_convergence_qpt=RUN_HIGH_TEMPERATURE_CONVERGENCE_QPT,
+    run_crossover_qpt=RUN_CROSSOVER_QPT,
+    force_recompute=FORCE_PUBLICATION_CONTROL_RECOMPUTE,
+    show_progress=SHOW_PUBLICATION_CONTROL_PROGRESS,
+)
+
+display(pd.DataFrame(PUBLICATION_CONTROL_RESULT["status"]).T)
+
+FAIRNESS_SELECTED = PUBLICATION_CONTROL_RESULT["fairness_selected"]
+if not FAIRNESS_SELECTED.empty:
+    display(FAIRNESS_SELECTED[[
+        "n_bar", "condition", "amplitude_peak", "peak_power_factor",
+        "pulse_energy_factor", "ideal_closure_residual",
+        "average_infidelity", "h_XX_rad_per_gate", "gamma_XX_per_gate",
+        "local_optimum_at_boundary",
+    ]].sort_values(["n_bar", "condition"]))
+
+CONVERGENCE_COMPARISON = PUBLICATION_CONTROL_RESULT["convergence_comparison"]
+if (
+    not CONVERGENCE_COMPARISON.empty
+    and "relative_infidelity_to_high_resolution" in CONVERGENCE_COMPARISON
+):
+    display(CONVERGENCE_COMPARISON.sort_values([
+        "condition", "convergence_level_order"
+    ])[[
+        "condition", "convergence_level", "phonon_dim_actual", "time_points",
+        "raw_cp_pass", "raw_min_choi_eigenvalue",
+        "relative_infidelity_to_high_resolution",
+        "relative_abs_h_to_high_resolution",
+        "relative_gamma_to_high_resolution",
+    ]])
+
+CROSSOVER_CURVE = PUBLICATION_CONTROL_RESULT["crossover_curve"]
+if not CROSSOVER_CURVE.empty:
+    display(CROSSOVER_CURVE)
+    print(
+        "estimated crossover n_bar =",
+        PUBLICATION_CONTROL_RESULT["status"]["crossover"]["estimated_n_bar"],
+    )
+
+if PUBLICATION_CONTROL_RESULT["figure_path"] is not None:
+    display(Image(filename=str(PUBLICATION_CONTROL_RESULT["figure_path"])))
+""",
+    ),
+    _markdown(
         "independent-robustness-intro",
         r"""
 ## 10. 独立実行：パラメータ頑健性

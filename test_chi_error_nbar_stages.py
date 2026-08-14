@@ -262,3 +262,84 @@ def test_fair_control_stage_builds_six_cached_qpt_specs_per_temperature(
         ],
         2.0 * np.pi,
     )
+
+
+def test_publication_control_validation_dry_run_reuses_9p2_centers(tmp_path):
+    config = workflow.default_config()
+    config["OUTPUT_DIR"] = tmp_path
+    paths = stages._paths(config)
+    fair_dir = paths["control"] / "fair_calibrated_comparison"
+    fair_dir.mkdir(parents=True, exist_ok=True)
+    chi_identity = np.zeros((16, 16), dtype=complex)
+    chi_identity[0, 0] = 1.0
+    conditions = [
+        ("rectangular_A_infidelity", "rectangular", "rectangular", 0.14, 0.08),
+        ("drive_detuning_joint", "drive_detuning", "rectangular", 0.14, 0.081),
+        ("gate_time_closed_0.970", "gate_time_closed", "rectangular", 0.14, 0.079),
+        ("gate_time_closed_1.030", "gate_time_closed", "rectangular", 0.14, 0.082),
+        ("pulse_sin2_calibrated", "pulse", "sin2", 0.33, 0.085),
+        ("pulse_blackman_calibrated", "pulse", "blackman", 0.46, 0.083),
+    ]
+    rows = []
+    for condition, family, shape, amplitude, infidelity in conditions:
+        cache_path = fair_dir / f"{condition}.npz"
+        stages.qpt_analysis.save_qpt_point(
+            cache_path,
+            20.0,
+            condition,
+            chi_identity,
+            {
+                "phonon_dim": 100,
+                "cp_pass": condition.startswith("pulse"),
+                "tp_pass": True,
+                "min_choi_eigenvalue": -1e-7,
+                "tp_frobenius_error": 1e-14,
+            },
+        )
+        rows.append({
+            "n_bar": 20.0,
+            "condition": condition,
+            "family": family,
+            "shape": shape,
+            "amplitude_peak": amplitude,
+            "detuning": 1.0 if shape == "sin2" else 1.5 if shape == "blackman" else 0.5,
+            "t_gate_sim": 4.0 * np.pi,
+            "t_gate_phys": 1e-4,
+            "gate_time_factor": 1.0,
+            "cache_path": str(cache_path),
+            "average_infidelity": infidelity,
+            "h_XX_rad_per_gate": 0.1,
+            "gamma_XX_per_gate": 0.05,
+            "pulse_relative_closure_residual": (
+                1e-16 if shape in {"sin2", "blackman"} else np.nan
+            ),
+        })
+    pd.DataFrame(rows).to_csv(
+        fair_dir / "fair_control_qpt_summary.csv", index=False
+    )
+
+    result = stages.run_publication_control_validation_stage(
+        config,
+        fairness_nbars=[20.0],
+        crossover_nbars=[12.0],
+        run_fairness_qpt=False,
+        run_convergence_qpt=False,
+        run_crossover_qpt=False,
+        show_progress=False,
+    )
+
+    assert result["status"]["fairness"] == {
+        "expected_eligible_points": 6,
+        "completed_points": 2,
+        "newly_computed": 0,
+        "pending_points": 4,
+        "run_qpt": False,
+        "boundary_optima": 0,
+    }
+    assert result["status"]["convergence"]["expected_points"] == 24
+    assert result["status"]["convergence"]["completed_points"] == 6
+    assert result["status"]["convergence"]["pending_points"] == 18
+    assert result["status"]["crossover"]["shape"] == "blackman"
+    assert result["status"]["crossover"]["expected_points"] == 6
+    assert result["status"]["crossover"]["pending_points"] == 6
+    assert result["fairness_plan"]["resource_eligible"].all()

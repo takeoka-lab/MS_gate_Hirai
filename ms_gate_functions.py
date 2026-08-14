@@ -577,6 +577,7 @@ def run_ms_gate_simulation(
     laser_scattering_scales_with_intensity=False,
     scattering_reference_amplitude=None,
     solver_max_step=None,
+    phonon_dim_override=None,
 ):
     if n_bar_list is None:
         n_bar_list = [0.01, 1, 2, 3, 4, 5]
@@ -587,6 +588,10 @@ def run_ms_gate_simulation(
     parallel_workers = int(parallel_workers)
     if parallel_workers < 1:
         raise ValueError("parallel_workers must be at least 1.")
+    if phonon_dim_override is not None:
+        phonon_dim_override = int(phonon_dim_override)
+        if phonon_dim_override < 2:
+            raise ValueError("phonon_dim_override must be at least 2.")
 
     if t_gate_sim is None:
         detuning_array = np.asarray(delta, dtype=float)
@@ -665,7 +670,11 @@ def run_ms_gate_simulation(
     results_list = [
         {
             "n_bar": n_bar,
-            "Nv": estimate_phonon_dim(n_bar, alpha_max_est),
+            "Nv": (
+                phonon_dim_override
+                if phonon_dim_override is not None
+                else estimate_phonon_dim(n_bar, alpha_max_est)
+            ),
             "outputs": [None] * len(input_states_list),
             "sampled_laser_params": [
                 sample_laser_parameters(
@@ -868,6 +877,7 @@ def run_ms_gate_simulation(
             ),
             "scattering_reference_amplitude": scattering_reference_amplitude,
             "solver_max_step": solver_max_step,
+            "phonon_dim_override": phonon_dim_override,
         },
         "rates": rates,
         "tlist": tlist,

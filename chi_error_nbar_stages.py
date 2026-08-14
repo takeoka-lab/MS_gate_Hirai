@@ -2005,6 +2005,894 @@ def run_fair_control_comparison_stage(
     }
 
 
+def _load_qpt_cache_with_metadata(path: Path) -> tuple[np.ndarray, dict[str, Any]]:
+    with np.load(path, allow_pickle=False) as data:
+        chi = np.asarray(data["chi_trace_normalized"], dtype=complex)
+        metadata = {}
+        if "metadata_json" in data:
+            metadata = json.loads(str(data["metadata_json"].item()))
+    return chi, metadata
+
+
+def _publication_control_resource_metrics(
+    *,
+    shape: str,
+    amplitude_peak: float,
+    base_amplitude: float,
+    gate_time_factor: float,
+    integration_points: int = 4001,
+) -> dict[str, float]:
+    if shape == "rectangular":
+        envelope = np.ones(int(integration_points), dtype=float)
+    else:
+        envelope = _fair_pulse_envelope(shape, int(integration_points))
+    normalized = amplitude_peak * envelope / base_amplitude
+    return {
+        "peak_amplitude_factor": float(amplitude_peak / base_amplitude),
+        "peak_power_factor": float((amplitude_peak / base_amplitude) ** 2),
+        "pulse_energy_factor": float(
+            np.mean(normalized**2) * float(gate_time_factor)
+        ),
+    }
+
+
+def _publication_resource_eligible(
+    metrics: Mapping[str, float],
+    *,
+    resource_mode: str,
+    max_peak_power_factor: float,
+    max_pulse_energy_factor: float,
+) -> bool:
+    mode = str(resource_mode).lower()
+    if mode not in {"peak_power", "pulse_energy", "both"}:
+        raise ValueError(
+            "resource_mode must be 'peak_power', 'pulse_energy', or 'both'"
+        )
+    peak_ok = metrics["peak_power_factor"] <= max_peak_power_factor * (
+        1.0 + 1e-12
+    )
+    energy_ok = metrics["pulse_energy_factor"] <= max_pulse_energy_factor * (
+        1.0 + 1e-12
+    )
+    return bool(
+        (mode == "peak_power" and peak_ok)
+        or (mode == "pulse_energy" and energy_ok)
+        or (mode == "both" and peak_ok and energy_ok)
+    )
+
+
+def _publication_control_cache_path(
+    directory: Path,
+    config: Mapping[str, Any],
+    plan: Mapping[str, Any],
+) -> Path:
+    params = _simulation_params(config)
+    parameter_keys = [
+        "heating_rate_phys", "dephasing_rate_phys", "T2_star",
+        "rayleigh_rate_phys", "raman_rate_phys", "eta", "use_full_order",
+        "laser_intensity_fluctuation", "laser_detuning_fluctuation",
+        "laser_rotation_angle_fluctuation", "laser_noise_samples",
+    ]
+    payload = {
+        key: plan.get(key)
+        for key in [
+            "validation_stage", "n_bar", "condition", "shape",
+            "amplitude_peak", "detuning", "t_gate_sim", "t_gate_phys",
+            "time_points", "solver_max_step", "phonon_dim_override",
+            "scattering_scales_with_intensity",
+        ]
+    }
+    payload["parameters"] = {
+        key: params.get(key) for key in parameter_keys
+    }
+    payload["convention"] = _convention(config)
+    payload["validation_version"] = "publication_control_v1"
+    digest = hashlib.sha256(
+        json.dumps(payload, sort_keys=True, default=_json_safe).encode("utf-8")
+    ).hexdigest()[:14]
+    return directory / (
+        f"{_condition_stem(plan['validation_stage'])}__"
+        f"{_condition_stem(plan['condition'])}__nbar_"
+        f"{_compact_nbar_stem(plan['n_bar'])}__{digest}.npz"
+    )
+
+
+def _publication_control_spec(
+    *,
+    plan: Mapping[str, Any],
+    params: Mapping[str, Any],
+    base_amplitude: float,
+    show_progress: bool,
+    reuse_cache_path: Path | None = None,
+) -> dict[str, Any]:
+    resolved = dict(plan)
+    time_points = int(resolved.get("time_points", params["time_points"]))
+    shape = str(resolved.get("shape", "rectangular"))
+    amplitude_peak = float(resolved["amplitude_peak"])
+    if shape == "rectangular":
+        amplitude = amplitude_peak
+    else:
+        amplitude = amplitude_peak * _fair_pulse_envelope(shape, time_points)
+    overrides = {
+        "A": amplitude,
+        "delta": float(resolved["detuning"]),
+        "t_gate_sim": float(resolved["t_gate_sim"]),
+        "t_gate_phys": float(resolved["t_gate_phys"]),
+        "time_points": time_points,
+        "laser_scattering_scales_with_intensity": bool(
+            resolved.get("scattering_scales_with_intensity", True)
+        ),
+        "scattering_reference_amplitude": float(base_amplitude),
+        "parallel_workers": int(resolved["parallel_workers"]),
+        "show_progress": bool(show_progress),
+    }
+    solver_max_step = resolved.get("solver_max_step")
+    if solver_max_step is not None and np.isfinite(float(solver_max_step)):
+        overrides["solver_max_step"] = float(solver_max_step)
+    phonon_dim_override = resolved.get("phonon_dim_override")
+    if phonon_dim_override is not None and np.isfinite(
+        float(phonon_dim_override)
+    ):
+        overrides["phonon_dim_override"] = int(phonon_dim_override)
+    return {
+        "plan": resolved,
+        "overrides": overrides,
+        "reuse_cache_path": reuse_cache_path,
+    }
+
+
+def _run_publication_control_specs(
+    specs: list[dict[str, Any]],
+    *,
+    config: Mapping[str, Any],
+    cache_dir: Path,
+    run_qpt: bool,
+    force_recompute: bool,
+    show_progress: bool,
+    description: str,
+) -> tuple[pd.DataFrame, list[dict[str, Any]], int]:
+    params = _simulation_params(config)
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    rows = []
+    pending = []
+    newly_computed = 0
+    iterator = tqdm(
+        specs,
+        desc=description,
+        unit="point",
+        disable=not show_progress,
+    )
+    for spec in iterator:
+        plan = spec["plan"]
+        reuse_path = spec.get("reuse_cache_path")
+        if reuse_path is not None:
+            reuse_path = Path(reuse_path)
+        cache_path = _publication_control_cache_path(cache_dir, config, plan)
+        load_path = (
+            reuse_path
+            if reuse_path is not None and reuse_path.exists() and not force_recompute
+            else cache_path
+        )
+        if force_recompute or not load_path.exists():
+            load_path = cache_path
+            if not run_qpt:
+                pending.append({
+                    "validation_stage": plan["validation_stage"],
+                    "n_bar": float(plan["n_bar"]),
+                    "condition": plan["condition"],
+                    "cache_path": str(cache_path),
+                })
+                continue
+            result = qpt_analysis.calculate_error_channel_batch(
+                [float(plan["n_bar"])],
+                params,
+                spec["overrides"],
+                convention=_convention(config),
+            )[0]
+            result["metadata"].update({
+                key: value
+                for key, value in plan.items()
+                if isinstance(value, (str, int, float, bool, np.generic))
+            })
+            qpt_analysis.save_qpt_point(
+                cache_path,
+                float(plan["n_bar"]),
+                str(plan["condition"]),
+                result["chi"],
+                result["metadata"],
+            )
+            newly_computed += 1
+        chi, metadata = _load_qpt_cache_with_metadata(load_path)
+        rows.append({
+            **plan,
+            "cache_path": str(load_path),
+            "phonon_dim_actual": metadata.get("phonon_dim", np.nan),
+            "raw_cp_pass": metadata.get("cp_pass", np.nan),
+            "raw_tp_pass": metadata.get("tp_pass", np.nan),
+            "raw_min_choi_eigenvalue": metadata.get(
+                "min_choi_eigenvalue", np.nan
+            ),
+            "raw_tp_frobenius_error": metadata.get(
+                "tp_frobenius_error", np.nan
+            ),
+            **_control_observables(chi, config),
+        })
+    return pd.DataFrame(rows), pending, newly_computed
+
+
+def _interpolate_control_seed(
+    frame: pd.DataFrame,
+    n_bar: float,
+    *,
+    column: str = "amplitude_peak",
+) -> float:
+    points = frame[["n_bar", column]].dropna().sort_values("n_bar")
+    if points.empty:
+        raise ValueError(f"No finite {column} values are available for interpolation")
+    return float(np.interp(
+        float(n_bar),
+        points["n_bar"].to_numpy(float),
+        points[column].to_numpy(float),
+    ))
+
+
+def _estimate_infidelity_crossover(curve: pd.DataFrame) -> float | None:
+    points = curve[["n_bar", "shaped_to_rectangular_infidelity_ratio"]].dropna()
+    points = points.sort_values("n_bar")
+    x = points["n_bar"].to_numpy(float)
+    y = points["shaped_to_rectangular_infidelity_ratio"].to_numpy(float) - 1.0
+    for index in range(len(points) - 1):
+        if y[index] == 0.0:
+            return float(x[index])
+        if y[index] * y[index + 1] < 0.0:
+            fraction = -y[index] / (y[index + 1] - y[index])
+            return float(x[index] + fraction * (x[index + 1] - x[index]))
+    if len(points) and y[-1] == 0.0:
+        return float(x[-1])
+    return None
+
+
+def _plot_publication_control_validation(
+    fairness_selected: pd.DataFrame,
+    convergence: pd.DataFrame,
+    crossover_curve: pd.DataFrame,
+    output_dir: Path,
+) -> Path | None:
+    if fairness_selected.empty and convergence.empty and crossover_curve.empty:
+        return None
+    figure, axes = plt.subplots(2, 2, figsize=(14.0, 9.5))
+    if not fairness_selected.empty:
+        for condition, group in fairness_selected.groupby("condition"):
+            axes[0, 0].semilogy(
+                group["n_bar"], group["average_infidelity"], marker="o",
+                label=str(condition).replace("_", " "),
+            )
+            axes[0, 1].plot(
+                group["n_bar"], group["peak_power_factor"], marker="o",
+                label=str(condition).replace("_", " "),
+            )
+        axes[0, 0].set_ylabel(r"$1-F_{\rm avg}$")
+        axes[0, 0].set_title("Pulse-specific local amplitude calibration")
+        axes[0, 1].set_ylabel(r"Peak power / baseline $A_0^2$")
+        axes[0, 1].set_title("Common resource accounting")
+        for axis in axes[0]:
+            axis.set_xlabel(r"Mean phonon number $\bar n$")
+            axis.grid(True, which="both", alpha=0.25)
+            axis.legend(fontsize=8)
+    else:
+        axes[0, 0].text(0.5, 0.5, "Fairness QPT pending", ha="center")
+        axes[0, 1].text(0.5, 0.5, "Resource scan pending", ha="center")
+
+    if not convergence.empty and "relative_infidelity_to_high_resolution" in convergence:
+        for condition, group in convergence.groupby("condition"):
+            group = group.sort_values("convergence_level_order")
+            axes[1, 0].plot(
+                group["convergence_level_order"],
+                group["relative_infidelity_to_high_resolution"],
+                marker="o", label=str(condition).replace("_", " "),
+            )
+        axes[1, 0].axhline(1.0, color="black", linestyle=":")
+        axes[1, 0].set_xticks([0, 1, 2, 3])
+        axes[1, 0].set_xticklabels(
+            ["base", "cutoff", "time", "both"], rotation=15
+        )
+        axes[1, 0].set_ylabel("Infidelity / high-resolution")
+        axes[1, 0].set_title(r"$\bar n=20$ numerical convergence")
+        axes[1, 0].grid(True, alpha=0.25)
+        axes[1, 0].legend(fontsize=7, ncol=2)
+    else:
+        axes[1, 0].text(0.5, 0.5, "Convergence QPT pending", ha="center")
+
+    if not crossover_curve.empty:
+        axes[1, 1].plot(
+            crossover_curve["n_bar"],
+            crossover_curve["shaped_to_rectangular_infidelity_ratio"],
+            marker="o", color="#D55E00",
+        )
+        axes[1, 1].axhline(1.0, color="black", linestyle=":")
+        axes[1, 1].set_xlabel(r"Mean phonon number $\bar n$")
+        axes[1, 1].set_ylabel("Best shaped / rectangular infidelity")
+        axes[1, 1].set_title("Coherent-to-stochastic crossover")
+        axes[1, 1].grid(True, alpha=0.25)
+    else:
+        axes[1, 1].text(0.5, 0.5, "Crossover QPT pending", ha="center")
+    figure.suptitle("Publication control validation", y=0.995)
+    figure.tight_layout(rect=(0.0, 0.0, 1.0, 0.97))
+    output_dir.mkdir(parents=True, exist_ok=True)
+    figure_path = output_dir / "publication_control_validation.png"
+    figure.savefig(figure_path, dpi=300, bbox_inches="tight")
+    figure.savefig(
+        output_dir / "publication_control_validation.pdf",
+        bbox_inches="tight",
+    )
+    plt.close(figure)
+    return figure_path
+
+
+def run_publication_control_validation_stage(
+    config: Mapping[str, Any],
+    *,
+    fairness_nbars=(0.01, 2.0, 4.0, 10.0, 20.0),
+    amplitude_scale_factors=(0.98, 1.0, 1.02),
+    resource_mode: str = "peak_power",
+    max_peak_power_factor: float = 16.0,
+    max_pulse_energy_factor: float = 5.0,
+    convergence_nbar: float = 20.0,
+    phonon_cutoff_factor: float = 1.15,
+    time_points_factor: float = 2.0,
+    crossover_nbars=(12.0, 16.0),
+    crossover_shape: str = "auto",
+    run_fairness_qpt: bool = False,
+    run_convergence_qpt: bool = False,
+    run_crossover_qpt: bool = False,
+    force_recompute: bool = False,
+    show_progress: bool = True,
+) -> dict[str, Any]:
+    """Run the three final publication checks after the 9.2 screening.
+
+    The stage reuses the 9.2 center points, caches every new QPT separately,
+    and keeps the three expensive sub-stages independently switchable.
+    """
+
+    paths = _paths(config)
+    params = _simulation_params(config)
+    base_amplitude = float(np.asarray(params["A"]))
+    base_delta = float(np.asarray(params["delta"]))
+    base_gate_time_sim = float(
+        params.get("t_gate_sim", 2.0 * np.pi / abs(base_delta))
+    )
+    base_gate_time_phys = float(params["t_gate_phys"])
+    workers = int(config.get("FAST_PROCESS_WORKERS", 4))
+    output_dir = paths["control"] / "publication_control_validation"
+    cache_dir = output_dir / "qpt_cache"
+    fair_path = (
+        paths["control"] / "fair_calibrated_comparison"
+        / "fair_control_qpt_summary.csv"
+    )
+    if not fair_path.exists():
+        raise FileNotFoundError(f"Missing {fair_path}. Run cell 9.2 first.")
+    fair_qpt = pd.read_csv(fair_path)
+
+    fairness_nbars = sorted({float(value) for value in fairness_nbars})
+    amplitude_scale_factors = sorted({
+        float(value) for value in amplitude_scale_factors
+    })
+    if 1.0 not in amplitude_scale_factors:
+        raise ValueError("amplitude_scale_factors must include 1.0")
+    if min(amplitude_scale_factors) <= 0.0:
+        raise ValueError("amplitude_scale_factors must be positive")
+    if phonon_cutoff_factor <= 1.0 or time_points_factor <= 1.0:
+        raise ValueError("convergence factors must be greater than 1")
+
+    fairness_specs = []
+    fairness_plan_rows = []
+    for n_bar in fairness_nbars:
+        for shape in ("sin2", "blackman"):
+            seed_match = fair_qpt.loc[
+                np.isclose(fair_qpt["n_bar"].astype(float), n_bar)
+                & (fair_qpt["condition"] == f"pulse_{shape}_calibrated")
+            ]
+            if seed_match.empty:
+                raise ValueError(
+                    f"9.2 is missing pulse_{shape}_calibrated at n_bar={n_bar:g}"
+                )
+            seed = seed_match.iloc[-1]
+            for scale in amplitude_scale_factors:
+                amplitude_peak = float(seed["amplitude_peak"]) * scale
+                resources = _publication_control_resource_metrics(
+                    shape=shape,
+                    amplitude_peak=amplitude_peak,
+                    base_amplitude=base_amplitude,
+                    gate_time_factor=float(seed["gate_time_factor"]),
+                )
+                eligible = _publication_resource_eligible(
+                    resources,
+                    resource_mode=resource_mode,
+                    max_peak_power_factor=float(max_peak_power_factor),
+                    max_pulse_energy_factor=float(max_pulse_energy_factor),
+                )
+                plan = {
+                    "validation_stage": "pulse_fairness",
+                    "n_bar": n_bar,
+                    "condition": f"pulse_{shape}_local_A_{scale:.3f}",
+                    "family": "pulse",
+                    "shape": shape,
+                    "amplitude_scale_from_9p2": scale,
+                    "amplitude_peak": amplitude_peak,
+                    "detuning": float(seed["detuning"]),
+                    "t_gate_sim": float(seed["t_gate_sim"]),
+                    "t_gate_phys": float(seed["t_gate_phys"]),
+                    "gate_time_factor": float(seed["gate_time_factor"]),
+                    "time_points": int(params["time_points"]),
+                    "solver_max_step": np.nan,
+                    "phonon_dim_override": np.nan,
+                    "parallel_workers": workers,
+                    "scattering_scales_with_intensity": True,
+                    "resource_mode": resource_mode,
+                    "resource_eligible": eligible,
+                    "max_peak_power_factor": float(max_peak_power_factor),
+                    "max_pulse_energy_factor": float(max_pulse_energy_factor),
+                    "ideal_closure_residual": float(
+                        seed.get("pulse_relative_closure_residual", np.nan)
+                    ),
+                    **resources,
+                }
+                fairness_plan_rows.append(plan)
+                if not eligible:
+                    continue
+                reuse_path = None
+                if np.isclose(scale, 1.0):
+                    reuse_path = Path(str(seed["cache_path"]))
+                fairness_specs.append(_publication_control_spec(
+                    plan=plan,
+                    params=params,
+                    base_amplitude=base_amplitude,
+                    show_progress=show_progress,
+                    reuse_cache_path=reuse_path,
+                ))
+
+    fairness_scan, fairness_pending, fairness_new = (
+        _run_publication_control_specs(
+            fairness_specs,
+            config=config,
+            cache_dir=cache_dir / "pulse_fairness",
+            run_qpt=run_fairness_qpt,
+            force_recompute=force_recompute,
+            show_progress=show_progress,
+            description="9.3 pulse fairness",
+        )
+    )
+    fairness_plan = pd.DataFrame(fairness_plan_rows)
+    fairness_selected_rows = []
+    if not fairness_scan.empty:
+        for (n_bar, shape), group in fairness_scan.groupby(
+            ["n_bar", "shape"], sort=True
+        ):
+            best = group.loc[group["average_infidelity"].idxmin()].copy()
+            best["condition"] = f"pulse_{shape}_A_optimized"
+            best["local_optimum_at_boundary"] = bool(
+                np.isclose(
+                    best["amplitude_scale_from_9p2"],
+                    min(amplitude_scale_factors),
+                )
+                or np.isclose(
+                    best["amplitude_scale_from_9p2"],
+                    max(amplitude_scale_factors),
+                )
+            )
+            fairness_selected_rows.append(best.to_dict())
+    fairness_selected = pd.DataFrame(fairness_selected_rows)
+    rectangular_reference = fair_qpt.loc[
+        fair_qpt["condition"] == "rectangular_A_infidelity"
+    ].copy()
+    rectangular_reference = rectangular_reference.loc[
+        rectangular_reference["n_bar"].astype(float).isin(fairness_nbars)
+    ]
+    if not rectangular_reference.empty:
+        rectangular_reference["condition"] = "rectangular_A_optimized"
+        rectangular_reference["shape"] = "rectangular"
+        resource_rows = [
+            _publication_control_resource_metrics(
+                shape="rectangular",
+                amplitude_peak=float(row["amplitude_peak"]),
+                base_amplitude=base_amplitude,
+                gate_time_factor=float(row["gate_time_factor"]),
+            )
+            for _, row in rectangular_reference.iterrows()
+        ]
+        for key in [
+            "peak_amplitude_factor", "peak_power_factor", "pulse_energy_factor"
+        ]:
+            rectangular_reference[key] = [row[key] for row in resource_rows]
+        fairness_selected = pd.concat(
+            [rectangular_reference, fairness_selected],
+            ignore_index=True,
+            sort=False,
+        )
+
+    # High-temperature convergence: validate all six 9.2 control points, not
+    # only the four that fail the raw CP threshold at n_bar=20.
+    convergence_nbar = float(convergence_nbar)
+    high_rows = fair_qpt.loc[
+        np.isclose(fair_qpt["n_bar"].astype(float), convergence_nbar)
+    ].copy()
+    if len(high_rows) != 6:
+        raise ValueError(
+            f"Expected six 9.2 controls at n_bar={convergence_nbar:g}, "
+            f"found {len(high_rows)}"
+        )
+    convergence_specs = []
+    high_time_points = int(math.ceil(
+        int(params["time_points"]) * float(time_points_factor)
+    ))
+    level_definitions = [
+        ("base", 0, False, False),
+        ("cutoff_high", 1, True, False),
+        ("time_high", 2, False, True),
+        ("both_high", 3, True, True),
+    ]
+    for _, seed in high_rows.iterrows():
+        _, seed_metadata = _load_qpt_cache_with_metadata(
+            Path(str(seed["cache_path"]))
+        )
+        base_phonon_dim = int(seed_metadata["phonon_dim"])
+        high_phonon_dim = int(math.ceil(
+            base_phonon_dim * float(phonon_cutoff_factor)
+        ))
+        for level, order, use_high_cutoff, use_high_time in level_definitions:
+            time_points = (
+                high_time_points if use_high_time else int(params["time_points"])
+            )
+            solver_max_step = (
+                float(seed["t_gate_sim"]) / max(time_points - 1, 1)
+                if use_high_time else np.nan
+            )
+            phonon_override = high_phonon_dim if use_high_cutoff else np.nan
+            resources = _publication_control_resource_metrics(
+                shape=str(seed["shape"]),
+                amplitude_peak=float(seed["amplitude_peak"]),
+                base_amplitude=base_amplitude,
+                gate_time_factor=float(seed["gate_time_factor"]),
+            )
+            plan = {
+                "validation_stage": "nbar20_convergence",
+                "n_bar": convergence_nbar,
+                "condition": str(seed["condition"]),
+                "family": str(seed["family"]),
+                "shape": str(seed["shape"]),
+                "amplitude_peak": float(seed["amplitude_peak"]),
+                "detuning": float(seed["detuning"]),
+                "t_gate_sim": float(seed["t_gate_sim"]),
+                "t_gate_phys": float(seed["t_gate_phys"]),
+                "gate_time_factor": float(seed["gate_time_factor"]),
+                "time_points": time_points,
+                "solver_max_step": solver_max_step,
+                "phonon_dim_override": phonon_override,
+                "parallel_workers": workers,
+                "scattering_scales_with_intensity": True,
+                "convergence_level": level,
+                "convergence_level_order": order,
+                "base_phonon_dim": base_phonon_dim,
+                "high_phonon_dim": high_phonon_dim,
+                "phonon_cutoff_factor": float(phonon_cutoff_factor),
+                "time_points_factor": float(time_points_factor),
+                **resources,
+            }
+            reuse_path = (
+                Path(str(seed["cache_path"])) if level == "base" else None
+            )
+            convergence_specs.append(_publication_control_spec(
+                plan=plan,
+                params=params,
+                base_amplitude=base_amplitude,
+                show_progress=show_progress,
+                reuse_cache_path=reuse_path,
+            ))
+    convergence_scan, convergence_pending, convergence_new = (
+        _run_publication_control_specs(
+            convergence_specs,
+            config=config,
+            cache_dir=cache_dir / "nbar20_convergence",
+            run_qpt=run_convergence_qpt,
+            force_recompute=force_recompute,
+            show_progress=show_progress,
+            description="9.3 nbar=20 convergence",
+        )
+    )
+    convergence_comparison = convergence_scan.copy()
+    if not convergence_comparison.empty:
+        reference = convergence_comparison.loc[
+            convergence_comparison["convergence_level"] == "both_high",
+            [
+                "condition", "average_infidelity", "h_XX_rad_per_gate",
+                "gamma_XX_per_gate", "raw_min_choi_eigenvalue",
+            ],
+        ].rename(columns={
+            "average_infidelity": "reference_average_infidelity",
+            "h_XX_rad_per_gate": "reference_h_XX_rad_per_gate",
+            "gamma_XX_per_gate": "reference_gamma_XX_per_gate",
+            "raw_min_choi_eigenvalue": "reference_raw_min_choi_eigenvalue",
+        })
+        convergence_comparison = convergence_comparison.merge(
+            reference, on="condition", how="left"
+        )
+        convergence_comparison["relative_infidelity_to_high_resolution"] = (
+            convergence_comparison["average_infidelity"]
+            / convergence_comparison["reference_average_infidelity"]
+        )
+        convergence_comparison["relative_abs_h_to_high_resolution"] = (
+            np.abs(convergence_comparison["h_XX_rad_per_gate"])
+            / np.maximum(
+                np.abs(convergence_comparison["reference_h_XX_rad_per_gate"]),
+                1e-15,
+            )
+        )
+        convergence_comparison["relative_gamma_to_high_resolution"] = (
+            convergence_comparison["gamma_XX_per_gate"]
+            / np.maximum(
+                convergence_comparison["reference_gamma_XX_per_gate"], 1e-15
+            )
+        )
+
+    # Crossover refinement at n_bar=12,16.  The shape is selected from the
+    # high-temperature 9.2 data unless explicitly fixed in the notebook.
+    if str(crossover_shape).lower() == "auto":
+        shape_candidates = fair_qpt.loc[
+            fair_qpt["shape"].isin(["sin2", "blackman"])
+            & (fair_qpt["n_bar"].astype(float) >= 10.0)
+        ]
+        best_shape = str(
+            shape_candidates.groupby("shape")["average_infidelity"].mean().idxmin()
+        )
+    else:
+        best_shape = str(crossover_shape).lower()
+    if best_shape not in {"sin2", "blackman"}:
+        raise ValueError("crossover_shape must be 'auto', 'sin2', or 'blackman'")
+
+    shaped_seed_frame = fairness_selected.loc[
+        fairness_selected.get("shape", pd.Series(dtype=str)) == best_shape
+    ].copy()
+    if shaped_seed_frame.empty:
+        shaped_seed_frame = fair_qpt.loc[
+            fair_qpt["shape"] == best_shape
+        ].copy()
+    rectangular_seed_frame = fair_qpt.loc[
+        fair_qpt["condition"] == "rectangular_A_infidelity"
+    ].copy()
+    crossover_specs = []
+    for n_bar in sorted({float(value) for value in crossover_nbars}):
+        seeds = [
+            (
+                "rectangular",
+                "rectangular",
+                _interpolate_control_seed(rectangular_seed_frame, n_bar),
+                base_delta,
+                base_gate_time_sim,
+                base_gate_time_phys,
+            ),
+            (
+                f"pulse_{best_shape}",
+                best_shape,
+                _interpolate_control_seed(shaped_seed_frame, n_bar),
+                _interpolate_control_seed(
+                    shaped_seed_frame, n_bar, column="detuning"
+                ),
+                _interpolate_control_seed(
+                    shaped_seed_frame, n_bar, column="t_gate_sim"
+                ),
+                _interpolate_control_seed(
+                    shaped_seed_frame, n_bar, column="t_gate_phys"
+                ),
+            ),
+        ]
+        for family, shape, seed_amplitude, detuning, t_sim, t_phys in seeds:
+            for scale in amplitude_scale_factors:
+                amplitude_peak = seed_amplitude * scale
+                gate_factor = t_phys / base_gate_time_phys
+                resources = _publication_control_resource_metrics(
+                    shape=shape,
+                    amplitude_peak=amplitude_peak,
+                    base_amplitude=base_amplitude,
+                    gate_time_factor=gate_factor,
+                )
+                eligible = _publication_resource_eligible(
+                    resources,
+                    resource_mode=resource_mode,
+                    max_peak_power_factor=float(max_peak_power_factor),
+                    max_pulse_energy_factor=float(max_pulse_energy_factor),
+                )
+                if not eligible:
+                    continue
+                plan = {
+                    "validation_stage": "crossover_refinement",
+                    "n_bar": n_bar,
+                    "condition": f"{family}_local_A_{scale:.3f}",
+                    "family": family,
+                    "shape": shape,
+                    "amplitude_scale_from_seed": scale,
+                    "amplitude_peak": amplitude_peak,
+                    "detuning": detuning,
+                    "t_gate_sim": t_sim,
+                    "t_gate_phys": t_phys,
+                    "gate_time_factor": gate_factor,
+                    "time_points": int(params["time_points"]),
+                    "solver_max_step": np.nan,
+                    "phonon_dim_override": np.nan,
+                    "parallel_workers": workers,
+                    "scattering_scales_with_intensity": True,
+                    "resource_mode": resource_mode,
+                    "resource_eligible": True,
+                    **resources,
+                }
+                crossover_specs.append(_publication_control_spec(
+                    plan=plan,
+                    params=params,
+                    base_amplitude=base_amplitude,
+                    show_progress=show_progress,
+                ))
+    crossover_scan, crossover_pending, crossover_new = (
+        _run_publication_control_specs(
+            crossover_specs,
+            config=config,
+            cache_dir=cache_dir / "crossover_refinement",
+            run_qpt=run_crossover_qpt,
+            force_recompute=force_recompute,
+            show_progress=show_progress,
+            description="9.3 crossover nbar=12,16",
+        )
+    )
+    crossover_selected_rows = []
+    if not crossover_scan.empty:
+        for (n_bar, family), group in crossover_scan.groupby(
+            ["n_bar", "family"], sort=True
+        ):
+            best = group.loc[group["average_infidelity"].idxmin()].copy()
+            best["local_optimum_at_boundary"] = bool(
+                np.isclose(
+                    best["amplitude_scale_from_seed"],
+                    min(amplitude_scale_factors),
+                )
+                or np.isclose(
+                    best["amplitude_scale_from_seed"],
+                    max(amplitude_scale_factors),
+                )
+            )
+            crossover_selected_rows.append(best.to_dict())
+    crossover_selected = pd.DataFrame(crossover_selected_rows)
+
+    trend_rows = []
+    for n_bar in [10.0, 20.0]:
+        rect = rectangular_seed_frame.loc[
+            np.isclose(rectangular_seed_frame["n_bar"].astype(float), n_bar)
+        ]
+        shaped = fairness_selected.loc[
+            np.isclose(fairness_selected["n_bar"].astype(float), n_bar)
+            & (fairness_selected.get("shape", pd.Series(dtype=str)) == best_shape)
+        ]
+        if shaped.empty:
+            shaped = fair_qpt.loc[
+                np.isclose(fair_qpt["n_bar"].astype(float), n_bar)
+                & (fair_qpt["shape"] == best_shape)
+            ]
+        if not rect.empty and not shaped.empty:
+            trend_rows.append({
+                "n_bar": n_bar,
+                "rectangular_infidelity": float(rect.iloc[-1]["average_infidelity"]),
+                "shaped_infidelity": float(shaped.iloc[-1]["average_infidelity"]),
+                "shaped_to_rectangular_infidelity_ratio": float(
+                    shaped.iloc[-1]["average_infidelity"]
+                    / rect.iloc[-1]["average_infidelity"]
+                ),
+                "shaped_abs_h_XX": abs(float(
+                    shaped.iloc[-1]["h_XX_rad_per_gate"]
+                )),
+                "shaped_gamma_XX": float(shaped.iloc[-1]["gamma_XX_per_gate"]),
+                "source": "existing_fairness",
+            })
+    if not crossover_selected.empty:
+        for n_bar, group in crossover_selected.groupby("n_bar", sort=True):
+            rect = group.loc[group["family"] == "rectangular"]
+            shaped = group.loc[group["family"] == f"pulse_{best_shape}"]
+            if not rect.empty and not shaped.empty:
+                trend_rows.append({
+                    "n_bar": float(n_bar),
+                    "rectangular_infidelity": float(
+                        rect.iloc[-1]["average_infidelity"]
+                    ),
+                    "shaped_infidelity": float(
+                        shaped.iloc[-1]["average_infidelity"]
+                    ),
+                    "shaped_to_rectangular_infidelity_ratio": float(
+                        shaped.iloc[-1]["average_infidelity"]
+                        / rect.iloc[-1]["average_infidelity"]
+                    ),
+                    "shaped_abs_h_XX": abs(float(
+                        shaped.iloc[-1]["h_XX_rad_per_gate"]
+                    )),
+                    "shaped_gamma_XX": float(
+                        shaped.iloc[-1]["gamma_XX_per_gate"]
+                    ),
+                    "source": "crossover_refinement",
+                })
+    crossover_curve = pd.DataFrame(trend_rows)
+    if not crossover_curve.empty:
+        crossover_curve = crossover_curve.sort_values("n_bar").drop_duplicates(
+            "n_bar", keep="last"
+        )
+    crossover_estimate = _estimate_infidelity_crossover(crossover_curve)
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    tables = {
+        "fairness_plan": fairness_plan,
+        "fairness_scan": fairness_scan,
+        "fairness_selected": fairness_selected,
+        "convergence_scan": convergence_scan,
+        "convergence_comparison": convergence_comparison,
+        "crossover_scan": crossover_scan,
+        "crossover_selected": crossover_selected,
+        "crossover_curve": crossover_curve,
+    }
+    for name, frame in tables.items():
+        frame.to_csv(output_dir / f"{name}.csv", index=False)
+    figure_path = _plot_publication_control_validation(
+        fairness_selected,
+        convergence_comparison,
+        crossover_curve,
+        output_dir,
+    )
+    status = {
+        "fairness": {
+            "expected_eligible_points": len(fairness_specs),
+            "completed_points": len(fairness_scan),
+            "newly_computed": fairness_new,
+            "pending_points": len(fairness_pending),
+            "run_qpt": bool(run_fairness_qpt),
+            "boundary_optima": int(
+                sum(
+                    value is True or isinstance(value, np.bool_) and bool(value)
+                    for value in fairness_selected.get(
+                        "local_optimum_at_boundary", pd.Series(dtype=object)
+                    )
+                )
+            ),
+        },
+        "convergence": {
+            "expected_points": len(convergence_specs),
+            "completed_points": len(convergence_scan),
+            "newly_computed": convergence_new,
+            "pending_points": len(convergence_pending),
+            "run_qpt": bool(run_convergence_qpt),
+            "phonon_cutoff_factor": float(phonon_cutoff_factor),
+            "time_points_factor": float(time_points_factor),
+        },
+        "crossover": {
+            "shape": best_shape,
+            "expected_points": len(crossover_specs),
+            "completed_points": len(crossover_scan),
+            "newly_computed": crossover_new,
+            "pending_points": len(crossover_pending),
+            "run_qpt": bool(run_crossover_qpt),
+            "estimated_n_bar": crossover_estimate,
+        },
+        "resource_constraint": {
+            "mode": resource_mode,
+            "max_peak_power_factor": float(max_peak_power_factor),
+            "max_pulse_energy_factor": float(max_pulse_energy_factor),
+        },
+    }
+    return {
+        **tables,
+        "figure_path": figure_path,
+        "output_dir": output_dir,
+        "status": status,
+        "pending": {
+            "fairness": fairness_pending,
+            "convergence": convergence_pending,
+            "crossover": crossover_pending,
+        },
+    }
+
+
 def _robustness_conditions(
     params: Mapping[str, Any],
     eta_factors: Iterable[float],

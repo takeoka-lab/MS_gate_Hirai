@@ -62,6 +62,7 @@ def test_notebook_contains_configuration_calls_but_no_function_definitions():
         "independent-control",
         "independent-control-screening-report",
         "independent-fair-control-comparison",
+        "independent-publication-control-validation",
         "independent-robustness",
     } <= cell_ids
     assert (
@@ -70,6 +71,8 @@ def test_notebook_contains_configuration_calls_but_no_function_definitions():
     )
     assert "CONTROL_QPT_NBARS =" in code
     assert "FAIR_CONTROL_NBARS = [0.01, 2.0, 4.0, 10.0, 20.0]" in code
+    assert "CROSSOVER_NBARS = [12.0, 16.0]" in code
+    assert "RUN_PAPER_FAIRNESS_QPT = False" in code
     assert "ROBUSTNESS_QPT_NBARS =" in code
     assert "SHOW_CONTROL_PROGRESS = True" in code
     assert "SHOW_ROBUSTNESS_PROGRESS = True" in code
