@@ -366,6 +366,70 @@ display(Image(filename=str(CONTROL_SCREENING_REPORT["figure_path"])))
 """,
     ),
     _markdown(
+        "independent-fair-control-comparison-intro",
+        r"""
+### 9.2 校正条件をそろえた公平な制御比較
+
+$\bar n=[0.01,2,4,10,20]$の各点で、次の内側校正を行った後に同じfull-Hamiltonian QPTで$|h_{XX}|$、$\gamma_{XX}$、$1-F_{\rm avg}$を比較します。
+
+- rectangular: 完了済みamplitude scanのphysical infidelityを局所2次補間して$A$を選ぶ
+- $A,\delta$ joint: amplitude/detuning scanのinfidelity最小値を初期値とし、閉軌道に再スケールする
+- gate time: $\delta T=2\pi$とXX角を保った$T/T_0=0.97,1.03$を評価し、infidelityが小さい方を採用する
+- $\sin^2$/Blackman: それぞれの$\alpha(T)=0$と幾何学的XX位相$\theta_{XX}=\pi/4$からpulse固有の$\delta,A$を決める
+
+整形pulseの強度が大きい場合もペナルティに入るよう、Rayleigh/Raman scatteringは瞬間$|A(t)|^2$に比例させます。新規QPTは6候補$\times$5温度=30点で、各点を独立にcacheします。まず`RUN_FAIR_CONTROL_QPT=False`のまま実行して校正表を確認し、問題がなければ`True`で未完了点を計算してください。
+""",
+    ),
+    _code(
+        "independent-fair-control-comparison",
+        r"""
+import importlib
+from IPython.display import Image
+
+stages = importlib.reload(stages)
+
+FAIR_CONTROL_NBARS = [0.01, 2.0, 4.0, 10.0, 20.0]
+RUN_FAIR_CONTROL_QPT = False
+FORCE_FAIR_CONTROL_QPT = False
+SHOW_FAIR_CONTROL_PROGRESS = True
+
+FAIR_GATE_TIME_FACTORS = [0.97, 1.03]
+FAIR_PULSE_CLOSURE_CYCLES = {"sin2": 2.0, "blackman": 3.0}
+FAIR_SCATTERING_SCALES_WITH_INTENSITY = True
+
+FAIR_CONTROL_RESULT = stages.run_fair_control_comparison_stage(
+    CONFIG,
+    FAIR_CONTROL_NBARS,
+    run_qpt=RUN_FAIR_CONTROL_QPT,
+    force_recompute=FORCE_FAIR_CONTROL_QPT,
+    show_progress=SHOW_FAIR_CONTROL_PROGRESS,
+    gate_time_factors=FAIR_GATE_TIME_FACTORS,
+    pulse_closure_cycles=FAIR_PULSE_CLOSURE_CYCLES,
+    scattering_scales_with_intensity=(
+        FAIR_SCATTERING_SCALES_WITH_INTENSITY
+    ),
+)
+
+FAIR_STATUS = FAIR_CONTROL_RESULT["status"]
+print({key: value for key, value in FAIR_STATUS.items() if key != "pending"})
+print(f"pending QPT points: {len(FAIR_STATUS['pending'])}")
+display(FAIR_CONTROL_RESULT["calibration_plan"][[
+    "n_bar", "condition", "amplitude_factor", "detuning_factor",
+    "gate_time_factor", "shape", "calibration_method",
+    "pulse_relative_closure_residual",
+]])
+
+if FAIR_STATUS["calibrated_qpt_points_completed"]:
+    display(FAIR_CONTROL_RESULT["selected_comparison"][[
+        "n_bar", "condition", "h_XX_rad_per_gate",
+        "gamma_XX_per_gate", "average_infidelity",
+    ]])
+    display(Image(filename=str(FAIR_CONTROL_RESULT["figure_path"])))
+else:
+    print("Calibration plan only. Set RUN_FAIR_CONTROL_QPT=True to run QPT.")
+""",
+    ),
+    _markdown(
         "independent-robustness-intro",
         r"""
 ## 10. 独立実行：パラメータ頑健性

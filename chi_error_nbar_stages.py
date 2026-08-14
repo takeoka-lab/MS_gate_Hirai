@@ -1431,6 +1431,580 @@ def run_physical_control_screening_report(
     }
 
 
+def _quadratic_screening_optimum(
+    frame: pd.DataFrame,
+    *,
+    metric: str = "average_infidelity",
+) -> dict[str, float]:
+    """Estimate a bounded continuous optimum from a completed 1-D scan."""
+
+    points = (
+        frame[["factor", metric]]
+        .dropna()
+        .groupby("factor", as_index=False)[metric]
+        .mean()
+        .sort_values("factor")
+    )
+    if points.empty:
+        raise ValueError("The screening slice has no finite optimization points")
+    discrete = points.loc[points[metric].idxmin()]
+    optimum = float(discrete["factor"])
+    fit_used = False
+    if len(points) >= 3:
+        distances = np.abs(points["factor"].to_numpy(float) - optimum)
+        local = points.iloc[np.argsort(distances)[:3]].sort_values("factor")
+        x = local["factor"].to_numpy(float)
+        y = local[metric].to_numpy(float)
+        if len(np.unique(x)) == 3:
+            quadratic = np.polyfit(x, y, 2)
+            if quadratic[0] > 0.0:
+                vertex = -quadratic[1] / (2.0 * quadratic[0])
+                optimum = float(np.clip(vertex, points["factor"].min(), points["factor"].max()))
+                fit_used = True
+    return {
+        "factor": optimum,
+        "discrete_best_factor": float(discrete["factor"]),
+        "discrete_best_metric": float(discrete[metric]),
+        "quadratic_fit_used": bool(fit_used),
+        "scan_factor_min": float(points["factor"].min()),
+        "scan_factor_max": float(points["factor"].max()),
+    }
+
+
+def _fair_pulse_envelope(shape: str, number_of_points: int) -> np.ndarray:
+    u = np.linspace(0.0, 1.0, int(number_of_points))
+    if shape == "sin2":
+        envelope = np.sin(np.pi * u) ** 2
+    elif shape == "blackman":
+        envelope = 0.42 - 0.5 * np.cos(2.0 * np.pi * u) + 0.08 * np.cos(
+            4.0 * np.pi * u
+        )
+    else:
+        raise ValueError(f"Unknown fair-comparison pulse shape: {shape}")
+    return np.maximum(envelope, 0.0)
+
+
+def _closed_pulse_geometric_calibration(
+    shape: str,
+    *,
+    gate_time_sim: float,
+    closure_cycles: float,
+    target_xx_angle_rad: float,
+    integration_points: int = 4001,
+) -> dict[str, float]:
+    """Calibrate ideal-LD closure and geometric phase for one pulse shape."""
+
+    time_grid = np.linspace(0.0, float(gate_time_sim), int(integration_points))
+    envelope = _fair_pulse_envelope(shape, len(time_grid))
+    detuning = 2.0 * np.pi * float(closure_cycles) / float(gate_time_sim)
+    phase = detuning * time_grid
+    inner = np.zeros_like(time_grid, dtype=complex)
+    inner[1:] = np.cumsum(
+        0.5
+        * (
+            envelope[1:] * np.exp(-1j * phase[1:])
+            + envelope[:-1] * np.exp(-1j * phase[:-1])
+        )
+        * np.diff(time_grid)
+    )
+    geometric_integral = float(
+        np.trapz(
+            np.imag(envelope * np.exp(1j * phase) * inner),
+            time_grid,
+        )
+    )
+    if geometric_integral <= 0.0:
+        raise ValueError(
+            f"Pulse {shape} has non-positive geometric phase at "
+            f"closure_cycles={closure_cycles:g}"
+        )
+    peak_amplitude = float(
+        np.sqrt(float(target_xx_angle_rad) / (2.0 * geometric_integral))
+    )
+    closure = np.trapz(
+        peak_amplitude * envelope * np.exp(1j * phase), time_grid
+    )
+    normalization = max(
+        float(np.trapz(np.abs(peak_amplitude * envelope), time_grid)),
+        1e-15,
+    )
+    return {
+        "shape": shape,
+        "closure_cycles": float(closure_cycles),
+        "detuning": detuning,
+        "ideal_peak_amplitude": peak_amplitude,
+        "ideal_rms_amplitude": float(
+            np.sqrt(np.mean((peak_amplitude * envelope) ** 2))
+        ),
+        "geometric_integral_unit_amplitude": geometric_integral,
+        "relative_closure_residual": float(abs(closure) / normalization),
+    }
+
+
+def _fair_control_cache_path(
+    directory: Path,
+    config: Mapping[str, Any],
+    plan: Mapping[str, Any],
+) -> Path:
+    params = _simulation_params(config)
+    signature_keys = [
+        "time_points", "t_gate_phys", "heating_rate_phys",
+        "dephasing_rate_phys", "T2_star", "rayleigh_rate_phys",
+        "raman_rate_phys", "eta", "use_full_order",
+    ]
+    payload = {
+        "condition": plan["condition"],
+        "n_bar": float(plan["n_bar"]),
+        "amplitude_peak": float(plan["amplitude_peak"]),
+        "detuning": float(plan["detuning"]),
+        "t_gate_sim": float(plan["t_gate_sim"]),
+        "t_gate_phys": float(plan["t_gate_phys"]),
+        "shape": plan.get("shape", "rectangular"),
+        "scattering_scales_with_intensity": bool(
+            plan["scattering_scales_with_intensity"]
+        ),
+        "parameters": {key: params.get(key) for key in signature_keys},
+        "convention": _convention(config),
+        "calibration_version": "fair_control_v1",
+    }
+    digest = hashlib.sha256(
+        json.dumps(payload, sort_keys=True, default=_json_safe).encode("utf-8")
+    ).hexdigest()[:14]
+    return directory / (
+        f"{_condition_stem(plan['condition'])}__nbar_"
+        f"{_compact_nbar_stem(plan['n_bar'])}__{digest}.npz"
+    )
+
+
+def _plot_fair_control_comparison(
+    comparison: pd.DataFrame,
+    output_dir: Path,
+    nbar_values: Iterable[float],
+) -> Path | None:
+    if comparison.empty:
+        return None
+    frame = comparison.copy()
+    baseline = frame.loc[frame["condition"] == "baseline", [
+        "n_bar", "h_XX_rad_per_gate", "gamma_XX_per_gate",
+        "average_infidelity",
+    ]].rename(columns={
+        "h_XX_rad_per_gate": "baseline_h_XX_rad_per_gate",
+        "gamma_XX_per_gate": "baseline_gamma_XX_per_gate",
+        "average_infidelity": "baseline_average_infidelity",
+    })
+    frame = frame.merge(baseline, on="n_bar", how="left")
+    frame["abs_h_XX_rad_per_gate"] = np.abs(frame["h_XX_rad_per_gate"])
+    frame["infidelity_ratio_to_baseline"] = (
+        frame["average_infidelity"]
+        / np.maximum(frame["baseline_average_infidelity"], 1e-15)
+    )
+    colors = {
+        "baseline": "black",
+        "rectangular_A_infidelity": "#0072B2",
+        "drive_detuning_joint": "#E69F00",
+        "gate_time_closed_opt": "#009E73",
+        "pulse_sin2_calibrated": "#CC79A7",
+        "pulse_blackman_calibrated": "#D55E00",
+    }
+    figure, axes = plt.subplots(2, 2, figsize=(14.0, 9.5))
+    panels = [
+        (axes[0, 0], "abs_h_XX_rad_per_gate", r"$|h_{XX}|$ [rad/gate]"),
+        (axes[0, 1], "gamma_XX_per_gate", r"$\gamma_{XX}$ [/gate]"),
+        (
+            axes[1, 0], "average_infidelity",
+            r"Physical average infidelity $1-F_{\rm avg}$",
+        ),
+        (
+            axes[1, 1], "infidelity_ratio_to_baseline",
+            "Infidelity / baseline",
+        ),
+    ]
+    for condition, group in frame.groupby("condition", sort=False):
+        group = group.sort_values("n_bar")
+        for axis, metric, _ in panels:
+            axis.plot(
+                group["n_bar"],
+                np.maximum(group[metric].to_numpy(float), 1e-9),
+                marker="o",
+                linewidth=2.8 if condition == "baseline" else 2.0,
+                label=str(condition).replace("_", " "),
+                color=colors.get(str(condition)),
+            )
+    for axis, _, ylabel in panels:
+        axis.set_xlabel(r"Mean phonon number $\bar n$")
+        axis.set_ylabel(ylabel)
+        axis.set_xticks(list(nbar_values))
+        axis.set_yscale("log")
+        axis.grid(True, which="both", alpha=0.25)
+    axes[1, 1].axhline(1.0, color="black", linestyle=":", linewidth=1.3)
+    handles, labels = axes[0, 0].get_legend_handles_labels()
+    figure.legend(
+        handles, labels, loc="lower center", ncol=3, fontsize=8,
+        bbox_to_anchor=(0.5, 0.005),
+    )
+    figure.suptitle(
+        "Fair calibrated-control comparison: full-Hamiltonian QPT", y=0.995
+    )
+    figure.tight_layout(rect=(0.0, 0.08, 1.0, 0.97))
+    output_dir.mkdir(parents=True, exist_ok=True)
+    figure_path = output_dir / "fair_calibrated_control_comparison.png"
+    figure.savefig(figure_path, dpi=300, bbox_inches="tight")
+    figure.savefig(
+        output_dir / "fair_calibrated_control_comparison.pdf",
+        bbox_inches="tight",
+    )
+    plt.close(figure)
+    return figure_path
+
+
+def run_fair_control_comparison_stage(
+    config: Mapping[str, Any],
+    nbar_values: Iterable[float],
+    *,
+    run_qpt: bool = False,
+    force_recompute: bool = False,
+    show_progress: bool = True,
+    gate_time_factors=(0.97, 1.03),
+    pulse_closure_cycles: Mapping[str, float] | None = None,
+    scattering_scales_with_intensity: bool = True,
+) -> dict[str, Any]:
+    """Calibrate each control family fairly and validate it by cached QPT.
+
+    Calibration protocol:
+      * rectangular A: local quadratic minimum of the completed physical
+        infidelity scan;
+      * drive+detuning: the rectangular optimum and detuning scan optimum are
+        combined while preserving one closed phase-space loop;
+      * gate time: every requested duration is paired with delta*T=2*pi and
+        angle-preserving A, then the best physical-infidelity QPT is selected;
+      * sin2/Blackman: analytic ideal-LD closure and geometric phase, followed
+        by the measured temperature-dependent hXX amplitude renormalization.
+
+    All final metrics come from full-Hamiltonian QPT; the inner calibration
+    does not use uncalibrated RMS pulse normalization.
+    """
+
+    paths = _paths(config)
+    params = _simulation_params(config)
+    selected_nbars = sorted({float(value) for value in nbar_values})
+    if not selected_nbars:
+        raise ValueError("nbar_values must contain at least one value")
+    screening_path = paths["control"] / "physical_control_qpt_summary.csv"
+    if not screening_path.exists():
+        raise FileNotFoundError(
+            f"Missing {screening_path}. Run the screening cell first."
+        )
+    screening = pd.read_csv(screening_path)
+    drive_path = paths["drive"] / "hxx_drive_calibration_final_summary.csv"
+    drive = pd.read_csv(drive_path) if drive_path.exists() else pd.DataFrame()
+
+    base_amplitude = float(np.asarray(params["A"]))
+    base_delta = float(np.asarray(params["delta"]))
+    base_gate_time_sim = float(
+        params.get("t_gate_sim", 2.0 * np.pi / abs(base_delta))
+    )
+    base_gate_time_phys = float(params["t_gate_phys"])
+    target_angle = float(config.get("TARGET_XX_ANGLE_RAD", np.pi / 4.0))
+    closure_cycles = {"sin2": 2.0, "blackman": 3.0}
+    if pulse_closure_cycles is not None:
+        closure_cycles.update({
+            str(key): float(value)
+            for key, value in pulse_closure_cycles.items()
+        })
+    pulse_calibrations = {
+        shape: _closed_pulse_geometric_calibration(
+            shape,
+            gate_time_sim=base_gate_time_sim,
+            closure_cycles=closure_cycles[shape],
+            target_xx_angle_rad=target_angle,
+        )
+        for shape in ("sin2", "blackman")
+    }
+
+    specs = []
+    plan_rows = []
+    for n_bar in selected_nbars:
+        group = screening.loc[
+            np.isclose(screening["n_bar"].astype(float), n_bar)
+        ].copy()
+        if group.empty:
+            raise ValueError(f"Screening is missing n_bar={n_bar:g}")
+        amplitude_scan = group.loc[
+            group["kind"].isin(["baseline", "amplitude"])
+        ]
+        detuning_scan = group.loc[
+            group["kind"].isin(["baseline", "detuning"])
+        ]
+        amplitude_opt = _quadratic_screening_optimum(amplitude_scan)
+        detuning_opt = _quadratic_screening_optimum(detuning_scan)
+        drive_match = (
+            drive.loc[np.isclose(drive["n_bar"].astype(float), n_bar)]
+            if not drive.empty else pd.DataFrame()
+        )
+        thermal_angle_factor = (
+            float(drive_match.iloc[-1]["A_factor"])
+            if not drive_match.empty else amplitude_opt["factor"]
+        )
+
+        def register(
+            condition: str,
+            family: str,
+            *,
+            amplitude_peak: float,
+            detuning: float,
+            t_gate_sim: float,
+            t_gate_phys: float,
+            amplitude_waveform: np.ndarray | None = None,
+            shape: str = "rectangular",
+            extra: Mapping[str, Any] | None = None,
+        ) -> None:
+            plan = {
+                "n_bar": n_bar,
+                "condition": condition,
+                "family": family,
+                "shape": shape,
+                "amplitude_peak": float(amplitude_peak),
+                "amplitude_factor": float(amplitude_peak / base_amplitude),
+                "detuning": float(detuning),
+                "detuning_factor": float(detuning / base_delta),
+                "t_gate_sim": float(t_gate_sim),
+                "t_gate_phys": float(t_gate_phys),
+                "gate_time_factor": float(t_gate_phys / base_gate_time_phys),
+                "scattering_scales_with_intensity": bool(
+                    scattering_scales_with_intensity
+                ),
+                "rectangular_infidelity_seed_factor": amplitude_opt["factor"],
+                "detuning_infidelity_seed_factor": detuning_opt["factor"],
+                "thermal_hXX_angle_factor": thermal_angle_factor,
+            }
+            if extra:
+                plan.update(dict(extra))
+            overrides = {
+                "A": (
+                    np.asarray(amplitude_waveform, dtype=float)
+                    if amplitude_waveform is not None else float(amplitude_peak)
+                ),
+                "delta": float(detuning),
+                "t_gate_sim": float(t_gate_sim),
+                "t_gate_phys": float(t_gate_phys),
+                "laser_scattering_scales_with_intensity": bool(
+                    scattering_scales_with_intensity
+                ),
+                "scattering_reference_amplitude": base_amplitude,
+                "parallel_workers": int(config.get("FAST_PROCESS_WORKERS", 4)),
+                "show_progress": bool(show_progress),
+            }
+            specs.append({"plan": plan, "overrides": overrides})
+            plan_rows.append(plan)
+
+        rectangular_amplitude = base_amplitude * amplitude_opt["factor"]
+        register(
+            "rectangular_A_infidelity",
+            "rectangular",
+            amplitude_peak=rectangular_amplitude,
+            detuning=base_delta,
+            t_gate_sim=base_gate_time_sim,
+            t_gate_phys=base_gate_time_phys,
+            extra={
+                "calibration_method": "quadratic_physical_infidelity_screening",
+                **{
+                    f"amplitude_{key}": value
+                    for key, value in amplitude_opt.items()
+                },
+            },
+        )
+
+        joint_delta_factor = detuning_opt["factor"]
+        joint_delta = base_delta * joint_delta_factor
+        joint_amplitude = (
+            base_amplitude * amplitude_opt["factor"] * joint_delta_factor
+        )
+        register(
+            "drive_detuning_joint",
+            "drive_detuning",
+            amplitude_peak=joint_amplitude,
+            detuning=joint_delta,
+            t_gate_sim=base_gate_time_sim / joint_delta_factor,
+            t_gate_phys=base_gate_time_phys / joint_delta_factor,
+            extra={
+                "calibration_method": (
+                    "quadratic_infidelity_seeds_with_closed_loop_rescaling"
+                ),
+                **{
+                    f"detuning_{key}": value
+                    for key, value in detuning_opt.items()
+                },
+            },
+        )
+
+        for gate_factor in gate_time_factors:
+            gate_factor = float(gate_factor)
+            register(
+                f"gate_time_closed_{gate_factor:.3f}",
+                "gate_time_closed",
+                amplitude_peak=(
+                    base_amplitude * amplitude_opt["factor"] / gate_factor
+                ),
+                detuning=base_delta / gate_factor,
+                t_gate_sim=base_gate_time_sim * gate_factor,
+                t_gate_phys=base_gate_time_phys * gate_factor,
+                extra={
+                    "calibration_method": "delta_T_2pi_with_angle_rescaling",
+                    "closure_delta_times_T": 2.0 * np.pi,
+                },
+            )
+
+        for shape, calibration in pulse_calibrations.items():
+            peak = calibration["ideal_peak_amplitude"] * thermal_angle_factor
+            envelope = _fair_pulse_envelope(shape, int(params["time_points"]))
+            register(
+                f"pulse_{shape}_calibrated",
+                "pulse",
+                amplitude_peak=peak,
+                amplitude_waveform=peak * envelope,
+                detuning=calibration["detuning"],
+                t_gate_sim=base_gate_time_sim,
+                t_gate_phys=base_gate_time_phys,
+                shape=shape,
+                extra={
+                    "calibration_method": (
+                        "ideal_LD_closed_geometric_phase_plus_thermal_hXX"
+                    ),
+                    **{
+                        f"pulse_{key}": value
+                        for key, value in calibration.items()
+                        if key != "shape"
+                    },
+                },
+            )
+
+    output_dir = paths["control"] / "fair_calibrated_comparison"
+    cache_dir = output_dir / "qpt_cache"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    calibration_plan = pd.DataFrame(plan_rows).sort_values(
+        ["n_bar", "condition"]
+    ).reset_index(drop=True)
+    calibration_plan_path = output_dir / "fair_control_calibration_plan.csv"
+    calibration_plan.to_csv(calibration_plan_path, index=False)
+
+    pending = []
+    newly_computed = 0
+    rows = []
+    iterator = tqdm(
+        specs,
+        desc="Fair calibrated-control QPT",
+        unit="point",
+        disable=not show_progress,
+    )
+    for spec in iterator:
+        plan = spec["plan"]
+        cache_path = _fair_control_cache_path(
+            cache_dir, config, plan
+        )
+        if force_recompute or not cache_path.exists():
+            if not run_qpt:
+                pending.append({
+                    "n_bar": plan["n_bar"],
+                    "condition": plan["condition"],
+                    "cache_path": str(cache_path),
+                })
+                continue
+            result = qpt_analysis.calculate_error_channel_batch(
+                [plan["n_bar"]],
+                params,
+                spec["overrides"],
+                convention=_convention(config),
+            )[0]
+            result["metadata"].update({
+                key: value
+                for key, value in plan.items()
+                if isinstance(value, (str, int, float, bool, np.generic))
+            })
+            qpt_analysis.save_qpt_point(
+                cache_path,
+                plan["n_bar"],
+                plan["condition"],
+                result["chi"],
+                result["metadata"],
+            )
+            newly_computed += 1
+        with np.load(cache_path, allow_pickle=False) as data:
+            chi = np.asarray(data["chi_trace_normalized"], dtype=complex)
+        rows.append({
+            **plan,
+            "cache_path": str(cache_path),
+            **_control_observables(chi, config),
+        })
+
+    qpt_summary = pd.DataFrame(rows)
+    qpt_summary_path = output_dir / "fair_control_qpt_summary.csv"
+    qpt_summary.to_csv(qpt_summary_path, index=False)
+
+    baseline_rows = screening.loc[
+        screening["candidate"] == "baseline"
+    ].copy()
+    baseline_rows = pd.concat([
+        baseline_rows.loc[
+            np.isclose(baseline_rows["n_bar"].astype(float), n_bar)
+        ].tail(1)
+        for n_bar in selected_nbars
+    ], ignore_index=True)
+    baseline_rows["condition"] = "baseline"
+    baseline_rows["family"] = "baseline"
+
+    selected_rows = []
+    if not qpt_summary.empty:
+        for n_bar, group in qpt_summary.groupby("n_bar", sort=True):
+            for condition in [
+                "rectangular_A_infidelity",
+                "drive_detuning_joint",
+                "pulse_sin2_calibrated",
+                "pulse_blackman_calibrated",
+            ]:
+                match = group.loc[group["condition"] == condition]
+                if not match.empty:
+                    selected_rows.append(match.iloc[-1].to_dict())
+            gate_rows = group.loc[group["family"] == "gate_time_closed"]
+            if not gate_rows.empty:
+                best_gate = gate_rows.loc[
+                    gate_rows["average_infidelity"].idxmin()
+                ].copy()
+                best_gate["source_condition"] = best_gate["condition"]
+                best_gate["condition"] = "gate_time_closed_opt"
+                selected_rows.append(best_gate.to_dict())
+    selected = pd.concat(
+        [baseline_rows, pd.DataFrame(selected_rows)],
+        ignore_index=True,
+        sort=False,
+    )
+    selected_path = output_dir / "fair_control_selected_comparison.csv"
+    selected.to_csv(selected_path, index=False)
+    figure_path = _plot_fair_control_comparison(
+        selected, output_dir, selected_nbars
+    )
+
+    return {
+        "calibration_plan": calibration_plan,
+        "qpt_summary": qpt_summary,
+        "selected_comparison": selected,
+        "figure_path": figure_path,
+        "calibration_plan_path": calibration_plan_path,
+        "qpt_summary_path": qpt_summary_path,
+        "selected_path": selected_path,
+        "status": {
+            "nbar_values": selected_nbars,
+            "calibrated_qpt_points_expected": len(specs),
+            "calibrated_qpt_points_completed": len(qpt_summary),
+            "newly_computed": newly_computed,
+            "pending": pending,
+            "run_qpt": bool(run_qpt),
+            "scattering_scales_with_intensity": bool(
+                scattering_scales_with_intensity
+            ),
+        },
+    }
+
+
 def _robustness_conditions(
     params: Mapping[str, Any],
     eta_factors: Iterable[float],

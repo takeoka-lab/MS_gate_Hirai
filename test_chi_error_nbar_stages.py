@@ -164,3 +164,101 @@ def test_physical_control_screening_report_selects_metric_winners(tmp_path):
         report["winners"]["h_XX_reduction_factor"], 10.0
     )
     assert report["figure_path"].exists()
+
+
+def test_closed_shaped_pulse_calibration_has_small_residual():
+    target = np.pi / 4.0
+    sin2 = stages._closed_pulse_geometric_calibration(
+        "sin2",
+        gate_time_sim=4.0 * np.pi,
+        closure_cycles=2.0,
+        target_xx_angle_rad=target,
+    )
+    blackman = stages._closed_pulse_geometric_calibration(
+        "blackman",
+        gate_time_sim=4.0 * np.pi,
+        closure_cycles=3.0,
+        target_xx_angle_rad=target,
+    )
+
+    assert sin2["relative_closure_residual"] < 1e-10
+    assert blackman["relative_closure_residual"] < 1e-10
+    assert np.isclose(sin2["detuning"], 1.0)
+    assert np.isclose(blackman["detuning"], 1.5)
+    assert sin2["ideal_peak_amplitude"] > 0.125
+    assert blackman["ideal_peak_amplitude"] > sin2["ideal_peak_amplitude"]
+
+
+def test_fair_control_stage_builds_six_cached_qpt_specs_per_temperature(
+    tmp_path,
+):
+    config = workflow.default_config()
+    config["OUTPUT_DIR"] = tmp_path
+    paths = stages._paths(config)
+    n_bar = 2.0
+    rows = [{
+        "n_bar": n_bar,
+        "candidate": "baseline",
+        "kind": "baseline",
+        "factor": 1.0,
+        "h_XX_rad_per_gate": 0.10,
+        "gamma_XX_per_gate": 0.01,
+        "average_infidelity": 0.04,
+        "control_score": 0.05,
+    }]
+    for factor, infidelity in [(0.95, 0.05), (1.05, 0.03)]:
+        rows.append({
+            **rows[0],
+            "candidate": f"amplitude_{factor:.3f}",
+            "kind": "amplitude",
+            "factor": factor,
+            "average_infidelity": infidelity,
+        })
+    for factor, infidelity in [(0.97, 0.035), (1.03, 0.045)]:
+        rows.append({
+            **rows[0],
+            "candidate": f"detuning_{factor:.3f}",
+            "kind": "detuning",
+            "factor": factor,
+            "average_infidelity": infidelity,
+        })
+    pd.DataFrame(rows).to_csv(
+        paths["control"] / "physical_control_qpt_summary.csv", index=False
+    )
+    pd.DataFrame([{
+        "n_bar": n_bar,
+        "A_factor": 1.04,
+    }]).to_csv(
+        paths["drive"] / "hxx_drive_calibration_final_summary.csv",
+        index=False,
+    )
+
+    result = stages.run_fair_control_comparison_stage(
+        config,
+        [n_bar],
+        run_qpt=False,
+        show_progress=False,
+    )
+
+    assert result["status"]["calibrated_qpt_points_expected"] == 6
+    assert result["status"]["calibrated_qpt_points_completed"] == 0
+    assert len(result["status"]["pending"]) == 6
+    assert set(result["calibration_plan"]["condition"]) == {
+        "rectangular_A_infidelity",
+        "drive_detuning_joint",
+        "gate_time_closed_0.970",
+        "gate_time_closed_1.030",
+        "pulse_sin2_calibrated",
+        "pulse_blackman_calibrated",
+    }
+    pulse_rows = result["calibration_plan"].loc[
+        result["calibration_plan"]["family"] == "pulse"
+    ]
+    assert np.all(pulse_rows["pulse_relative_closure_residual"] < 1e-10)
+    assert np.allclose(
+        result["calibration_plan"].loc[
+            result["calibration_plan"]["family"] == "gate_time_closed",
+            "closure_delta_times_T",
+        ],
+        2.0 * np.pi,
+    )

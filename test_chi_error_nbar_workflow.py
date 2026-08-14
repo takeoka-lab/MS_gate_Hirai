@@ -61,6 +61,7 @@ def test_notebook_contains_configuration_calls_but_no_function_definitions():
         "independent-kirchhoff",
         "independent-control",
         "independent-control-screening-report",
+        "independent-fair-control-comparison",
         "independent-robustness",
     } <= cell_ids
     assert (
@@ -68,6 +69,7 @@ def test_notebook_contains_configuration_calls_but_no_function_definitions():
         in code
     )
     assert "CONTROL_QPT_NBARS =" in code
+    assert "FAIR_CONTROL_NBARS = [0.01, 2.0, 4.0, 10.0, 20.0]" in code
     assert "ROBUSTNESS_QPT_NBARS =" in code
     assert "SHOW_CONTROL_PROGRESS = True" in code
     assert "SHOW_ROBUSTNESS_PROGRESS = True" in code
