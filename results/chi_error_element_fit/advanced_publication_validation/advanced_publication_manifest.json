@@ -1,8 +1,8 @@
 {
-  "generated_at_timezone": "2026-08-14T01:29:24.630315+09:00",
+  "generated_at_timezone": "2026-08-14T01:36:48.872206+09:00",
   "machine": {
-    "physical_cores": 8,
-    "memory_gib": 16.0,
+    "physical_cores": 24,
+    "memory_gib": 503.11855697631836,
     "qpt_process_workers": 24
   },
   "flags": {
