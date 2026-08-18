@@ -18,7 +18,7 @@
       3.0,
       4.0
     ],
-    "parallel_workers": 1,
+    "parallel_workers": 12,
     "raman_rate_phys": 1.0,
     "rayleigh_rate_phys": 3.0,
     "rho0": 0.0,
