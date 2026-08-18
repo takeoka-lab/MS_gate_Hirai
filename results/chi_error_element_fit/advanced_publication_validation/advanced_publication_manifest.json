@@ -1,8 +1,8 @@
 {
-  "generated_at_timezone": "2026-08-14T01:36:48.872206+09:00",
+  "generated_at_timezone": "2026-08-16T00:18:18.482648+09:00",
   "machine": {
-    "physical_cores": 24,
-    "memory_gib": 503.11855697631836,
+    "physical_cores": 8,
+    "memory_gib": 16.0,
     "qpt_process_workers": 24
   },
   "flags": {
@@ -18,7 +18,7 @@
     "top_k": 12
   },
   "qpt_completion": {
-    "physical_control_points": 7,
+    "physical_control_points": 45,
     "physical_control_expected": 55,
     "hxx_drive_calibration_temperatures": 10,
     "hxx_drive_calibration_expected": 10,
@@ -55,7 +55,7 @@
     {
       "check": "Physical-control re-QPT",
       "status": "pending",
-      "result": "7/55 non-baseline QPT points"
+      "result": "45/55 non-baseline QPT points"
     },
     {
       "check": "Parameter robustness re-QPT",

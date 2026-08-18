@@ -177,24 +177,13 @@ def _generator_design_data():
     )
 
 
-def extract_xx_generator_observables(
-    chi,
-    cptp_tolerance=1e-11,
-    cptp_max_iterations=5000,
-):
-    """Return CPTP-projected hXX, gammaXX and infidelity for one QPT chi."""
+def _generator_observables_from_superoperator(superoperator, chi):
+    """Decompose an error superoperator after choosing its physical channel."""
 
-    projected_super, projected_chi, projection_status = (
-        project_trace_normalized_chi_to_cptp(
-            chi,
-            tolerance=cptp_tolerance,
-            max_iterations=cptp_max_iterations,
-        )
-    )
     labels, hamiltonian_bases, hamiltonian_design, dissipator_design = (
         _generator_design_data()
     )
-    ptm = np.asarray(mg.superoperator_to_ptm(projected_super), dtype=complex)
+    ptm = np.asarray(mg.superoperator_to_ptm(superoperator), dtype=complex)
     generator_complex = scipy.linalg.logm(ptm)
     generator = np.real(generator_complex)
     skew_generator = 0.5 * (generator - generator.T)
@@ -213,26 +202,110 @@ def extract_xx_generator_observables(
         dissipator_design,
         symmetric_remaining.reshape(-1),
     )
+    dissipator_fit = (dissipator_design @ gamma_coefficients).reshape(
+        generator.shape
+    )
+    fitted_generator = h_fit + dissipator_fit
 
+    chi = np.asarray(chi, dtype=complex)
     ii_index = labels.index("II")
     xx_index = labels.index("XX")
-    h_xx = float(h_coefficients[labels[1:].index("XX")])
-    gamma_xx = float(gamma_coefficients[labels[1:].index("XX")])
     average_infidelity = 4.0 / 5.0 * (
-        1.0 - float(np.real(projected_chi[ii_index, ii_index]))
+        1.0 - float(np.real(chi[ii_index, ii_index]))
     )
     return {
-        "h_XX_rad_per_gate": h_xx,
-        "gamma_XX_per_gate": gamma_xx,
+        "hamiltonian_coefficients_rad_per_gate": {
+            label: float(value)
+            for label, value in zip(labels[1:], h_coefficients)
+        },
+        "pauli_dissipator_rates_per_gate": {
+            label: float(value)
+            for label, value in zip(labels[1:], gamma_coefficients)
+        },
         "average_infidelity": average_infidelity,
-        "abs_chi_II_XX": float(abs(projected_chi[ii_index, xx_index])),
-        "chi_XX_XX": float(np.real(projected_chi[xx_index, xx_index])),
+        "abs_chi_II_XX": float(abs(chi[ii_index, xx_index])),
+        "chi_XX_XX": float(np.real(chi[xx_index, xx_index])),
+        "generator_frobenius_norm": float(np.linalg.norm(generator)),
+        "hamiltonian_fit_frobenius_norm": float(np.linalg.norm(h_fit)),
+        "pauli_dissipator_fit_frobenius_norm": float(
+            np.linalg.norm(dissipator_fit)
+        ),
+        "unmodeled_generator_frobenius_norm": float(
+            np.linalg.norm(generator - fitted_generator)
+        ),
+        "generator_reconstruction_error": float(
+            np.linalg.norm(scipy.linalg.expm(generator) - np.real(ptm))
+        ),
         "generator_imaginary_frobenius_norm": float(
             np.linalg.norm(np.imag(generator_complex))
         ),
         "gamma_nnls_residual": float(gamma_residual),
+        "ptm": ptm,
+        "chi_trace_normalized": chi,
+    }
+
+
+def extract_pauli_generator_from_superoperator(superoperator):
+    """Analyze a chosen error superoperator directly, without a chi round-trip."""
+
+    chi_raw = np.asarray(qp.to_chi(superoperator).full(), dtype=complex)
+    chi = chi_raw / np.trace(chi_raw)
+    return _generator_observables_from_superoperator(superoperator, chi)
+
+
+def extract_pauli_generator_observables(
+    chi,
+    cptp_tolerance=1e-11,
+    cptp_max_iterations=5000,
+):
+    """Return the full Pauli error-generator decomposition of one QPT chi."""
+
+    projected_super, projected_chi, projection_status = (
+        project_trace_normalized_chi_to_cptp(
+            chi,
+            tolerance=cptp_tolerance,
+            max_iterations=cptp_max_iterations,
+        )
+    )
+    result = _generator_observables_from_superoperator(
+        projected_super, projected_chi
+    )
+    result.pop("ptm")
+    result.pop("chi_trace_normalized")
+    return {
+        **result,
         "cptp_projection_iterations": int(projection_status["iterations"]),
+        "cptp_min_choi_eigenvalue": float(
+            projection_status["min_choi_eigenvalue"]
+        ),
+        "cptp_tp_frobenius_error": float(
+            projection_status["tp_frobenius_error"]
+        ),
+        "cptp_relative_final_step": float(
+            projection_status["relative_final_step"]
+        ),
         "projected_chi": projected_chi,
+    }
+
+
+def extract_xx_generator_observables(
+    chi,
+    cptp_tolerance=1e-11,
+    cptp_max_iterations=5000,
+):
+    """Return CPTP-projected hXX, gammaXX and infidelity for one QPT chi."""
+
+    full = extract_pauli_generator_observables(
+        chi,
+        cptp_tolerance=cptp_tolerance,
+        cptp_max_iterations=cptp_max_iterations,
+    )
+    hamiltonian = full.pop("hamiltonian_coefficients_rad_per_gate")
+    dissipator = full.pop("pauli_dissipator_rates_per_gate")
+    return {
+        "h_XX_rad_per_gate": float(hamiltonian["XX"]),
+        "gamma_XX_per_gate": float(dissipator["XX"]),
+        **full,
     }
 
 

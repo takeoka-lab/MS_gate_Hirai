@@ -11,6 +11,7 @@ import hashlib
 import json
 import math
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
@@ -19,6 +20,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import qutip as qp
 
 try:
     from tqdm.auto import tqdm
@@ -28,7 +30,10 @@ except ImportError:  # pragma: no cover - minimal environments use plain iterati
 
 import drive_amplitude_calibration as amplitude_calibration
 import drive_calibration_qpt_analysis as qpt_analysis
+import coherent_limit_comparison as coherent_bridge
+import kirchhoff_paper_infidelity as kirchhoff_paper
 import ms_gate_functions as mg
+import model_specific_hxx_calibration as hxx_calibration
 import phonon_xx_angle_analysis as phonon_angle
 
 
@@ -46,6 +51,10 @@ def _paths(config: Mapping[str, Any]) -> dict[str, Path]:
         "drive": drive,
         "drive_qpt": drive / "qpt_cache",
         "fock_angle": advanced / "fock_resolved_xx_angle",
+        "kirchhoff_paper": drive / "kirchhoff_paper_infidelity",
+        "kirchhoff_qpt": drive / "kirchhoff_thermal_qubit_qpt",
+        "kirchhoff_coherent_compare": drive / "kirchhoff_coherent_limit_comparison",
+        "kirchhoff_model_calibration": drive / "model_specific_hxx_zero_calibration",
         "control": control,
         "robustness": robustness,
     }
@@ -942,6 +951,2133 @@ def run_kirchhoff_direct_comparison_stage(
             **ratios,
         },
         "path": comparison_path,
+    }
+
+
+def _kirchhoff_paper_cache_path(
+    output_dir: Path,
+    payload: Mapping[str, Any],
+    omega_per_second: float,
+) -> Path:
+    cache_payload = {
+        **dict(payload),
+        "omega_per_second": float(omega_per_second),
+        "implementation": "kirchhoff_paper_v1",
+    }
+    digest = hashlib.sha256(
+        json.dumps(cache_payload, sort_keys=True, default=_json_safe).encode("utf-8")
+    ).hexdigest()[:14]
+    omega_stem = _condition_stem(f"{float(omega_per_second) / 1e6:.9f}")
+    return output_dir / "propagator_cache" / f"omega_mhz_{omega_stem}__{digest}.npz"
+
+
+def _kirchhoff_landmark_label(
+    omega_per_second: float,
+    landmarks: Mapping[str, float],
+) -> str:
+    labels = {"omega_ld": "Omega_LD", "omega_2": "Omega_2", "omega_4": "Omega_4"}
+    for key, value in landmarks.items():
+        if np.isclose(float(omega_per_second), float(value), rtol=1e-11, atol=1e-7):
+            return labels[key]
+    return "sweep"
+
+
+def _plot_kirchhoff_paper_infidelity(
+    summary: pd.DataFrame,
+    reference: pd.DataFrame,
+    landmarks: Mapping[str, float],
+    output_dir: Path,
+) -> Path | None:
+    if summary.empty:
+        return None
+    figure, axes = plt.subplots(2, 2, figsize=(14.0, 9.5))
+    reference_nbar = float(
+        summary.loc[(summary["n_bar"] - 0.02).abs().idxmin(), "n_bar"]
+    )
+    amplitude_curve = summary.loc[
+        np.isclose(summary["n_bar"].astype(float), reference_nbar)
+    ].sort_values("omega_per_second")
+    omega_mhz = amplitude_curve["omega_per_second"] / 1e6
+    axes[0, 0].semilogy(
+        omega_mhz,
+        amplitude_curve["paper_average_infidelity"],
+        marker="o",
+        label="numerical Eq. (B6)",
+    )
+    axes[0, 1].semilogy(
+        omega_mhz,
+        amplitude_curve["paper_bell_infidelity"],
+        marker="o",
+        color="#D55E00",
+        label="numerical Bell fidelity",
+    )
+    colors = {"omega_ld": "#777777", "omega_2": "#E69F00", "omega_4": "#CC79A7"}
+    display_labels = {
+        "omega_ld": r"$\Omega_{\rm LD}$",
+        "omega_2": r"$\Omega_2$",
+        "omega_4": r"$\Omega_4$",
+    }
+    for key, value in landmarks.items():
+        for axis in axes[0]:
+            axis.axvline(
+                float(value) / 1e6,
+                color=colors[key],
+                linestyle="--" if key != "omega_ld" else ":",
+                alpha=0.9,
+                label=display_labels[key],
+            )
+    if not reference.empty:
+        for _, row in reference.iterrows():
+            axes[0, 0].scatter(
+                row["omega_per_second"] / 1e6,
+                row["paper_reported_average_infidelity"],
+                marker="x",
+                s=90,
+                linewidths=2.2,
+                color="black",
+                zorder=5,
+            )
+            axes[0, 1].scatter(
+                row["omega_per_second"] / 1e6,
+                row["paper_reported_bell_infidelity"],
+                marker="x",
+                s=90,
+                linewidths=2.2,
+                color="black",
+                zorder=5,
+            )
+    for axis, title in [
+        (axes[0, 0], "Paper average-overlap infidelity"),
+        (axes[0, 1], "Paper Bell-state infidelity"),
+    ]:
+        axis.set_xlabel(r"Drive amplitude $\Omega$ [MHz, paper convention]")
+        axis.set_ylabel("Infidelity")
+        axis.set_title(title + rf" at $\bar n={reference_nbar:g}$")
+        axis.grid(True, which="both", alpha=0.25)
+        axis.legend(fontsize=8)
+
+    for landmark in ("Omega_2", "Omega_4"):
+        curve = summary.loc[summary["landmark"] == landmark].sort_values("n_bar")
+        if curve.empty:
+            continue
+        axes[1, 0].loglog(
+            np.maximum(curve["n_bar"], 1e-6),
+            curve["paper_average_infidelity"],
+            marker="o",
+            label=r"$\Omega_2$" if landmark == "Omega_2" else r"$\Omega_4$",
+        )
+    axes[1, 0].set_xlabel(r"Mean phonon number $\bar n$")
+    axes[1, 0].set_ylabel("Paper average infidelity")
+    axes[1, 0].set_title("Thermal dependence from the same propagator")
+    axes[1, 0].grid(True, which="both", alpha=0.25)
+    axes[1, 0].legend(fontsize=8)
+
+    if reference.empty:
+        axes[1, 1].text(0.5, 0.5, "Omega_2/Omega_4 points pending", ha="center")
+        axes[1, 1].set_axis_off()
+    else:
+        x_positions = np.arange(len(reference))
+        width = 0.36
+        axes[1, 1].bar(
+            x_positions - width / 2,
+            reference["simulated_average_infidelity"],
+            width,
+            label="simulation",
+        )
+        axes[1, 1].bar(
+            x_positions + width / 2,
+            reference["paper_reported_average_infidelity"],
+            width,
+            label="paper",
+        )
+        axes[1, 1].set_xticks(x_positions)
+        axes[1, 1].set_xticklabels(reference["landmark"])
+        axes[1, 1].set_yscale("log")
+        axes[1, 1].set_ylabel("Average infidelity")
+        axes[1, 1].set_title(r"Reference check at $\bar n=0.02$")
+        axes[1, 1].grid(True, which="both", axis="y", alpha=0.25)
+        axes[1, 1].legend(fontsize=8)
+
+    figure.suptitle(
+        "Kirchhoff et al. PRX Quantum 6, 010328 (2025): numerical reproduction",
+        y=0.995,
+    )
+    figure.tight_layout(rect=(0.0, 0.0, 1.0, 0.97))
+    output_dir.mkdir(parents=True, exist_ok=True)
+    figure_path = output_dir / "kirchhoff_paper_infidelity_reproduction.png"
+    figure.savefig(figure_path, dpi=300, bbox_inches="tight")
+    figure.savefig(
+        output_dir / "kirchhoff_paper_infidelity_reproduction.pdf",
+        bbox_inches="tight",
+    )
+    plt.close(figure)
+    return figure_path
+
+
+def run_kirchhoff_paper_infidelity_stage(
+    config: Mapping[str, Any],
+    *,
+    K: float = 28.0,
+    L: float | None = None,
+    k_minus_l: float = 3.0,
+    mode_frequency_hz: float = 1e6,
+    gate_duration_seconds: float | None = None,
+    eta: float = 0.18,
+    nbar_values=(0.02,),
+    omega_mhz_values=None,
+    phonon_dim: int = 8,
+    sideband_cutoff: int = 3,
+    solver: str = "adaptive_dop853",
+    trotter_steps: int | None = None,
+    trotter_step_scale: float = 1.0,
+    relative_tolerance: float = 1e-9,
+    absolute_tolerance: float = 1e-11,
+    parallel_workers: int = 1,
+    run_simulation: bool = False,
+    force_recompute: bool = False,
+    show_progress: bool = True,
+) -> dict[str, Any]:
+    """Reproduce the paper's U_num infidelity with its own Hamiltonian/metric.
+
+    The default parameters are those of Figs. 2, 3 and 5.  Propagators are
+    cached by drive amplitude and can be reweighted for new nbar values without
+    rerunning time evolution.
+    """
+
+    paths = _paths(config)
+    output_dir = paths["kirchhoff_paper"]
+    cache_dir = output_dir / "propagator_cache"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    K = float(K)
+    if L is None:
+        L = K - float(k_minus_l)
+    L = float(L)
+    mode_frequency_hz = float(mode_frequency_hz)
+    if gate_duration_seconds is None:
+        gate_duration_seconds = K / mode_frequency_hz
+    gate_duration_seconds = float(gate_duration_seconds)
+    if not np.isclose(
+        mode_frequency_hz * gate_duration_seconds, K, rtol=2e-10, atol=2e-10
+    ):
+        raise ValueError("K must equal mode_frequency_hz * gate_duration_seconds")
+
+    model = kirchhoff_paper.build_paper_model(
+        K=K,
+        L=L,
+        eta=eta,
+        phonon_dim=phonon_dim,
+        sideband_cutoff=sideband_cutoff,
+    )
+    landmarks = kirchhoff_paper.drive_landmarks(
+        K=K,
+        L=L,
+        gate_duration_seconds=gate_duration_seconds,
+        eta=eta,
+    )
+    if omega_mhz_values is None:
+        omega_mhz_values = np.linspace(1.04, 1.14, 11)
+    requested_omega = [float(value) * 1e6 for value in omega_mhz_values]
+    omega_values = kirchhoff_paper.unique_drive_values(requested_omega, landmarks)
+    nbar_values = sorted({float(value) for value in nbar_values})
+    if not nbar_values:
+        raise ValueError("nbar_values cannot be empty")
+
+    payload = {
+        "K": K,
+        "L": L,
+        "mode_frequency_hz": mode_frequency_hz,
+        "gate_duration_seconds": gate_duration_seconds,
+        "eta": float(eta),
+        "phonon_dim": int(phonon_dim),
+        "sideband_cutoff": int(sideband_cutoff),
+        "solver": str(solver),
+        "trotter_steps": trotter_steps,
+        "trotter_step_scale": float(trotter_step_scale),
+        "relative_tolerance": float(relative_tolerance),
+        "absolute_tolerance": float(absolute_tolerance),
+    }
+    cache_paths = {
+        omega: _kirchhoff_paper_cache_path(output_dir, payload, omega)
+        for omega in omega_values
+    }
+    missing = [
+        omega
+        for omega in omega_values
+        if force_recompute or not cache_paths[omega].exists()
+    ]
+
+    def compute_and_cache(omega):
+        start = time.perf_counter()
+        propagator, metadata = kirchhoff_paper.propagate(
+            model,
+            omega_per_second=omega,
+            gate_duration_seconds=gate_duration_seconds,
+            solver=solver,
+            number_of_steps=trotter_steps,
+            step_scale=trotter_step_scale,
+            relative_tolerance=relative_tolerance,
+            absolute_tolerance=absolute_tolerance,
+        )
+        metadata = {
+            **metadata,
+            "omega_per_second": float(omega),
+            "wall_time_seconds": float(time.perf_counter() - start),
+        }
+        path = cache_paths[omega]
+        path.parent.mkdir(parents=True, exist_ok=True)
+        np.savez_compressed(
+            path,
+            propagator=propagator,
+            metadata_json=np.asarray(json.dumps(metadata, sort_keys=True)),
+        )
+        return omega
+
+    newly_computed = 0
+    if missing and run_simulation:
+        workers = max(1, min(int(parallel_workers), len(missing)))
+        if workers == 1:
+            for omega in tqdm(
+                missing,
+                desc="8.1 Kirchhoff paper infidelity",
+                unit="drive",
+                disable=not show_progress,
+            ):
+                compute_and_cache(omega)
+                newly_computed += 1
+        else:
+            with ThreadPoolExecutor(max_workers=workers) as executor:
+                futures = {
+                    executor.submit(compute_and_cache, omega): omega
+                    for omega in missing
+                }
+                iterator = tqdm(
+                    as_completed(futures),
+                    total=len(futures),
+                    desc="8.1 Kirchhoff paper infidelity",
+                    unit="drive",
+                    disable=not show_progress,
+                )
+                for future in iterator:
+                    future.result()
+                    newly_computed += 1
+
+    rows = []
+    metadata_rows = []
+    for omega in omega_values:
+        path = cache_paths[omega]
+        if not path.exists():
+            continue
+        with np.load(path, allow_pickle=False) as data:
+            propagator = np.asarray(data["propagator"], dtype=complex)
+            metadata = json.loads(str(data["metadata_json"].item()))
+        metadata_rows.append({
+            "omega_per_second": float(omega),
+            "omega_mhz": float(omega) / 1e6,
+            "landmark": _kirchhoff_landmark_label(omega, landmarks),
+            "cache_path": str(path),
+            **metadata,
+        })
+        for n_bar in nbar_values:
+            rows.append({
+                "omega_per_second": float(omega),
+                "omega_mhz": float(omega) / 1e6,
+                "landmark": _kirchhoff_landmark_label(omega, landmarks),
+                "cache_path": str(path),
+                **kirchhoff_paper.paper_fidelities(
+                    propagator, model, n_bar=n_bar
+                ),
+            })
+    summary = pd.DataFrame(rows)
+    metadata_frame = pd.DataFrame(metadata_rows)
+    if not summary.empty:
+        summary = summary.sort_values(["n_bar", "omega_per_second"])
+    summary_path = output_dir / "kirchhoff_paper_infidelity_summary.csv"
+    metadata_path = output_dir / "kirchhoff_paper_propagator_metadata.csv"
+    summary.to_csv(summary_path, index=False)
+    metadata_frame.to_csv(metadata_path, index=False)
+
+    paper_reported = {
+        "Omega_2": {"average": 0.67e-3, "bell": 1.3e-3},
+        "Omega_4": {"average": 0.24e-3, "bell": 0.43e-3},
+    }
+    reference_rows = []
+    for landmark, reported in paper_reported.items():
+        landmark_key = "omega_2" if landmark == "Omega_2" else "omega_4"
+        omega = float(landmarks[landmark_key])
+        path = cache_paths[omega]
+        if not path.exists():
+            continue
+        with np.load(path, allow_pickle=False) as data:
+            propagator = np.asarray(data["propagator"], dtype=complex)
+        simulated = kirchhoff_paper.paper_fidelities(
+            propagator, model, n_bar=0.02
+        )
+        reference_rows.append({
+            "landmark": landmark,
+            "omega_per_second": omega,
+            "omega_mhz": omega / 1e6,
+            "simulated_average_infidelity": simulated[
+                "paper_average_infidelity"
+            ],
+            "paper_reported_average_infidelity": reported["average"],
+            "relative_average_difference": (
+                simulated["paper_average_infidelity"] / reported["average"] - 1.0
+            ),
+            "simulated_bell_infidelity": simulated["paper_bell_infidelity"],
+            "paper_reported_bell_infidelity": reported["bell"],
+            "relative_bell_difference": (
+                simulated["paper_bell_infidelity"] / reported["bell"] - 1.0
+            ),
+        })
+    reference = pd.DataFrame(reference_rows)
+    reference_path = output_dir / "kirchhoff_paper_reference_comparison.csv"
+    reference.to_csv(reference_path, index=False)
+    figure_path = _plot_kirchhoff_paper_infidelity(
+        summary, reference, landmarks, output_dir
+    )
+
+    pending = [omega for omega in omega_values if not cache_paths[omega].exists()]
+    return {
+        "summary": summary,
+        "propagator_metadata": metadata_frame,
+        "reference_comparison": reference,
+        "landmarks": {
+            key: value / 1e6 for key, value in landmarks.items()
+        },
+        "figure_path": figure_path,
+        "summary_path": summary_path,
+        "reference_path": reference_path,
+        "output_dir": output_dir,
+        "status": {
+            "completed_drive_points": len(omega_values) - len(pending),
+            "expected_drive_points": len(omega_values),
+            "newly_computed": newly_computed,
+            "pending_drive_points": len(pending),
+            "run_simulation": bool(run_simulation),
+            "solver": str(solver),
+            "parallel_workers": int(parallel_workers),
+            "K": K,
+            "L": L,
+            "eta": float(eta),
+            "phonon_dim": int(phonon_dim),
+            "sideband_cutoff": int(sideband_cutoff),
+            "gate_duration_seconds": gate_duration_seconds,
+            "paper_fidelity_definition": "Appendix B Eq. (B6) gate-overlap amplitude",
+        },
+        "pending": pending,
+    }
+
+
+def _kirchhoff_thermal_qpt_cache_path(
+    output_dir: Path,
+    *,
+    source_propagator_path: Path,
+    omega_per_second: float,
+    n_bar: float,
+    convention: str,
+    cptp_tolerance: float,
+    cptp_max_iterations: int,
+) -> Path:
+    payload = {
+        "source_propagator_cache": source_propagator_path.name,
+        "omega_per_second": float(omega_per_second),
+        "n_bar": float(n_bar),
+        "convention": str(convention),
+        "cptp_tolerance": float(cptp_tolerance),
+        "cptp_max_iterations": int(cptp_max_iterations),
+        "implementation": "kirchhoff_thermal_qubit_qpt_v1",
+    }
+    digest = hashlib.sha256(
+        json.dumps(payload, sort_keys=True).encode("utf-8")
+    ).hexdigest()[:14]
+    return output_dir / "channel_cache" / (
+        f"omega_mhz_{_condition_stem(f'{float(omega_per_second) / 1e6:.9f}')}"
+        f"__nbar_{_compact_nbar_stem(n_bar)}__{digest}.npz"
+    )
+
+
+def _plot_kirchhoff_thermal_qpt(
+    summary: pd.DataFrame,
+    output_dir: Path,
+) -> Path | None:
+    if summary.empty:
+        return None
+    figure, axes = plt.subplots(2, 2, figsize=(14.0, 9.5))
+    reference_nbar = float(
+        summary.loc[(summary["n_bar"] - 0.02).abs().idxmin(), "n_bar"]
+    )
+    amplitude = summary.loc[
+        np.isclose(summary["n_bar"].astype(float), reference_nbar)
+    ].sort_values("omega_per_second")
+    axes[0, 0].semilogy(
+        amplitude["omega_mhz"],
+        np.maximum(amplitude["average_infidelity"], 1e-16),
+        marker="o",
+        label=r"standard channel $1-F_{\rm avg}$",
+    )
+    axes[0, 0].semilogy(
+        amplitude["omega_mhz"],
+        np.maximum(amplitude["paper_average_infidelity"], 1e-16),
+        marker="s",
+        linestyle="--",
+        label="paper Eq. (B6)",
+    )
+    axes[0, 0].set_xlabel(r"Drive amplitude $\Omega$ [MHz]")
+    axes[0, 0].set_ylabel("Infidelity")
+    axes[0, 0].set_title(rf"Metric comparison at $\bar n={reference_nbar:g}$")
+    axes[0, 0].grid(True, which="both", alpha=0.25)
+    axes[0, 0].legend(fontsize=8)
+
+    landmark_labels = ["Omega_LD", "Omega_2", "Omega_4"]
+    display_labels = {
+        "Omega_LD": r"$\Omega_{\rm LD}$",
+        "Omega_2": r"$\Omega_2$",
+        "Omega_4": r"$\Omega_4$",
+    }
+    colors = {
+        "Omega_LD": "#777777",
+        "Omega_2": "#E69F00",
+        "Omega_4": "#CC79A7",
+    }
+    for landmark in landmark_labels:
+        curve = summary.loc[summary["landmark"] == landmark].sort_values("n_bar")
+        if curve.empty:
+            continue
+        axes[0, 1].plot(
+            curve["n_bar"],
+            curve["h_XX_rad_per_gate"],
+            marker="o",
+            color=colors[landmark],
+            label=display_labels[landmark],
+        )
+        axes[1, 0].loglog(
+            curve["n_bar"],
+            np.maximum(curve["gamma_XX_per_gate"], 1e-18),
+            marker="o",
+            color=colors[landmark],
+            label=display_labels[landmark],
+        )
+        axes[1, 1].loglog(
+            curve["n_bar"],
+            np.maximum(curve["average_infidelity"], 1e-16),
+            marker="o",
+            color=colors[landmark],
+            label=display_labels[landmark],
+        )
+
+    axes[0, 1].axhline(0.0, color="black", linewidth=0.8)
+    axes[0, 1].set_xscale("log")
+    axes[0, 1].set_xlabel(r"Mean phonon number $\bar n$")
+    axes[0, 1].set_ylabel(r"$h_{XX}$ [rad/gate]")
+    axes[0, 1].set_title("Coherent XX error after YY-to-XX basis mapping")
+    axes[0, 1].grid(True, which="both", alpha=0.25)
+    axes[0, 1].legend(fontsize=8)
+
+    axes[1, 0].set_xlabel(r"Mean phonon number $\bar n$")
+    axes[1, 0].set_ylabel(r"$\gamma_{XX}$ [1/gate]")
+    axes[1, 0].set_title("Stochastic XX component from the reduced channel")
+    axes[1, 0].grid(True, which="both", alpha=0.25)
+    axes[1, 0].legend(fontsize=8)
+
+    axes[1, 1].set_xlabel(r"Mean phonon number $\bar n$")
+    axes[1, 1].set_ylabel(r"Standard channel $1-F_{\rm avg}$")
+    axes[1, 1].set_title("Thermal channel infidelity")
+    axes[1, 1].grid(True, which="both", alpha=0.25)
+    axes[1, 1].legend(fontsize=8)
+
+    figure.suptitle(
+        "Kirchhoff propagator → thermal qubit channel → QPT/error generator",
+        y=0.995,
+    )
+    figure.tight_layout(rect=(0.0, 0.0, 1.0, 0.97))
+    output_dir.mkdir(parents=True, exist_ok=True)
+    figure_path = output_dir / "kirchhoff_thermal_qubit_qpt.png"
+    figure.savefig(figure_path, dpi=300, bbox_inches="tight")
+    figure.savefig(
+        output_dir / "kirchhoff_thermal_qubit_qpt.pdf",
+        bbox_inches="tight",
+    )
+    plt.close(figure)
+    return figure_path
+
+
+def run_kirchhoff_thermal_qubit_qpt_stage(
+    config: Mapping[str, Any],
+    paper_result: Mapping[str, Any],
+    *,
+    nbar_values=None,
+    convention: str | None = None,
+    force_recompute: bool = False,
+    show_progress: bool = True,
+) -> dict[str, Any]:
+    r"""Convert cached Kirchhoff propagators to thermal qubit QPT channels.
+
+    For each thermal input, this stage forms
+    ``K_mn=sqrt(p_n)<m|U|n>``, maps the paper's YY basis to XX by local Z
+    rotations, removes the ideal XX gate, and calls the same CPTP projection
+    and ``log(PTM)`` Pauli-generator decomposition used by the drive-QPT stages.
+    No Hamiltonian propagation is performed here.
+    """
+
+    paths = _paths(config)
+    output_dir = paths["kirchhoff_qpt"]
+    cache_dir = output_dir / "channel_cache"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    convention = _convention(config) if convention is None else str(convention)
+    if convention not in {"undo_before_actual", "undo_after_actual"}:
+        raise ValueError(
+            "convention must be 'undo_before_actual' or 'undo_after_actual'"
+        )
+    cptp_tolerance, cptp_max_iterations = _cptp_options(config)
+
+    propagator_metadata = paper_result.get("propagator_metadata")
+    if propagator_metadata is None or len(propagator_metadata) == 0:
+        raise FileNotFoundError(
+            "Cell 8.1 has no completed propagator cache. Run/load Cell 8.1 first."
+        )
+    propagator_metadata = pd.DataFrame(propagator_metadata).copy()
+    required_columns = {
+        "omega_per_second", "omega_mhz", "landmark", "cache_path"
+    }
+    missing_columns = required_columns - set(propagator_metadata.columns)
+    if missing_columns:
+        raise ValueError(
+            "paper_result propagator metadata is missing: "
+            + ", ".join(sorted(missing_columns))
+        )
+    propagator_metadata = (
+        propagator_metadata.sort_values("omega_per_second")
+        .drop_duplicates("omega_per_second", keep="last")
+        .reset_index(drop=True)
+    )
+
+    paper_status = dict(paper_result.get("status", {}))
+    model = kirchhoff_paper.build_paper_model(
+        K=float(paper_status["K"]),
+        L=float(paper_status["L"]),
+        eta=float(paper_status["eta"]),
+        phonon_dim=int(paper_status["phonon_dim"]),
+        sideband_cutoff=int(paper_status["sideband_cutoff"]),
+    )
+    if nbar_values is None:
+        paper_summary = pd.DataFrame(paper_result.get("summary", []))
+        if paper_summary.empty:
+            nbar_values = [0.02]
+        else:
+            nbar_values = paper_summary["n_bar"].tolist()
+    nbar_values = sorted({float(value) for value in nbar_values})
+    if not nbar_values or any(value < 0.0 for value in nbar_values):
+        raise ValueError("nbar_values must contain nonnegative values")
+
+    task_rows = []
+    missing_propagators = []
+    for _, source_row in propagator_metadata.iterrows():
+        source_path = Path(source_row["cache_path"])
+        if not source_path.exists():
+            missing_propagators.append(source_path)
+            continue
+        for n_bar in nbar_values:
+            cache_path = _kirchhoff_thermal_qpt_cache_path(
+                output_dir,
+                source_propagator_path=source_path,
+                omega_per_second=float(source_row["omega_per_second"]),
+                n_bar=n_bar,
+                convention=convention,
+                cptp_tolerance=cptp_tolerance,
+                cptp_max_iterations=cptp_max_iterations,
+            )
+            task_rows.append((source_row, n_bar, source_path, cache_path))
+
+    summary_rows = []
+    coefficient_rows = []
+    chi_component_rows = []
+    newly_computed = 0
+    loaded_propagator_path = None
+    loaded_propagator = None
+    iterator = tqdm(
+        task_rows,
+        desc="8.2 Kirchhoff thermal QPT",
+        unit="channel",
+        disable=not show_progress,
+    )
+    pauli_labels = [label for label, _ in mg.pauli_labels_and_weights()]
+    for source_row, n_bar, source_path, cache_path in iterator:
+        if force_recompute or not cache_path.exists():
+            if loaded_propagator_path != source_path:
+                with np.load(source_path, allow_pickle=False) as source_data:
+                    loaded_propagator = np.asarray(
+                        source_data["propagator"], dtype=complex
+                    )
+                loaded_propagator_path = source_path
+            _, error_super, channel_metadata = (
+                kirchhoff_paper.kirchhoff_xx_error_channel(
+                    loaded_propagator,
+                    model,
+                    n_bar=n_bar,
+                    convention=convention,
+                )
+            )
+            chi_raw = np.asarray(qp.to_chi(error_super).full(), dtype=complex)
+            raw_trace = np.trace(chi_raw)
+            chi = chi_raw / raw_trace
+            physicality = mg.choi_physicality_metrics(error_super)
+            decomposition = qpt_analysis.extract_pauli_generator_observables(
+                chi,
+                cptp_tolerance=cptp_tolerance,
+                cptp_max_iterations=cptp_max_iterations,
+            )
+            projected_chi = decomposition.pop("projected_chi")
+            hamiltonian = decomposition.pop(
+                "hamiltonian_coefficients_rad_per_gate"
+            )
+            dissipator = decomposition.pop("pauli_dissipator_rates_per_gate")
+            paper_metrics = kirchhoff_paper.paper_fidelities(
+                loaded_propagator, model, n_bar=n_bar
+            )
+            row = {
+                "omega_per_second": float(source_row["omega_per_second"]),
+                "omega_mhz": float(source_row["omega_mhz"]),
+                "landmark": str(source_row["landmark"]),
+                "n_bar": float(n_bar),
+                "h_XX_rad_per_gate": float(hamiltonian["XX"]),
+                "gamma_XX_per_gate": float(dissipator["XX"]),
+                **decomposition,
+                "paper_average_infidelity": float(
+                    paper_metrics["paper_average_infidelity"]
+                ),
+                "paper_bell_infidelity": float(
+                    paper_metrics["paper_bell_infidelity"]
+                ),
+                "raw_chi_trace_real": float(np.real(raw_trace)),
+                "raw_chi_trace_imag": float(np.imag(raw_trace)),
+                "raw_cp_pass": bool(physicality["cp_pass"]),
+                "raw_tp_pass": bool(physicality["tp_pass"]),
+                "raw_min_choi_eigenvalue": float(
+                    physicality["min_choi_eigenvalue"]
+                ),
+                "raw_tp_frobenius_error": float(
+                    physicality["tp_frobenius_error"]
+                ),
+                "chi_cptp_projection_frobenius_shift": float(
+                    np.linalg.norm(projected_chi - chi)
+                ),
+                **channel_metadata,
+                "source_propagator_cache": str(source_path),
+                "qpt_cache_path": str(cache_path),
+            }
+            temporary_path = cache_path.with_name(
+                cache_path.stem + ".tmp.npz"
+            )
+            np.savez_compressed(
+                temporary_path,
+                chi_trace_normalized_raw=chi,
+                chi_trace_normalized_projected=projected_chi,
+                summary_json=np.asarray(
+                    json.dumps(row, sort_keys=True, default=_json_safe)
+                ),
+                hamiltonian_json=np.asarray(
+                    json.dumps(hamiltonian, sort_keys=True)
+                ),
+                dissipator_json=np.asarray(
+                    json.dumps(dissipator, sort_keys=True)
+                ),
+            )
+            temporary_path.replace(cache_path)
+            newly_computed += 1
+
+        with np.load(cache_path, allow_pickle=False) as cached:
+            projected_chi = np.asarray(
+                cached["chi_trace_normalized_projected"], dtype=complex
+            )
+            row = json.loads(str(cached["summary_json"].item()))
+            hamiltonian = json.loads(str(cached["hamiltonian_json"].item()))
+            dissipator = json.loads(str(cached["dissipator_json"].item()))
+        summary_rows.append(row)
+        for pauli in pauli_labels[1:]:
+            coefficient_rows.append({
+                "omega_per_second": float(row["omega_per_second"]),
+                "omega_mhz": float(row["omega_mhz"]),
+                "landmark": row["landmark"],
+                "n_bar": float(row["n_bar"]),
+                "pauli": pauli,
+                "hamiltonian_coefficient_rad_per_gate": float(
+                    hamiltonian[pauli]
+                ),
+                "pauli_dissipator_rate_per_gate": float(dissipator[pauli]),
+            })
+        for row_index, row_pauli in enumerate(pauli_labels):
+            for column_index in range(row_index, len(pauli_labels)):
+                value = projected_chi[row_index, column_index]
+                chi_component_rows.append({
+                    "omega_per_second": float(row["omega_per_second"]),
+                    "omega_mhz": float(row["omega_mhz"]),
+                    "landmark": row["landmark"],
+                    "n_bar": float(row["n_bar"]),
+                    "component": f"{row_pauli},{pauli_labels[column_index]}",
+                    "real": float(np.real(value)),
+                    "imag": float(np.imag(value)),
+                    "abs": float(abs(value)),
+                })
+
+    summary = pd.DataFrame(summary_rows)
+    coefficients = pd.DataFrame(coefficient_rows)
+    chi_components = pd.DataFrame(chi_component_rows)
+    if not summary.empty:
+        summary = summary.sort_values(
+            ["n_bar", "omega_per_second"]
+        ).reset_index(drop=True)
+    summary_path = output_dir / "kirchhoff_thermal_qubit_qpt_summary.csv"
+    coefficient_path = output_dir / "kirchhoff_error_generator_coefficients.csv"
+    chi_component_path = output_dir / "kirchhoff_qpt_chi_components.csv"
+    summary.to_csv(summary_path, index=False)
+    coefficients.to_csv(coefficient_path, index=False)
+    chi_components.to_csv(chi_component_path, index=False)
+    figure_path = _plot_kirchhoff_thermal_qpt(summary, output_dir)
+
+    expected_points = len(propagator_metadata) * len(nbar_values)
+    completed_points = len(summary)
+    status = {
+        "completed_channel_points": int(completed_points),
+        "expected_channel_points": int(expected_points),
+        "newly_computed": int(newly_computed),
+        "pending_channel_points": int(expected_points - completed_points),
+        "missing_propagator_caches": int(len(missing_propagators)),
+        "error_channel_convention": convention,
+        "yy_to_xx_basis_mapping": "Rz(-pi/2) tensor Rz(-pi/2)",
+        "qpt_pipeline": "CPTP projection -> PTM -> log(PTM) -> Pauli generator",
+    }
+    if not summary.empty:
+        status.update({
+            "raw_cp_pass": int(summary["raw_cp_pass"].astype(bool).sum()),
+            "raw_tp_pass": int(summary["raw_tp_pass"].astype(bool).sum()),
+            "max_kraus_completeness_error": float(
+                summary["kraus_completeness_frobenius_error"].max()
+            ),
+            "max_cptp_projection_shift": float(
+                summary["chi_cptp_projection_frobenius_shift"].max()
+            ),
+        })
+    return {
+        "summary": summary,
+        "generator_coefficients": coefficients,
+        "chi_components": chi_components,
+        "figure_path": figure_path,
+        "summary_path": summary_path,
+        "coefficient_path": coefficient_path,
+        "chi_component_path": chi_component_path,
+        "output_dir": output_dir,
+        "status": status,
+        "missing_propagators": missing_propagators,
+    }
+
+
+def _coherent_limit_own_cache_path(
+    output_dir: Path,
+    payload: Mapping[str, Any],
+    *,
+    model_name: str,
+    omega_per_second: float,
+) -> Path:
+    cache_payload = {
+        **dict(payload),
+        "model_name": str(model_name),
+        "omega_per_second": float(omega_per_second),
+        "implementation": "coherent_limit_bridge_v1",
+    }
+    digest = hashlib.sha256(
+        json.dumps(
+            cache_payload, sort_keys=True, default=_json_safe
+        ).encode("utf-8")
+    ).hexdigest()[:14]
+    return output_dir / "own_propagator_cache" / (
+        f"{_condition_stem(model_name)}__omega_mhz_"
+        f"{_condition_stem(f'{float(omega_per_second) / 1e6:.9f}')}"
+        f"__{digest}.npz"
+    )
+
+
+def _plot_coherent_limit_comparison(
+    model_summary: pd.DataFrame,
+    comparison: pd.DataFrame,
+    output_dir: Path,
+) -> Path | None:
+    if model_summary.empty or comparison.empty:
+        return None
+    figure, axes = plt.subplots(2, 2, figsize=(14.0, 9.5))
+    preferred_landmark = (
+        "Omega_4"
+        if "Omega_4" in set(model_summary["landmark"])
+        else str(model_summary["landmark"].iloc[0])
+    )
+    line_styles = {
+        "Kirchhoff_full_carrier": ("black", "o", "-"),
+        "own_lamb_dicke": ("#0072B2", "s", "--"),
+        "own_eta2_corrected": ("#D55E00", "^", "-."),
+    }
+    display_labels = {
+        "Kirchhoff_full_carrier": "Kirchhoff full carrier-sideband",
+        "own_lamb_dicke": "repository first-sideband (LD)",
+        "own_eta2_corrected": r"repository first-sideband ($\eta^2$ corrected)",
+    }
+    for model_name, curve in model_summary.loc[
+        model_summary["landmark"] == preferred_landmark
+    ].groupby("model"):
+        curve = curve.sort_values("n_bar")
+        color, marker, linestyle = line_styles.get(
+            model_name, (None, "o", "-")
+        )
+        label = display_labels.get(model_name, model_name)
+        axes[0, 0].loglog(
+            curve["n_bar"],
+            np.maximum(curve["average_infidelity"], 1e-16),
+            color=color,
+            marker=marker,
+            linestyle=linestyle,
+            label=label,
+        )
+        axes[0, 1].plot(
+            curve["n_bar"],
+            curve["h_XX_rad_per_gate"],
+            color=color,
+            marker=marker,
+            linestyle=linestyle,
+            label=label,
+        )
+        axes[1, 0].loglog(
+            curve["n_bar"],
+            np.maximum(curve["gamma_XX_per_gate"], 1e-18),
+            color=color,
+            marker=marker,
+            linestyle=linestyle,
+            label=label,
+        )
+
+    axes[0, 0].set_xlabel(r"Mean phonon number $\bar n$")
+    axes[0, 0].set_ylabel(r"Standard channel $1-F_{\rm avg}$")
+    axes[0, 0].set_title(f"Coherent-limit infidelity at {preferred_landmark}")
+    axes[0, 0].grid(True, which="both", alpha=0.25)
+    axes[0, 0].legend(fontsize=8)
+
+    axes[0, 1].axhline(0.0, color="black", linewidth=0.8)
+    axes[0, 1].set_xscale("log")
+    axes[0, 1].set_xlabel(r"Mean phonon number $\bar n$")
+    axes[0, 1].set_ylabel(r"$h_{XX}$ [rad/gate]")
+    axes[0, 1].set_title(f"Coherent XX error at {preferred_landmark}")
+    axes[0, 1].grid(True, which="both", alpha=0.25)
+    axes[0, 1].legend(fontsize=8)
+
+    axes[1, 0].set_xlabel(r"Mean phonon number $\bar n$")
+    axes[1, 0].set_ylabel(r"$\gamma_{XX}$ [1/gate]")
+    axes[1, 0].set_title(f"Stochastic XX error at {preferred_landmark}")
+    axes[1, 0].grid(True, which="both", alpha=0.25)
+    axes[1, 0].legend(fontsize=8)
+
+    for (model_name, landmark), curve in comparison.groupby(
+        ["model", "landmark"]
+    ):
+        curve = curve.sort_values("n_bar")
+        color, marker, _ = line_styles.get(model_name, (None, "o", "-"))
+        axes[1, 1].loglog(
+            curve["n_bar"],
+            np.maximum(curve["error_ptm_relative_difference"], 1e-16),
+            color=color,
+            marker=marker,
+            linestyle={
+                "Omega_LD": ":",
+                "Omega_2": "--",
+                "Omega_4": "-",
+            }.get(landmark, "-"),
+            label=(
+                display_labels.get(model_name, model_name)
+                + f" / {landmark}"
+            ),
+        )
+    axes[1, 1].set_xlabel(r"Mean phonon number $\bar n$")
+    axes[1, 1].set_ylabel(r"Relative $\|(R-I)_{\rm own}-(R-I)_{\rm K}\|_F$")
+    axes[1, 1].set_title("Error-channel PTM mismatch")
+    axes[1, 1].grid(True, which="both", alpha=0.25)
+    axes[1, 1].legend(fontsize=7, ncol=2)
+
+    figure.suptitle(
+        "Coherent-limit benchmark: Kirchhoff full model vs repository effective model",
+        y=0.995,
+    )
+    figure.tight_layout(rect=(0.0, 0.0, 1.0, 0.97))
+    output_dir.mkdir(parents=True, exist_ok=True)
+    figure_path = output_dir / "kirchhoff_vs_repository_coherent_limit.png"
+    figure.savefig(figure_path, dpi=300, bbox_inches="tight")
+    figure.savefig(
+        output_dir / "kirchhoff_vs_repository_coherent_limit.pdf",
+        bbox_inches="tight",
+    )
+    plt.close(figure)
+    return figure_path
+
+
+def run_kirchhoff_coherent_limit_comparison_stage(
+    config: Mapping[str, Any],
+    paper_result: Mapping[str, Any],
+    *,
+    nbar_values=(0.02, 0.1, 0.3, 1.0),
+    landmarks=("Omega_LD", "Omega_2", "Omega_4"),
+    model_variants=None,
+    t_gate_sim: float = 1.0,
+    time_points: int = 501,
+    solver_method: str = "vern9",
+    solver_max_step: float | None = None,
+    solver_atol: float = 1e-11,
+    solver_rtol: float = 1e-9,
+    run_own_propagation: bool = False,
+    force_recompute: bool = False,
+    show_progress: bool = True,
+) -> dict[str, Any]:
+    """Benchmark the repository's coherent MS model against Kirchhoff.
+
+    Both models use the same ``K, L, eta, T, n_bar``, phonon cutoff, ideal XX
+    target, and error-channel convention.  All collapse/noise rates are absent.
+    The comparison intentionally retains the model hierarchy: Kirchhoff keeps
+    carrier and multiple sidebands, while the repository model keeps only the
+    effective first sideband, optionally with its eta-squared correction.
+    """
+
+    paths = _paths(config)
+    output_dir = paths["kirchhoff_coherent_compare"]
+    own_cache_dir = output_dir / "own_propagator_cache"
+    own_cache_dir.mkdir(parents=True, exist_ok=True)
+    convention = _convention(config)
+    if model_variants is None:
+        model_variants = {
+            "own_lamb_dicke": False,
+            "own_eta2_corrected": True,
+        }
+    model_variants = {
+        str(name): bool(use_full_order)
+        for name, use_full_order in dict(model_variants).items()
+    }
+    if not model_variants:
+        raise ValueError("model_variants cannot be empty")
+    nbar_values = sorted({float(value) for value in nbar_values})
+    if not nbar_values or any(value < 0.0 for value in nbar_values):
+        raise ValueError("nbar_values must contain nonnegative values")
+    requested_landmarks = tuple(str(value) for value in landmarks)
+
+    paper_status = dict(paper_result.get("status", {}))
+    required_status = {
+        "K", "L", "eta", "phonon_dim", "sideband_cutoff",
+        "gate_duration_seconds",
+    }
+    missing_status = required_status - set(paper_status)
+    if missing_status:
+        raise ValueError(
+            "paper_result status is missing: "
+            + ", ".join(sorted(missing_status))
+        )
+    K = float(paper_status["K"])
+    L = float(paper_status["L"])
+    eta = float(paper_status["eta"])
+    phonon_dim = int(paper_status["phonon_dim"])
+    gate_duration_seconds = float(paper_status["gate_duration_seconds"])
+    paper_model = kirchhoff_paper.build_paper_model(
+        K=K,
+        L=L,
+        eta=eta,
+        phonon_dim=phonon_dim,
+        sideband_cutoff=int(paper_status["sideband_cutoff"]),
+    )
+    paper_metadata = pd.DataFrame(
+        paper_result.get("propagator_metadata", [])
+    )
+    if paper_metadata.empty:
+        raise FileNotFoundError(
+            "Cell 8.1 has no completed propagator cache. Run/load it first."
+        )
+    paper_metadata = paper_metadata.loc[
+        paper_metadata["landmark"].isin(requested_landmarks)
+    ].copy()
+    found_landmarks = set(paper_metadata["landmark"])
+    missing_landmarks = set(requested_landmarks) - found_landmarks
+    if missing_landmarks:
+        raise FileNotFoundError(
+            "Missing Kirchhoff landmark propagators: "
+            + ", ".join(sorted(missing_landmarks))
+        )
+    paper_metadata = (
+        paper_metadata.sort_values("omega_per_second")
+        .drop_duplicates("landmark", keep="last")
+        .reset_index(drop=True)
+    )
+
+    detuning_sim = coherent_bridge.effective_detuning(
+        K, L, t_gate_sim=t_gate_sim
+    )
+    cache_payload = {
+        "K": K,
+        "L": L,
+        "eta": eta,
+        "phonon_dim": phonon_dim,
+        "gate_duration_seconds": gate_duration_seconds,
+        "t_gate_sim": float(t_gate_sim),
+        "detuning_sim": float(detuning_sim),
+        "time_points": int(time_points),
+        "solver_method": str(solver_method),
+        "solver_max_step": solver_max_step,
+        "solver_atol": float(solver_atol),
+        "solver_rtol": float(solver_rtol),
+    }
+    own_tasks = []
+    for model_name, use_full_order in model_variants.items():
+        for _, paper_row in paper_metadata.iterrows():
+            omega = float(paper_row["omega_per_second"])
+            amplitude = coherent_bridge.carrier_to_effective_sideband_amplitude(
+                omega,
+                eta=eta,
+                gate_duration_seconds=gate_duration_seconds,
+                t_gate_sim=t_gate_sim,
+            )
+            path = _coherent_limit_own_cache_path(
+                output_dir,
+                {**cache_payload, "use_full_order": use_full_order},
+                model_name=model_name,
+                omega_per_second=omega,
+            )
+            own_tasks.append({
+                "model": model_name,
+                "use_full_order": use_full_order,
+                "landmark": str(paper_row["landmark"]),
+                "omega_per_second": omega,
+                "omega_mhz": omega / 1e6,
+                "effective_amplitude_sim": amplitude,
+                "cache_path": path,
+            })
+    missing_own = [
+        task for task in own_tasks
+        if force_recompute or not task["cache_path"].exists()
+    ]
+    newly_computed = 0
+    if missing_own and run_own_propagation:
+        for task in tqdm(
+            missing_own,
+            desc="8.3 repository coherent propagators",
+            unit="propagator",
+            disable=not show_progress,
+        ):
+            start = time.perf_counter()
+            propagator, metadata = mg.coherent_ms_propagator(
+                task["effective_amplitude_sim"],
+                detuning_sim,
+                rho0=0.0,
+                phonon_dim=phonon_dim,
+                eta=eta,
+                use_full_order=task["use_full_order"],
+                time_points=time_points,
+                t_gate_sim=t_gate_sim,
+                solver_method=solver_method,
+                solver_max_step=solver_max_step,
+                solver_atol=solver_atol,
+                solver_rtol=solver_rtol,
+            )
+            metadata = {
+                **metadata,
+                "model": task["model"],
+                "landmark": task["landmark"],
+                "omega_per_second": task["omega_per_second"],
+                "wall_time_seconds": float(time.perf_counter() - start),
+            }
+            temporary_path = task["cache_path"].with_name(
+                task["cache_path"].stem + ".tmp.npz"
+            )
+            np.savez_compressed(
+                temporary_path,
+                propagator=np.asarray(propagator.full(), dtype=complex),
+                metadata_json=np.asarray(
+                    json.dumps(metadata, sort_keys=True, default=_json_safe)
+                ),
+            )
+            temporary_path.replace(task["cache_path"])
+            newly_computed += 1
+
+    def analyze_error_channel(
+        error_super,
+        *,
+        model_name,
+        model_scope,
+        landmark,
+        omega,
+        n_bar,
+        extra_metadata,
+    ):
+        observables = qpt_analysis.extract_pauli_generator_from_superoperator(
+            error_super
+        )
+        ptm = np.asarray(observables.pop("ptm"), dtype=complex)
+        chi = np.asarray(
+            observables.pop("chi_trace_normalized"), dtype=complex
+        )
+        hamiltonian = observables.pop(
+            "hamiltonian_coefficients_rad_per_gate"
+        )
+        dissipator = observables.pop("pauli_dissipator_rates_per_gate")
+        physicality = mg.choi_physicality_metrics(error_super)
+        row = {
+            "model": model_name,
+            "model_scope": model_scope,
+            "landmark": landmark,
+            "omega_per_second": float(omega),
+            "omega_mhz": float(omega) / 1e6,
+            "n_bar": float(n_bar),
+            "h_XX_rad_per_gate": float(hamiltonian["XX"]),
+            "gamma_XX_per_gate": float(dissipator["XX"]),
+            **observables,
+            "cp_pass": bool(physicality["cp_pass"]),
+            "tp_pass": bool(physicality["tp_pass"]),
+            "min_choi_eigenvalue": float(
+                physicality["min_choi_eigenvalue"]
+            ),
+            "tp_frobenius_error": float(
+                physicality["tp_frobenius_error"]
+            ),
+            **extra_metadata,
+        }
+        return row, ptm, chi, hamiltonian, dissipator
+
+    model_rows = []
+    coefficient_rows = []
+    analysis_by_key = {}
+    paper_propagators = {}
+    for _, paper_row in paper_metadata.iterrows():
+        source_path = Path(paper_row["cache_path"])
+        if not source_path.exists():
+            continue
+        with np.load(source_path, allow_pickle=False) as data:
+            paper_propagators[str(paper_row["landmark"])] = np.asarray(
+                data["propagator"], dtype=complex
+            )
+
+    pauli_labels = [label for label, _ in mg.pauli_labels_and_weights()][1:]
+    for _, paper_row in paper_metadata.iterrows():
+        landmark = str(paper_row["landmark"])
+        if landmark not in paper_propagators:
+            continue
+        omega = float(paper_row["omega_per_second"])
+        propagator = paper_propagators[landmark]
+        for n_bar in nbar_values:
+            _, error_super, thermal_metadata = (
+                kirchhoff_paper.kirchhoff_xx_error_channel(
+                    propagator,
+                    paper_model,
+                    n_bar=n_bar,
+                    convention=convention,
+                )
+            )
+            row, ptm, chi, hamiltonian, dissipator = analyze_error_channel(
+                error_super,
+                model_name="Kirchhoff_full_carrier",
+                model_scope="carrier_plus_sidebands",
+                landmark=landmark,
+                omega=omega,
+                n_bar=n_bar,
+                extra_metadata={
+                    **thermal_metadata,
+                    "effective_amplitude_sim": np.nan,
+                    "detuning_sim": np.nan,
+                    "source_cache": str(paper_row["cache_path"]),
+                },
+            )
+            key = ("Kirchhoff_full_carrier", landmark, float(n_bar))
+            analysis_by_key[key] = {
+                "row": row,
+                "ptm": ptm,
+                "chi": chi,
+                "h": hamiltonian,
+                "gamma": dissipator,
+            }
+            model_rows.append(row)
+            for pauli in pauli_labels:
+                coefficient_rows.append({
+                    "model": row["model"],
+                    "landmark": landmark,
+                    "omega_mhz": omega / 1e6,
+                    "n_bar": float(n_bar),
+                    "pauli": pauli,
+                    "hamiltonian_coefficient_rad_per_gate": float(
+                        hamiltonian[pauli]
+                    ),
+                    "pauli_dissipator_rate_per_gate": float(
+                        dissipator[pauli]
+                    ),
+                })
+
+    completed_own_propagators = 0
+    for task in own_tasks:
+        path = task["cache_path"]
+        if not path.exists():
+            continue
+        completed_own_propagators += 1
+        with np.load(path, allow_pickle=False) as data:
+            propagator = np.asarray(data["propagator"], dtype=complex)
+            propagation_metadata = json.loads(
+                str(data["metadata_json"].item())
+            )
+        for n_bar in nbar_values:
+            _, error_super, thermal_metadata = coherent_bridge.own_xx_error_channel(
+                propagator,
+                phonon_dim=phonon_dim,
+                n_bar=n_bar,
+                convention=convention,
+            )
+            row, ptm, chi, hamiltonian, dissipator = analyze_error_channel(
+                error_super,
+                model_name=task["model"],
+                model_scope=(
+                    "first_sideband_eta2_corrected"
+                    if task["use_full_order"]
+                    else "first_sideband_lamb_dicke"
+                ),
+                landmark=task["landmark"],
+                omega=task["omega_per_second"],
+                n_bar=n_bar,
+                extra_metadata={
+                    **thermal_metadata,
+                    "effective_amplitude_sim": float(
+                        task["effective_amplitude_sim"]
+                    ),
+                    "detuning_sim": float(detuning_sim),
+                    "source_cache": str(path),
+                    "propagator_unitarity_frobenius_error": float(
+                        propagation_metadata["unitarity_frobenius_error"]
+                    ),
+                },
+            )
+            key = (task["model"], task["landmark"], float(n_bar))
+            analysis_by_key[key] = {
+                "row": row,
+                "ptm": ptm,
+                "chi": chi,
+                "h": hamiltonian,
+                "gamma": dissipator,
+            }
+            model_rows.append(row)
+            for pauli in pauli_labels:
+                coefficient_rows.append({
+                    "model": row["model"],
+                    "landmark": task["landmark"],
+                    "omega_mhz": task["omega_mhz"],
+                    "n_bar": float(n_bar),
+                    "pauli": pauli,
+                    "hamiltonian_coefficient_rad_per_gate": float(
+                        hamiltonian[pauli]
+                    ),
+                    "pauli_dissipator_rate_per_gate": float(
+                        dissipator[pauli]
+                    ),
+                })
+
+    comparison_rows = []
+    coefficient_difference_rows = []
+    identity_ptm = np.eye(16)
+    for model_name in model_variants:
+        for landmark in requested_landmarks:
+            for n_bar in nbar_values:
+                paper_key = (
+                    "Kirchhoff_full_carrier", landmark, float(n_bar)
+                )
+                own_key = (model_name, landmark, float(n_bar))
+                if paper_key not in analysis_by_key or own_key not in analysis_by_key:
+                    continue
+                paper_data = analysis_by_key[paper_key]
+                own_data = analysis_by_key[own_key]
+                paper_row = paper_data["row"]
+                own_row = own_data["row"]
+                ptm_difference = float(
+                    np.linalg.norm(own_data["ptm"] - paper_data["ptm"])
+                )
+                error_ptm_difference = float(
+                    np.linalg.norm(
+                        (own_data["ptm"] - identity_ptm)
+                        - (paper_data["ptm"] - identity_ptm)
+                    )
+                )
+                paper_error_norm = float(
+                    np.linalg.norm(paper_data["ptm"] - identity_ptm)
+                )
+                comparison_rows.append({
+                    "model": model_name,
+                    "landmark": landmark,
+                    "n_bar": float(n_bar),
+                    "omega_mhz": float(own_row["omega_mhz"]),
+                    "effective_amplitude_sim": float(
+                        own_row["effective_amplitude_sim"]
+                    ),
+                    "detuning_sim": float(detuning_sim),
+                    "ptm_frobenius_difference": ptm_difference,
+                    "error_ptm_frobenius_difference": error_ptm_difference,
+                    "error_ptm_relative_difference": (
+                        error_ptm_difference / max(paper_error_norm, 1e-15)
+                    ),
+                    "own_average_infidelity": float(
+                        own_row["average_infidelity"]
+                    ),
+                    "kirchhoff_average_infidelity": float(
+                        paper_row["average_infidelity"]
+                    ),
+                    "delta_average_infidelity": float(
+                        own_row["average_infidelity"]
+                        - paper_row["average_infidelity"]
+                    ),
+                    "own_h_XX_rad_per_gate": float(
+                        own_row["h_XX_rad_per_gate"]
+                    ),
+                    "kirchhoff_h_XX_rad_per_gate": float(
+                        paper_row["h_XX_rad_per_gate"]
+                    ),
+                    "delta_h_XX_rad_per_gate": float(
+                        own_row["h_XX_rad_per_gate"]
+                        - paper_row["h_XX_rad_per_gate"]
+                    ),
+                    "own_gamma_XX_per_gate": float(
+                        own_row["gamma_XX_per_gate"]
+                    ),
+                    "kirchhoff_gamma_XX_per_gate": float(
+                        paper_row["gamma_XX_per_gate"]
+                    ),
+                    "delta_gamma_XX_per_gate": float(
+                        own_row["gamma_XX_per_gate"]
+                        - paper_row["gamma_XX_per_gate"]
+                    ),
+                })
+                for pauli in pauli_labels:
+                    coefficient_difference_rows.append({
+                        "model": model_name,
+                        "landmark": landmark,
+                        "n_bar": float(n_bar),
+                        "pauli": pauli,
+                        "delta_hamiltonian_coefficient_rad_per_gate": float(
+                            own_data["h"][pauli] - paper_data["h"][pauli]
+                        ),
+                        "delta_pauli_dissipator_rate_per_gate": float(
+                            own_data["gamma"][pauli]
+                            - paper_data["gamma"][pauli]
+                        ),
+                    })
+
+    model_summary = pd.DataFrame(model_rows)
+    coefficients = pd.DataFrame(coefficient_rows)
+    comparison = pd.DataFrame(comparison_rows)
+    coefficient_differences = pd.DataFrame(coefficient_difference_rows)
+    if not model_summary.empty:
+        model_summary = model_summary.sort_values(
+            ["model", "landmark", "n_bar"]
+        ).reset_index(drop=True)
+    if not comparison.empty:
+        comparison = comparison.sort_values(
+            ["model", "landmark", "n_bar"]
+        ).reset_index(drop=True)
+
+    model_summary_path = output_dir / "coherent_limit_model_summary.csv"
+    comparison_path = output_dir / "coherent_limit_direct_comparison.csv"
+    coefficient_path = output_dir / "coherent_limit_generator_coefficients.csv"
+    coefficient_difference_path = (
+        output_dir / "coherent_limit_generator_coefficient_differences.csv"
+    )
+    model_summary.to_csv(model_summary_path, index=False)
+    comparison.to_csv(comparison_path, index=False)
+    coefficients.to_csv(coefficient_path, index=False)
+    coefficient_differences.to_csv(coefficient_difference_path, index=False)
+    figure_path = _plot_coherent_limit_comparison(
+        model_summary, comparison, output_dir
+    )
+
+    expected_own_propagators = len(own_tasks)
+    status = {
+        "completed_own_propagators": int(completed_own_propagators),
+        "expected_own_propagators": int(expected_own_propagators),
+        "newly_computed": int(newly_computed),
+        "pending_own_propagators": int(
+            expected_own_propagators - completed_own_propagators
+        ),
+        "completed_comparison_points": int(len(comparison)),
+        "expected_comparison_points": int(
+            len(model_variants) * len(requested_landmarks) * len(nbar_values)
+        ),
+        "generator_path": "error superoperator -> PTM -> log(PTM)",
+        "chi_role": "diagnostic output only; no chi round-trip",
+        "drive_mapping": "A_sim = eta * Omega * T / (2 * t_gate_sim)",
+        "detuning_mapping": "delta_sim = 2*pi*(K-L)/t_gate_sim",
+        "noise_rates": "all zero (coherent limit)",
+        "K": K,
+        "L": L,
+        "eta": eta,
+        "phonon_dim": phonon_dim,
+        "gate_duration_seconds": gate_duration_seconds,
+        "model_variants": model_variants,
+    }
+    if not model_summary.empty:
+        status.update({
+            "cp_pass": int(model_summary["cp_pass"].astype(bool).sum()),
+            "tp_pass": int(model_summary["tp_pass"].astype(bool).sum()),
+            "total_analyzed_channels": int(len(model_summary)),
+        })
+    return {
+        "model_summary": model_summary,
+        "comparison": comparison,
+        "generator_coefficients": coefficients,
+        "generator_coefficient_differences": coefficient_differences,
+        "figure_path": figure_path,
+        "model_summary_path": model_summary_path,
+        "comparison_path": comparison_path,
+        "coefficient_path": coefficient_path,
+        "coefficient_difference_path": coefficient_difference_path,
+        "output_dir": output_dir,
+        "status": status,
+        "pending": [task for task in own_tasks if not task["cache_path"].exists()],
+    }
+
+
+def _model_hxx_calibration_cache_path(
+    output_dir: Path,
+    payload: Mapping[str, Any],
+    *,
+    model_name: str,
+    omega_per_second: float,
+) -> Path:
+    cache_payload = {
+        **dict(payload),
+        "model_name": str(model_name),
+        "omega_per_second": float(omega_per_second),
+        "implementation": "model_specific_hxx_zero_v1",
+    }
+    digest = hashlib.sha256(
+        json.dumps(
+            cache_payload, sort_keys=True, default=_json_safe
+        ).encode("utf-8")
+    ).hexdigest()[:14]
+    return output_dir / "propagator_cache" / (
+        f"{_condition_stem(model_name)}__omega_mhz_"
+        f"{_condition_stem(f'{float(omega_per_second) / 1e6:.9f}')}"
+        f"__{digest}.npz"
+    )
+
+
+def _plot_model_specific_hxx_calibration(
+    summary: pd.DataFrame,
+    tolerance_rad: float,
+    output_dir: Path,
+) -> Path | None:
+    if summary.empty:
+        return None
+    figure, axes = plt.subplots(2, 2, figsize=(14.0, 9.5))
+    styles = {
+        "Kirchhoff_full_carrier": ("black", "o", "-"),
+        "own_lamb_dicke": ("#0072B2", "s", "--"),
+        "own_eta2_corrected": ("#D55E00", "^", "-."),
+    }
+    labels = {
+        "Kirchhoff_full_carrier": "Kirchhoff full carrier-sideband",
+        "own_lamb_dicke": "repository first-sideband (LD)",
+        "own_eta2_corrected": r"repository first-sideband ($\eta^2$ corrected)",
+    }
+    for model_name, curve in summary.groupby("model"):
+        curve = curve.sort_values("n_bar")
+        color, marker, linestyle = styles.get(model_name, (None, "o", "-"))
+        label = labels.get(model_name, model_name)
+        axes[0, 0].semilogx(
+            curve["n_bar"],
+            curve["omega_calibrated_mhz"],
+            color=color,
+            marker=marker,
+            linestyle=linestyle,
+            label=label,
+        )
+        axes[0, 1].loglog(
+            curve["n_bar"],
+            np.maximum(np.abs(curve["h_XX_rad_per_gate"]), 1e-18),
+            color=color,
+            marker=marker,
+            linestyle=linestyle,
+            label=label,
+        )
+        axes[1, 0].loglog(
+            curve["n_bar"],
+            np.maximum(curve["gamma_XX_per_gate"], 1e-18),
+            color=color,
+            marker=marker,
+            linestyle=linestyle,
+            label=label,
+        )
+        axes[1, 1].loglog(
+            curve["n_bar"],
+            np.maximum(curve["average_infidelity"], 1e-18),
+            color=color,
+            marker=marker,
+            linestyle=linestyle,
+            label=label,
+        )
+
+    axes[0, 0].set_xlabel(r"Mean phonon number $\bar n$")
+    axes[0, 0].set_ylabel(r"Calibrated carrier-equivalent $\Omega$ [MHz]")
+    axes[0, 0].set_title(r"Model-specific solution of $h_{XX}(\Omega)=0$")
+    axes[0, 0].grid(True, which="both", alpha=0.25)
+    axes[0, 0].legend(fontsize=8)
+
+    axes[0, 1].axhline(
+        float(tolerance_rad),
+        color="#777777",
+        linestyle=":",
+        label="calibration tolerance",
+    )
+    axes[0, 1].set_xlabel(r"Mean phonon number $\bar n$")
+    axes[0, 1].set_ylabel(r"Residual $|h_{XX}|$ [rad/gate]")
+    axes[0, 1].set_title("Residual coherent XX error")
+    axes[0, 1].grid(True, which="both", alpha=0.25)
+    axes[0, 1].legend(fontsize=8)
+
+    axes[1, 0].set_xlabel(r"Mean phonon number $\bar n$")
+    axes[1, 0].set_ylabel(r"Calibrated $\gamma_{XX}$ [1/gate]")
+    axes[1, 0].set_title("Structural stochastic XX error after angle calibration")
+    axes[1, 0].grid(True, which="both", alpha=0.25)
+    axes[1, 0].legend(fontsize=8)
+
+    axes[1, 1].set_xlabel(r"Mean phonon number $\bar n$")
+    axes[1, 1].set_ylabel(r"Calibrated $1-F_{\rm avg}$")
+    axes[1, 1].set_title("Residual channel infidelity after angle calibration")
+    axes[1, 1].grid(True, which="both", alpha=0.25)
+    axes[1, 1].legend(fontsize=8)
+
+    figure.suptitle(
+        "Separating XX-angle miscalibration from Hamiltonian-structure error",
+        y=0.995,
+    )
+    figure.tight_layout(rect=(0.0, 0.0, 1.0, 0.97))
+    output_dir.mkdir(parents=True, exist_ok=True)
+    figure_path = output_dir / "model_specific_hxx_zero_calibration.png"
+    figure.savefig(figure_path, dpi=300, bbox_inches="tight")
+    figure.savefig(
+        output_dir / "model_specific_hxx_zero_calibration.pdf",
+        bbox_inches="tight",
+    )
+    plt.close(figure)
+    return figure_path
+
+
+def run_model_specific_hxx_zero_calibration_stage(
+    config: Mapping[str, Any],
+    paper_result: Mapping[str, Any],
+    coherent_result: Mapping[str, Any],
+    *,
+    nbar_values=(0.02, 0.1, 0.3, 1.0),
+    model_variants=None,
+    omega_bounds_mhz=(1.04, 1.18),
+    hxx_tolerance_rad: float = 2e-4,
+    max_root_iterations: int = 3,
+    t_gate_sim: float = 1.0,
+    own_time_points: int = 501,
+    own_solver_method: str = "vern9",
+    own_solver_max_step: float | None = None,
+    paper_solver: str = "adaptive_dop853",
+    paper_relative_tolerance: float = 1e-9,
+    paper_absolute_tolerance: float = 1e-11,
+    run_calibration_propagation: bool = False,
+    force_recompute: bool = False,
+    show_progress: bool = True,
+) -> dict[str, Any]:
+    """Independently set hXX=0 in each model, then compare residual errors."""
+
+    paths = _paths(config)
+    output_dir = paths["kirchhoff_model_calibration"]
+    cache_dir = output_dir / "propagator_cache"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    convention = _convention(config)
+    nbar_values = sorted({float(value) for value in nbar_values})
+    if not nbar_values or any(value < 0.0 for value in nbar_values):
+        raise ValueError("nbar_values must contain nonnegative values")
+    lower_omega = float(omega_bounds_mhz[0]) * 1e6
+    upper_omega = float(omega_bounds_mhz[1]) * 1e6
+    if not 0.0 < lower_omega < upper_omega:
+        raise ValueError("omega_bounds_mhz must be an increasing positive pair")
+
+    paper_status = dict(paper_result.get("status", {}))
+    required_status = {
+        "K", "L", "eta", "phonon_dim", "sideband_cutoff",
+        "gate_duration_seconds",
+    }
+    missing_status = required_status - set(paper_status)
+    if missing_status:
+        raise ValueError(
+            "paper_result status is missing: "
+            + ", ".join(sorted(missing_status))
+        )
+    K = float(paper_status["K"])
+    L = float(paper_status["L"])
+    eta = float(paper_status["eta"])
+    phonon_dim = int(paper_status["phonon_dim"])
+    sideband_cutoff = int(paper_status["sideband_cutoff"])
+    gate_duration_seconds = float(paper_status["gate_duration_seconds"])
+    paper_model = kirchhoff_paper.build_paper_model(
+        K=K,
+        L=L,
+        eta=eta,
+        phonon_dim=phonon_dim,
+        sideband_cutoff=sideband_cutoff,
+    )
+    if model_variants is None:
+        model_variants = dict(
+            coherent_result.get("status", {}).get("model_variants", {})
+        )
+    model_variants = {
+        str(name): bool(use_full_order)
+        for name, use_full_order in dict(model_variants).items()
+    }
+    if not model_variants:
+        raise ValueError("Cell 8.3 model variants are required")
+    models = {"Kirchhoff_full_carrier": None, **model_variants}
+    detuning_sim = coherent_bridge.effective_detuning(
+        K, L, t_gate_sim=t_gate_sim
+    )
+    omega_4 = float(
+        kirchhoff_paper.drive_landmarks(
+            K=K,
+            L=L,
+            gate_duration_seconds=gate_duration_seconds,
+            eta=eta,
+        )["omega_4"]
+    )
+
+    payload = {
+        "K": K,
+        "L": L,
+        "eta": eta,
+        "phonon_dim": phonon_dim,
+        "sideband_cutoff": sideband_cutoff,
+        "gate_duration_seconds": gate_duration_seconds,
+        "t_gate_sim": float(t_gate_sim),
+        "detuning_sim": float(detuning_sim),
+        "own_time_points": int(own_time_points),
+        "own_solver_method": str(own_solver_method),
+        "own_solver_max_step": own_solver_max_step,
+        "paper_solver": str(paper_solver),
+        "paper_relative_tolerance": float(paper_relative_tolerance),
+        "paper_absolute_tolerance": float(paper_absolute_tolerance),
+    }
+
+    source_paths = {model: {} for model in models}
+    paper_metadata = pd.DataFrame(
+        paper_result.get("propagator_metadata", [])
+    )
+    if paper_metadata.empty:
+        raise FileNotFoundError("Cell 8.1 propagator metadata is required")
+    for _, row in paper_metadata.iterrows():
+        path = Path(row["cache_path"])
+        if path.exists():
+            source_paths["Kirchhoff_full_carrier"][
+                round(float(row["omega_per_second"]), 9)
+            ] = path
+
+    coherent_summary = pd.DataFrame(
+        coherent_result.get("model_summary", [])
+    )
+    if coherent_summary.empty:
+        raise FileNotFoundError("Cell 8.3 model summary is required")
+    for _, row in coherent_summary.drop_duplicates(
+        ["model", "omega_per_second"]
+    ).iterrows():
+        model_name = str(row["model"])
+        if model_name not in source_paths or model_name == "Kirchhoff_full_carrier":
+            continue
+        path = Path(row["source_cache"])
+        if path.exists():
+            source_paths[model_name][
+                round(float(row["omega_per_second"]), 9)
+            ] = path
+
+    if not force_recompute:
+        for path in sorted(cache_dir.glob("*.npz")):
+            try:
+                with np.load(path, allow_pickle=False) as data:
+                    metadata = json.loads(str(data["metadata_json"].item()))
+                model_name = str(metadata["model"])
+                omega = float(metadata["omega_per_second"])
+            except (KeyError, ValueError, TypeError, json.JSONDecodeError):
+                continue
+            if model_name in source_paths:
+                source_paths[model_name][round(omega, 9)] = path
+
+    propagator_memory = {}
+    analysis_memory = {}
+    evaluation_rows = []
+    pending_requests = []
+    newly_computed = 0
+
+    def ensure_propagator(model_name, omega):
+        nonlocal newly_computed
+        omega = float(omega)
+        key = round(omega, 9)
+        existing = source_paths[model_name].get(key)
+        if existing is not None and existing.exists():
+            return existing
+        use_full_order = models[model_name]
+        cache_path = _model_hxx_calibration_cache_path(
+            output_dir,
+            {**payload, "use_full_order": use_full_order},
+            model_name=model_name,
+            omega_per_second=omega,
+        )
+        if cache_path.exists() and not force_recompute:
+            source_paths[model_name][key] = cache_path
+            return cache_path
+        if not run_calibration_propagation:
+            request = (model_name, omega)
+            if request not in pending_requests:
+                pending_requests.append(request)
+            return None
+
+        start = time.perf_counter()
+        if model_name == "Kirchhoff_full_carrier":
+            propagator, metadata = kirchhoff_paper.propagate(
+                paper_model,
+                omega_per_second=omega,
+                gate_duration_seconds=gate_duration_seconds,
+                solver=paper_solver,
+                relative_tolerance=paper_relative_tolerance,
+                absolute_tolerance=paper_absolute_tolerance,
+            )
+        else:
+            amplitude = coherent_bridge.carrier_to_effective_sideband_amplitude(
+                omega,
+                eta=eta,
+                gate_duration_seconds=gate_duration_seconds,
+                t_gate_sim=t_gate_sim,
+            )
+            propagator_qobj, metadata = mg.coherent_ms_propagator(
+                amplitude,
+                detuning_sim,
+                rho0=0.0,
+                phonon_dim=phonon_dim,
+                eta=eta,
+                use_full_order=bool(use_full_order),
+                time_points=own_time_points,
+                t_gate_sim=t_gate_sim,
+                solver_method=own_solver_method,
+                solver_max_step=own_solver_max_step,
+            )
+            propagator = np.asarray(propagator_qobj.full(), dtype=complex)
+            metadata["effective_amplitude_sim"] = float(amplitude)
+        metadata = {
+            **metadata,
+            "model": model_name,
+            "omega_per_second": omega,
+            "wall_time_seconds": float(time.perf_counter() - start),
+        }
+        temporary_path = cache_path.with_name(cache_path.stem + ".tmp.npz")
+        np.savez_compressed(
+            temporary_path,
+            propagator=np.asarray(propagator, dtype=complex),
+            metadata_json=np.asarray(
+                json.dumps(metadata, sort_keys=True, default=_json_safe)
+            ),
+        )
+        temporary_path.replace(cache_path)
+        source_paths[model_name][key] = cache_path
+        newly_computed += 1
+        return cache_path
+
+    def evaluate(model_name, omega, n_bar):
+        omega = float(omega)
+        n_bar = float(n_bar)
+        memory_key = (model_name, round(omega, 9), round(n_bar, 12))
+        if memory_key in analysis_memory:
+            return analysis_memory[memory_key]
+        path = ensure_propagator(model_name, omega)
+        if path is None:
+            return None
+        if path not in propagator_memory:
+            with np.load(path, allow_pickle=False) as data:
+                propagator_memory[path] = np.asarray(
+                    data["propagator"], dtype=complex
+                )
+        propagator = propagator_memory[path]
+        if model_name == "Kirchhoff_full_carrier":
+            _, error_super, thermal_metadata = (
+                kirchhoff_paper.kirchhoff_xx_error_channel(
+                    propagator,
+                    paper_model,
+                    n_bar=n_bar,
+                    convention=convention,
+                )
+            )
+            effective_amplitude = np.nan
+        else:
+            _, error_super, thermal_metadata = coherent_bridge.own_xx_error_channel(
+                propagator,
+                phonon_dim=phonon_dim,
+                n_bar=n_bar,
+                convention=convention,
+            )
+            effective_amplitude = (
+                coherent_bridge.carrier_to_effective_sideband_amplitude(
+                    omega,
+                    eta=eta,
+                    gate_duration_seconds=gate_duration_seconds,
+                    t_gate_sim=t_gate_sim,
+                )
+            )
+        observables = qpt_analysis.extract_pauli_generator_from_superoperator(
+            error_super
+        )
+        ptm = np.asarray(observables.pop("ptm"), dtype=complex)
+        chi = np.asarray(
+            observables.pop("chi_trace_normalized"), dtype=complex
+        )
+        hamiltonian = observables.pop(
+            "hamiltonian_coefficients_rad_per_gate"
+        )
+        dissipator = observables.pop("pauli_dissipator_rates_per_gate")
+        physicality = mg.choi_physicality_metrics(error_super)
+        result = {
+            "model": model_name,
+            "n_bar": n_bar,
+            "omega_per_second": omega,
+            "omega_mhz": omega / 1e6,
+            "effective_amplitude_sim": float(effective_amplitude),
+            "h_XX_rad_per_gate": float(hamiltonian["XX"]),
+            "gamma_XX_per_gate": float(dissipator["XX"]),
+            **observables,
+            "thermal_tail_mass": float(thermal_metadata["thermal_tail_mass"]),
+            "cp_pass": bool(physicality["cp_pass"]),
+            "tp_pass": bool(physicality["tp_pass"]),
+            "tp_frobenius_error": float(physicality["tp_frobenius_error"]),
+            "source_cache": str(path),
+            "_ptm": ptm,
+            "_chi": chi,
+            "_h": hamiltonian,
+            "_gamma": dissipator,
+        }
+        analysis_memory[memory_key] = result
+        evaluation_rows.append({
+            key: value
+            for key, value in result.items()
+            if not key.startswith("_")
+        })
+        return result
+
+    calibration_rows = []
+    calibrated_data = {}
+    root_iterator = [
+        (model_name, n_bar)
+        for model_name in models
+        for n_bar in nbar_values
+    ]
+    for model_name, n_bar in tqdm(
+        root_iterator,
+        desc="8.4 model-specific hXX=0",
+        unit="root",
+        disable=not show_progress,
+    ):
+        seed_omegas = sorted(source_paths[model_name])
+        root = hxx_calibration.find_hxx_zero(
+            lambda omega, m=model_name, n=n_bar: evaluate(m, omega, n),
+            seed_omegas,
+            lower_bound=lower_omega,
+            upper_bound=upper_omega,
+            tolerance_rad=hxx_tolerance_rad,
+            max_iterations=max_root_iterations,
+        )
+        best = root["best"]
+        if best is None:
+            continue
+        bracket = root["bracket"]
+        baseline_match = coherent_summary.loc[
+            (coherent_summary["model"] == model_name)
+            & (coherent_summary["landmark"] == "Omega_4")
+            & np.isclose(coherent_summary["n_bar"].astype(float), n_bar)
+        ]
+        baseline = baseline_match.iloc[-1] if not baseline_match.empty else None
+        row = {
+            key: value
+            for key, value in best.items()
+            if not key.startswith("_")
+        }
+        row.update({
+            "omega_calibrated_mhz": float(best["omega_mhz"]),
+            "omega_factor_vs_omega4": float(
+                best["omega_per_second"] / omega_4
+            ),
+            "calibration_converged": bool(root["converged"]),
+            "calibration_pending": bool(root["pending"]),
+            "calibration_iterations": int(root["iterations"]),
+            "calibration_evaluated_points": int(root["evaluated_points"]),
+            "bracket_lower_mhz": (
+                np.nan if bracket is None else float(bracket[0]) / 1e6
+            ),
+            "bracket_upper_mhz": (
+                np.nan if bracket is None else float(bracket[1]) / 1e6
+            ),
+            "precalibration_omega4_h_XX": (
+                np.nan if baseline is None else float(baseline["h_XX_rad_per_gate"])
+            ),
+            "precalibration_omega4_gamma_XX": (
+                np.nan if baseline is None else float(baseline["gamma_XX_per_gate"])
+            ),
+            "precalibration_omega4_infidelity": (
+                np.nan if baseline is None else float(baseline["average_infidelity"])
+            ),
+        })
+        calibration_rows.append(row)
+        if root["converged"]:
+            calibrated_data[(model_name, n_bar)] = best
+
+    summary = pd.DataFrame(calibration_rows)
+    if not summary.empty:
+        summary = summary.sort_values(["model", "n_bar"]).reset_index(drop=True)
+    history = pd.DataFrame(evaluation_rows)
+    if not history.empty:
+        history = history.sort_values(
+            ["model", "n_bar", "omega_per_second"]
+        ).reset_index(drop=True)
+
+    coefficient_rows = []
+    comparison_rows = []
+    coefficient_difference_rows = []
+    pauli_labels = [label for label, _ in mg.pauli_labels_and_weights()][1:]
+    for (model_name, n_bar), data in calibrated_data.items():
+        for pauli in pauli_labels:
+            coefficient_rows.append({
+                "model": model_name,
+                "n_bar": n_bar,
+                "omega_calibrated_mhz": float(data["omega_mhz"]),
+                "pauli": pauli,
+                "hamiltonian_coefficient_rad_per_gate": float(
+                    data["_h"][pauli]
+                ),
+                "pauli_dissipator_rate_per_gate": float(
+                    data["_gamma"][pauli]
+                ),
+            })
+    for model_name in model_variants:
+        for n_bar in nbar_values:
+            paper_key = ("Kirchhoff_full_carrier", n_bar)
+            own_key = (model_name, n_bar)
+            if paper_key not in calibrated_data or own_key not in calibrated_data:
+                continue
+            paper_data = calibrated_data[paper_key]
+            own_data = calibrated_data[own_key]
+            ptm_difference = float(
+                np.linalg.norm(own_data["_ptm"] - paper_data["_ptm"])
+            )
+            chi_difference = float(
+                np.linalg.norm(own_data["_chi"] - paper_data["_chi"])
+            )
+            comparison_rows.append({
+                "model": model_name,
+                "n_bar": n_bar,
+                "own_omega_calibrated_mhz": float(own_data["omega_mhz"]),
+                "kirchhoff_omega_calibrated_mhz": float(
+                    paper_data["omega_mhz"]
+                ),
+                "delta_calibrated_omega_mhz": float(
+                    own_data["omega_mhz"] - paper_data["omega_mhz"]
+                ),
+                "own_h_XX_residual": float(own_data["h_XX_rad_per_gate"]),
+                "kirchhoff_h_XX_residual": float(
+                    paper_data["h_XX_rad_per_gate"]
+                ),
+                "own_gamma_XX_per_gate": float(own_data["gamma_XX_per_gate"]),
+                "kirchhoff_gamma_XX_per_gate": float(
+                    paper_data["gamma_XX_per_gate"]
+                ),
+                "delta_gamma_XX_per_gate": float(
+                    own_data["gamma_XX_per_gate"]
+                    - paper_data["gamma_XX_per_gate"]
+                ),
+                "relative_gamma_XX_difference": float(
+                    (
+                        own_data["gamma_XX_per_gate"]
+                        - paper_data["gamma_XX_per_gate"]
+                    ) / max(abs(paper_data["gamma_XX_per_gate"]), 1e-15)
+                ),
+                "own_average_infidelity": float(own_data["average_infidelity"]),
+                "kirchhoff_average_infidelity": float(
+                    paper_data["average_infidelity"]
+                ),
+                "delta_average_infidelity": float(
+                    own_data["average_infidelity"]
+                    - paper_data["average_infidelity"]
+                ),
+                "relative_infidelity_difference": float(
+                    (
+                        own_data["average_infidelity"]
+                        - paper_data["average_infidelity"]
+                    ) / max(abs(paper_data["average_infidelity"]), 1e-15)
+                ),
+                "calibrated_ptm_frobenius_difference": ptm_difference,
+                "calibrated_chi_frobenius_difference": chi_difference,
+            })
+            for pauli in pauli_labels:
+                coefficient_difference_rows.append({
+                    "model": model_name,
+                    "n_bar": n_bar,
+                    "pauli": pauli,
+                    "delta_hamiltonian_coefficient_rad_per_gate": float(
+                        own_data["_h"][pauli] - paper_data["_h"][pauli]
+                    ),
+                    "delta_pauli_dissipator_rate_per_gate": float(
+                        own_data["_gamma"][pauli]
+                        - paper_data["_gamma"][pauli]
+                    ),
+                })
+
+    comparison = pd.DataFrame(comparison_rows)
+    coefficients = pd.DataFrame(coefficient_rows)
+    coefficient_differences = pd.DataFrame(coefficient_difference_rows)
+    summary_path = output_dir / "model_specific_hxx_zero_summary.csv"
+    history_path = output_dir / "model_specific_hxx_calibration_history.csv"
+    comparison_path = output_dir / "postcalibration_structural_comparison.csv"
+    coefficient_path = output_dir / "postcalibration_generator_coefficients.csv"
+    coefficient_difference_path = (
+        output_dir / "postcalibration_generator_coefficient_differences.csv"
+    )
+    summary.to_csv(summary_path, index=False)
+    history.to_csv(history_path, index=False)
+    comparison.to_csv(comparison_path, index=False)
+    coefficients.to_csv(coefficient_path, index=False)
+    coefficient_differences.to_csv(coefficient_difference_path, index=False)
+    figure_path = _plot_model_specific_hxx_calibration(
+        summary, hxx_tolerance_rad, output_dir
+    )
+
+    expected_roots = len(models) * len(nbar_values)
+    converged_roots = int(
+        summary.get("calibration_converged", pd.Series(dtype=bool))
+        .astype(bool)
+        .sum()
+    )
+    return {
+        "summary": summary,
+        "history": history,
+        "comparison": comparison,
+        "generator_coefficients": coefficients,
+        "generator_coefficient_differences": coefficient_differences,
+        "figure_path": figure_path,
+        "summary_path": summary_path,
+        "history_path": history_path,
+        "comparison_path": comparison_path,
+        "coefficient_path": coefficient_path,
+        "coefficient_difference_path": coefficient_difference_path,
+        "output_dir": output_dir,
+        "status": {
+            "converged_roots": converged_roots,
+            "expected_roots": int(expected_roots),
+            "pending_roots": int(expected_roots - converged_roots),
+            "newly_computed_propagators": int(newly_computed),
+            "pending_propagator_requests": int(len(pending_requests)),
+            "hxx_tolerance_rad": float(hxx_tolerance_rad),
+            "omega_bounds_mhz": [lower_omega / 1e6, upper_omega / 1e6],
+            "generator_path": "error superoperator -> PTM -> log(PTM)",
+            "comparison_meaning": (
+                "hXX individually nulled; residual gamma/infidelity are structural"
+            ),
+            "model_variants": model_variants,
+        },
+        "pending_requests": pending_requests,
     }
 
 

@@ -312,6 +312,101 @@ def _prepare_ms_solver(
     )
 
 
+def coherent_ms_propagator(
+    A,
+    delta,
+    *,
+    rho0=0.0,
+    phonon_dim=8,
+    eta=0.1,
+    use_full_order=True,
+    time_points=501,
+    t_gate_sim=None,
+    solver_method="vern9",
+    solver_max_step=None,
+    solver_atol=1e-11,
+    solver_rtol=1e-9,
+):
+    """Propagate the repository's coherent MS Hamiltonian once.
+
+    This uses exactly the Hamiltonian builder employed by ``MSGate`` and
+    ``run_ms_gate_simulation``, but omits collapse operators and returns the
+    qubits⊗motion propagator.  Thermal input states can therefore be applied
+    afterwards without repeating the time evolution for every ``n_bar`` or
+    every tomography input state.
+    """
+
+    phonon_dim = int(phonon_dim)
+    time_points = int(time_points)
+    if phonon_dim < 2:
+        raise ValueError("phonon_dim must be at least 2")
+    if time_points < 2:
+        raise ValueError("time_points must be at least 2")
+    if t_gate_sim is None:
+        detuning_array = np.asarray(delta, dtype=float)
+        if detuning_array.ndim != 0 or float(detuning_array) == 0.0:
+            raise ValueError(
+                "scalar nonzero delta or explicit t_gate_sim is required"
+            )
+        t_gate_sim = 2.0 * np.pi / abs(float(detuning_array))
+    t_gate_sim = float(t_gate_sim)
+    if t_gate_sim <= 0.0:
+        raise ValueError("t_gate_sim must be positive")
+
+    time_grid = np.linspace(0.0, t_gate_sim, time_points)
+    operators = _ms_gate_static_operators(
+        phonon_dim, float(eta), bool(use_full_order)
+    )
+    hamiltonian = _build_ms_hamiltonian(
+        operators,
+        time_grid=time_grid,
+        detuning=delta,
+        rho=rho0,
+        effective_amplitude=A,
+    )
+    if solver_max_step is None:
+        solver_max_step = t_gate_sim / (time_points - 1)
+    options = {
+        "progress_bar": None,
+        "method": str(solver_method),
+        "nsteps": 100000,
+        "max_step": float(solver_max_step),
+        "atol": float(solver_atol),
+        "rtol": float(solver_rtol),
+    }
+    propagator = qp.propagator(
+        hamiltonian,
+        [0.0, t_gate_sim],
+        options=options,
+    )[-1]
+    identity = qp.qeye(propagator.dims[0])
+    return propagator, {
+        "A": float(np.asarray(A)) if np.asarray(A).ndim == 0 else "waveform",
+        "delta": (
+            float(np.asarray(delta))
+            if np.asarray(delta).ndim == 0
+            else "waveform"
+        ),
+        "rho0": (
+            float(np.asarray(rho0))
+            if np.asarray(rho0).ndim == 0
+            else "waveform"
+        ),
+        "phonon_dim": phonon_dim,
+        "eta": float(eta),
+        "use_full_order": bool(use_full_order),
+        "time_points": time_points,
+        "t_gate_sim": t_gate_sim,
+        "solver_method": str(solver_method),
+        "solver_max_step": float(solver_max_step),
+        "solver_atol": float(solver_atol),
+        "solver_rtol": float(solver_rtol),
+        "unitarity_frobenius_error": float(
+            np.linalg.norm((propagator.dag() * propagator - identity).full())
+        ),
+    }
+
+
 def sample_laser_parameters(
     detuning,
     int_strn,
@@ -3327,6 +3422,7 @@ def run_infidelity_analysis(show_plot=True, **simulation_parameters):
 
 __all__ = [
     "MSGate",
+    "coherent_ms_propagator",
     "sample_laser_parameters",
     "get_optimal_nv_general",
     "estimate_phonon_dim",
