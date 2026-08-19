@@ -1,0 +1,39 @@
+{
+  "analysis": "numerical_convergence",
+  "base_parameters": {
+    "A": 0.125,
+    "T2_star": 0.3,
+    "delta": 0.5,
+    "dephasing_rate_phys": 18.0,
+    "eta": 0.1,
+    "heating_rate_phys": 10.0,
+    "laser_detuning_fluctuation": 0.0,
+    "laser_intensity_fluctuation": 0.0,
+    "laser_noise_samples": 1,
+    "laser_noise_seed": 1234,
+    "laser_rotation_angle_fluctuation": 0.0,
+    "raman_rate_phys": 1.0,
+    "rayleigh_rate_phys": 3.0,
+    "rho0": 0.0,
+    "t_gate_phys": 0.0001,
+    "time_points": 500,
+    "use_full_order": true
+  },
+  "nbar_values": [
+    0.01,
+    4.0
+  ],
+  "settings": {
+    "phonon_dim_factors": [
+      1.0,
+      1.25,
+      1.5
+    ],
+    "time_point_factors": [
+      1.0,
+      1.5,
+      2.0
+    ]
+  },
+  "version": 1
+}
