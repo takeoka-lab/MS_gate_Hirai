@@ -1,0 +1,36 @@
+{
+  "analysis": "fock_resolved_full_order",
+  "base_parameters": {
+    "A": 0.125,
+    "T2_star": 0.3,
+    "delta": 0.5,
+    "dephasing_rate_phys": 18.0,
+    "eta": 0.1,
+    "heating_rate_phys": 10.0,
+    "laser_detuning_fluctuation": 0.0,
+    "laser_intensity_fluctuation": 0.0,
+    "laser_noise_samples": 1,
+    "laser_noise_seed": 1234,
+    "laser_rotation_angle_fluctuation": 0.0,
+    "raman_rate_phys": 1.0,
+    "rayleigh_rate_phys": 3.0,
+    "rho0": 0.0,
+    "t_gate_phys": 0.0001,
+    "time_points": 500,
+    "use_full_order": true
+  },
+  "nbar_values": [
+    0.01,
+    1.0,
+    2.0,
+    3.0,
+    4.0
+  ],
+  "settings": {
+    "max_fock_n": 51,
+    "phonon_buffer": 24,
+    "target_xx_angle_rad": 0.7853981633974483,
+    "thermal_tail_tolerance": 1e-05
+  },
+  "version": 1
+}
