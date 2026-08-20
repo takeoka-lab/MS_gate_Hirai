@@ -28,6 +28,7 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm, TwoSlopeNorm
 import numpy as np
 import pandas as pd
 
@@ -660,6 +661,427 @@ def run_pairwise_noise_correlation_sweep(
     }
 
 
+def build_two_noise_grid_plan(
+    base_parameters: Mapping[str, Any],
+    *,
+    source_x: str = "motional_heating",
+    source_y: str = "motional_dephasing",
+    rate_multipliers: Iterable[float] = (0.0, 0.5, 1.0, 2.0, 4.0),
+) -> dict[str, Any]:
+    """Build a complete rate grid for two sources with all others off."""
+
+    if source_x not in NOISE_SOURCES or source_y not in NOISE_SOURCES:
+        raise ValueError("source_x and source_y must be dissipative noise sources")
+    if source_x == source_y:
+        raise ValueError("source_x and source_y must be different")
+    validated = build_pairwise_sweep_plan(
+        base_parameters, rate_multipliers, fixed_multiplier=1.0
+    )
+    multipliers = validated["rate_multipliers"]
+    nominal = validated["nominal_strengths"]
+    conditions: dict[str, dict[str, Any]] = {}
+    coordinate_lookup: dict[tuple[str, str], str] = {}
+
+    for multiplier_y in multipliers:
+        for multiplier_x in multipliers:
+            rates = _zero_rate_vector()
+            rates[source_x] = multiplier_x * nominal[source_x]
+            rates[source_y] = multiplier_y * nominal[source_y]
+            condition_id = _condition_id(rates)
+            row = {
+                "condition_id": condition_id,
+                **_rate_columns(rates),
+                "is_all_noise_zero": bool(
+                    np.isclose(multiplier_x, 0.0)
+                    and np.isclose(multiplier_y, 0.0)
+                ),
+            }
+            conditions[condition_id] = row
+            coordinate_lookup[
+                (_multiplier_key(multiplier_x), _multiplier_key(multiplier_y))
+            ] = condition_id
+
+    zero_key = _multiplier_key(0.0)
+    zero_condition_id = coordinate_lookup[(zero_key, zero_key)]
+    request_rows = []
+    for multiplier_y in multipliers:
+        for multiplier_x in multipliers:
+            x_key = _multiplier_key(multiplier_x)
+            y_key = _multiplier_key(multiplier_y)
+            request_rows.append(
+                {
+                    "source_x": source_x,
+                    "source_y": source_y,
+                    "multiplier_x": multiplier_x,
+                    "multiplier_y": multiplier_y,
+                    "strength_x_s^-1": multiplier_x * nominal[source_x],
+                    "strength_y_s^-1": multiplier_y * nominal[source_y],
+                    "condition_id": coordinate_lookup[(x_key, y_key)],
+                    "x_only_condition_id": coordinate_lookup[(x_key, zero_key)],
+                    "y_only_condition_id": coordinate_lookup[(zero_key, y_key)],
+                    "zero_condition_id": zero_condition_id,
+                }
+            )
+    catalog = pd.DataFrame(conditions.values()).sort_values(
+        ["is_all_noise_zero", "condition_id"], ascending=[False, True]
+    ).reset_index(drop=True)
+    return {
+        "source_x": source_x,
+        "source_y": source_y,
+        "rate_multipliers": multipliers,
+        "nominal_strengths": nominal,
+        "catalog": catalog,
+        "grid_requests": pd.DataFrame(request_rows),
+        "zero_condition_id": zero_condition_id,
+    }
+
+
+def _merge_reusable_conditions(
+    summary: pd.DataFrame,
+    reusable_summary: pd.DataFrame | None,
+    catalog: pd.DataFrame,
+    nbar_values: Iterable[float],
+) -> pd.DataFrame:
+    if reusable_summary is None or reusable_summary.empty:
+        return summary
+    allowed = set(catalog["condition_id"].astype(str))
+    for condition_id in allowed:
+        if _condition_complete(summary, condition_id, nbar_values):
+            continue
+        if not _condition_complete(reusable_summary, condition_id, nbar_values):
+            continue
+        rows = reusable_summary[
+            reusable_summary["condition_id"].eq(condition_id)
+        ].copy()
+        summary = summary.loc[~summary["condition_id"].eq(condition_id)].copy()
+        if summary.empty:
+            summary = rows.reset_index(drop=True)
+        else:
+            summary = pd.concat([summary, rows], ignore_index=True)
+    return summary
+
+
+def calculate_two_noise_grid_interactions(
+    plan: Mapping[str, Any],
+    summary: pd.DataFrame,
+) -> pd.DataFrame:
+    """Calculate the interaction surface and its bilinear approximation."""
+
+    if summary.empty:
+        return pd.DataFrame()
+    values = summary[["condition_id", "nbar", "infidelity"]].copy()
+    grid = plan["grid_requests"].merge(
+        values.rename(columns={"infidelity": "grid_infidelity"}),
+        on="condition_id",
+        how="inner",
+    )
+
+    def merge_reference(
+        frame: pd.DataFrame,
+        request_column: str,
+        output_column: str,
+    ) -> pd.DataFrame:
+        reference = values.rename(
+            columns={
+                "condition_id": request_column,
+                "infidelity": output_column,
+            }
+        )
+        return frame.merge(reference, on=[request_column, "nbar"], how="inner")
+
+    grid = merge_reference(grid, "x_only_condition_id", "x_only_infidelity")
+    grid = merge_reference(grid, "y_only_condition_id", "y_only_infidelity")
+    grid = merge_reference(grid, "zero_condition_id", "zero_infidelity")
+    grid["additive_prediction"] = (
+        grid["x_only_infidelity"]
+        + grid["y_only_infidelity"]
+        - grid["zero_infidelity"]
+    )
+    grid["interaction_infidelity"] = (
+        grid["grid_infidelity"] - grid["additive_prediction"]
+    )
+    grid["pair_noise_penalty"] = (
+        grid["grid_infidelity"] - grid["zero_infidelity"]
+    )
+    grid["relative_interaction_to_pair_noise"] = (
+        grid["interaction_infidelity"]
+        / np.maximum(np.abs(grid["pair_noise_penalty"]), 1e-18)
+    )
+    product = grid["multiplier_x"] * grid["multiplier_y"]
+    grid["interaction_per_multiplier_product"] = np.where(
+        product > 0.0,
+        grid["interaction_infidelity"] / product,
+        np.nan,
+    )
+    nominal = grid[
+        np.isclose(grid["multiplier_x"], 1.0)
+        & np.isclose(grid["multiplier_y"], 1.0)
+    ][["nbar", "interaction_infidelity"]].rename(
+        columns={"interaction_infidelity": "nominal_bilinear_coefficient"}
+    )
+    grid = grid.merge(nominal, on="nbar", how="left")
+    grid["bilinear_prediction"] = (
+        grid["nominal_bilinear_coefficient"] * product
+    )
+    grid["bilinear_residual"] = (
+        grid["interaction_infidelity"] - grid["bilinear_prediction"]
+    )
+    grid["relative_bilinear_residual"] = np.where(
+        product > 0.0,
+        grid["bilinear_residual"]
+        / np.maximum(np.abs(grid["interaction_infidelity"]), 1e-18),
+        np.nan,
+    )
+    return grid.sort_values(
+        ["nbar", "multiplier_y", "multiplier_x"]
+    ).reset_index(drop=True)
+
+
+def _annotated_grid_figure(
+    grid: pd.DataFrame,
+    *,
+    value_column: str,
+    multipliers: Iterable[float],
+    title: str,
+    colorbar_label: str,
+    logarithmic: bool = False,
+) -> plt.Figure:
+    multipliers = tuple(float(value) for value in multipliers)
+    nbar_values = tuple(sorted(grid["nbar"].astype(float).unique()))
+    figure, axes = plt.subplots(
+        1, len(nbar_values),
+        figsize=(4.15 * len(nbar_values), 4.2),
+        squeeze=False,
+    )
+    axes = axes[0]
+    values = grid[value_column].to_numpy(float)
+    if logarithmic:
+        positive = values[values > 0.0]
+        norm = LogNorm(vmin=float(positive.min()), vmax=float(positive.max()))
+        cmap = "viridis"
+    else:
+        scale = max(float(np.max(np.abs(values))), 1e-18)
+        norm = TwoSlopeNorm(vmin=-scale, vcenter=0.0, vmax=scale)
+        cmap = "RdBu_r"
+    image = None
+    for axis, n_bar in zip(axes, nbar_values):
+        subset = grid[np.isclose(grid["nbar"], n_bar)]
+        matrix = (
+            subset.pivot(
+                index="multiplier_y", columns="multiplier_x", values=value_column
+            )
+            .reindex(index=multipliers, columns=multipliers)
+            .to_numpy(float)
+        )
+        image = axis.imshow(matrix, origin="lower", cmap=cmap, norm=norm)
+        axis.set_xticks(range(len(multipliers)), [f"{value:g}" for value in multipliers])
+        axis.set_yticks(range(len(multipliers)), [f"{value:g}" for value in multipliers])
+        axis.set_xlabel(r"Heating multiplier $m_H$")
+        axis.set_ylabel(r"Motional-dephasing multiplier $m_M$")
+        axis.set_title(rf"$\bar n={n_bar:g}$")
+        for row_index in range(len(multipliers)):
+            for column_index in range(len(multipliers)):
+                value = matrix[row_index, column_index]
+                axis.text(
+                    column_index, row_index, f"{value:.1e}",
+                    ha="center", va="center", fontsize=6.6,
+                    color="white" if abs(value) > 0.55 * np.max(np.abs(matrix)) else "black",
+                )
+    if image is not None:
+        figure.colorbar(image, ax=axes.tolist(), shrink=0.82, label=colorbar_label)
+    figure.suptitle(title, fontsize=15)
+    figure.subplots_adjust(left=0.05, right=0.93, bottom=0.13, top=0.84, wspace=0.32)
+    return figure
+
+
+def plot_two_noise_grid(
+    plan: Mapping[str, Any],
+    grid: pd.DataFrame,
+    output_dir: str | Path,
+) -> dict[str, Path | None]:
+    """Plot infidelity, interaction, and bilinear-residual heatmaps."""
+
+    output_dir = Path(output_dir)
+    if grid.empty:
+        return {
+            "infidelity_figure": None,
+            "interaction_figure": None,
+            "bilinear_residual_figure": None,
+        }
+    multipliers = plan["rate_multipliers"]
+    stem = f"{plan['source_x']}__{plan['source_y']}"
+    specifications = (
+        (
+            "grid_infidelity",
+            "Full 5x5 two-noise infidelity grid (other noises off)",
+            r"Average infidelity $1-F_{avg}$",
+            True,
+            "infidelity_figure",
+            output_dir / f"{stem}_infidelity_grid.png",
+        ),
+        (
+            "interaction_infidelity",
+            r"Pairwise interaction $C_{HM}$ over the full 5x5 grid",
+            r"$C_{HM}$",
+            False,
+            "interaction_figure",
+            output_dir / f"{stem}_interaction_grid.png",
+        ),
+        (
+            "bilinear_residual",
+            r"Residual from $C_{HM}(m_H,m_M)=C_{HM}(1,1)m_Hm_M$",
+            "Bilinear residual",
+            False,
+            "bilinear_residual_figure",
+            output_dir / f"{stem}_bilinear_residual_grid.png",
+        ),
+    )
+    paths: dict[str, Path | None] = {}
+    for column, title, colorbar, logarithmic, key, path in specifications:
+        figure = _annotated_grid_figure(
+            grid,
+            value_column=column,
+            multipliers=multipliers,
+            title=title,
+            colorbar_label=colorbar,
+            logarithmic=logarithmic,
+        )
+        figure.savefig(path, dpi=220, bbox_inches="tight")
+        plt.close(figure)
+        paths[key] = path
+    return paths
+
+
+def run_two_noise_rate_grid(
+    *,
+    output_dir: str | Path,
+    base_parameters: Mapping[str, Any],
+    nbar_values: Iterable[float],
+    source_x: str = "motional_heating",
+    source_y: str = "motional_dephasing",
+    rate_multipliers: Iterable[float] = (0.0, 0.5, 1.0, 2.0, 4.0),
+    reusable_summary: pd.DataFrame | None = None,
+    all_noise_zero_summary: pd.DataFrame | None = None,
+    execute: bool = False,
+    resume: bool = True,
+) -> dict[str, Any]:
+    """Run/load a complete 5x5 two-noise grid with cache reuse."""
+
+    output_dir = Path(output_dir)
+    nbar_values = tuple(float(value) for value in nbar_values)
+    plan = build_two_noise_grid_plan(
+        base_parameters,
+        source_x=source_x,
+        source_y=source_y,
+        rate_multipliers=rate_multipliers,
+    )
+    payload = {
+        "analysis": "complete_two_noise_rate_grid",
+        "version": 1,
+        "base_parameters": _scientific_parameters(base_parameters),
+        "nbar_values": list(nbar_values),
+        "source_x": source_x,
+        "source_y": source_y,
+        "rate_multipliers": list(plan["rate_multipliers"]),
+        "nominal_strengths": _json_safe(plan["nominal_strengths"]),
+    }
+    _ensure_manifest(output_dir, payload, execute=execute, resume=resume)
+    summary_path = output_dir / "two_noise_grid_qpt_summary.csv"
+    interaction_path = output_dir / "two_noise_grid_interaction_summary.csv"
+    request_path = output_dir / "two_noise_grid_requests.csv"
+    _atomic_save_csv(plan["grid_requests"], request_path)
+    if resume and summary_path.exists():
+        summary = pd.read_csv(summary_path)
+    else:
+        summary = pd.DataFrame(columns=[
+            "condition_id", "nbar", "F_avg", "infidelity",
+            "motional_heating_s^-1", "motional_dephasing_s^-1",
+            "spin_dephasing_s^-1", "photon_scattering_s^-1",
+            "is_all_noise_zero",
+        ])
+    summary = _merge_reusable_conditions(
+        summary, reusable_summary, plan["catalog"], nbar_values
+    )
+    summary = _seed_zero_reference(
+        summary, all_noise_zero_summary, plan, nbar_values
+    )
+    if not summary.empty:
+        summary = summary.sort_values(["condition_id", "nbar"]).reset_index(drop=True)
+        _atomic_save_csv(summary, summary_path)
+
+    total_conditions = len(plan["catalog"])
+    for condition_index, condition in plan["catalog"].iterrows():
+        condition_id = str(condition["condition_id"])
+        if resume and _condition_complete(summary, condition_id, nbar_values):
+            continue
+        if not execute:
+            continue
+        print(
+            f"Run 5x5 grid condition {condition_index + 1}/{total_conditions}: "
+            f"{condition_id}"
+        )
+        parameters = parameters_for_rate_vector(
+            base_parameters, condition, nbar_values=nbar_values
+        )
+        result = mg.run_infidelity_analysis(show_plot=False, **parameters)
+        rows = pd.DataFrame({
+            "condition_id": condition_id,
+            "nbar": np.asarray(result["parameters"]["n_bar_list"], dtype=float),
+            "F_avg": np.asarray(result["f_avg_list"], dtype=float),
+            "infidelity": np.asarray(result["infidelity_list"], dtype=float),
+        })
+        for column in (
+            "motional_heating_s^-1",
+            "motional_dephasing_s^-1",
+            "spin_dephasing_s^-1",
+            "photon_scattering_s^-1",
+        ):
+            rows[column] = float(condition[column])
+        rows["is_all_noise_zero"] = bool(condition["is_all_noise_zero"])
+        summary = summary.loc[~summary["condition_id"].eq(condition_id)].copy()
+        summary = pd.concat([summary, rows], ignore_index=True)
+        summary = summary.sort_values(["condition_id", "nbar"]).reset_index(drop=True)
+        _atomic_save_csv(summary, summary_path)
+
+    grid = calculate_two_noise_grid_interactions(plan, summary)
+    if not grid.empty:
+        _atomic_save_csv(grid, interaction_path)
+    complete = _all_conditions_complete(summary, plan["catalog"], nbar_values)
+    figures = (
+        plot_two_noise_grid(plan, grid, output_dir)
+        if complete
+        else {
+            "infidelity_figure": None,
+            "interaction_figure": None,
+            "bilinear_residual_figure": None,
+        }
+    )
+    pending = plan["catalog"][
+        ~plan["catalog"]["condition_id"].map(
+            lambda condition_id: _condition_complete(summary, condition_id, nbar_values)
+        )
+    ].reset_index(drop=True)
+    evolutions_per_condition = (
+        len(nbar_values)
+        * int(base_parameters.get("laser_noise_samples", 1))
+        * 16
+    )
+    return {
+        "plan": plan,
+        "summary": summary,
+        "grid": grid,
+        "pending_conditions": pending,
+        "complete": complete,
+        "figures": figures,
+        "total_unique_conditions": total_conditions,
+        "reused_unique_conditions": total_conditions - len(pending),
+        "pending_unique_conditions": len(pending),
+        "evolutions_per_condition": evolutions_per_condition,
+        "pending_master_equation_evolutions": len(pending) * evolutions_per_condition,
+        "output_dir": output_dir,
+    }
+
+
 __all__ = [
     "NOISE_SOURCES",
     "SOURCE_TITLES",
@@ -668,4 +1090,8 @@ __all__ = [
     "calculate_pairwise_interactions",
     "plot_pairwise_cross_sections",
     "run_pairwise_noise_correlation_sweep",
+    "build_two_noise_grid_plan",
+    "calculate_two_noise_grid_interactions",
+    "plot_two_noise_grid",
+    "run_two_noise_rate_grid",
 ]

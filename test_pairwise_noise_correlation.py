@@ -135,3 +135,101 @@ def test_dry_run_reuses_all_noise_zero_and_reports_4640_pending_evolutions(
     assert not result["complete"]
     assert (tmp_path / "condition_catalog.csv").exists()
     assert (tmp_path / "pairwise_plot_requests.csv").exists()
+
+
+def test_heating_dephasing_grid_has_25_points_and_reuses_16_pairwise_points():
+    base = _base_parameters()
+    pairwise = correlation.build_pairwise_sweep_plan(base)
+    grid = correlation.build_two_noise_grid_plan(base)
+
+    pairwise_ids = set(pairwise["catalog"]["condition_id"])
+    grid_ids = set(grid["catalog"]["condition_id"])
+    assert len(grid["catalog"]) == 25
+    assert len(grid["grid_requests"]) == 25
+    assert len(pairwise_ids & grid_ids) == 16
+    assert len(grid_ids - pairwise_ids) == 9
+
+
+def test_complete_grid_recovers_bilinear_synthetic_interaction():
+    base = _base_parameters()
+    plan = correlation.build_two_noise_grid_plan(base)
+    nominal = plan["nominal_strengths"]
+    rows = []
+    for _, condition in plan["catalog"].iterrows():
+        heating_multiplier = (
+            condition["motional_heating_s^-1"]
+            / nominal["motional_heating"]
+        )
+        dephasing_multiplier = (
+            condition["motional_dephasing_s^-1"]
+            / nominal["motional_dephasing"]
+        )
+        infidelity = (
+            0.001
+            + 2e-4 * heating_multiplier
+            + 4e-4 * dephasing_multiplier
+            - 3e-6 * heating_multiplier * dephasing_multiplier
+        )
+        rows.append(
+            {
+                "condition_id": condition["condition_id"],
+                "nbar": 0.01,
+                "infidelity": infidelity,
+            }
+        )
+    grid = correlation.calculate_two_noise_grid_interactions(
+        plan, pd.DataFrame(rows)
+    )
+    expected = -3e-6 * grid["multiplier_x"] * grid["multiplier_y"]
+
+    np.testing.assert_allclose(
+        grid["interaction_infidelity"], expected, atol=1e-15, rtol=0.0
+    )
+    np.testing.assert_allclose(
+        grid["bilinear_residual"], 0.0, atol=1e-15, rtol=0.0
+    )
+
+
+def test_grid_dry_run_reuses_16_conditions_and_reports_720_evolutions(tmp_path):
+    base = _base_parameters()
+    nbar_values = [0.01, 1.0, 2.0, 3.0, 4.0]
+    pairwise = correlation.build_pairwise_sweep_plan(base)
+    grid_plan = correlation.build_two_noise_grid_plan(base)
+    reusable_ids = set(pairwise["catalog"]["condition_id"]) & set(
+        grid_plan["catalog"]["condition_id"]
+    )
+    catalog = grid_plan["catalog"].set_index("condition_id")
+    rows = []
+    for condition_id in reusable_ids:
+        condition = catalog.loc[condition_id]
+        for n_bar in nbar_values:
+            rows.append(
+                {
+                    "condition_id": condition_id,
+                    "nbar": n_bar,
+                    "F_avg": 0.999,
+                    "infidelity": 0.001,
+                    "motional_heating_s^-1": condition[
+                        "motional_heating_s^-1"
+                    ],
+                    "motional_dephasing_s^-1": condition[
+                        "motional_dephasing_s^-1"
+                    ],
+                    "spin_dephasing_s^-1": 0.0,
+                    "photon_scattering_s^-1": 0.0,
+                    "is_all_noise_zero": condition["is_all_noise_zero"],
+                }
+            )
+    result = correlation.run_two_noise_rate_grid(
+        output_dir=tmp_path,
+        base_parameters=base,
+        nbar_values=nbar_values,
+        reusable_summary=pd.DataFrame(rows),
+        execute=False,
+        resume=True,
+    )
+
+    assert len(result["summary"]) == 16 * 5
+    assert result["pending_unique_conditions"] == 9
+    assert result["pending_master_equation_evolutions"] == 720
+    assert not result["complete"]
