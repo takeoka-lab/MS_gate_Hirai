@@ -233,3 +233,161 @@ def test_grid_dry_run_reuses_16_conditions_and_reports_720_evolutions(tmp_path):
     assert result["pending_unique_conditions"] == 9
     assert result["pending_master_equation_evolutions"] == 720
     assert not result["complete"]
+
+
+def test_four_noise_reconstruction_recovers_pair_and_higher_order_terms(
+    tmp_path,
+):
+    plan = correlation.build_pairwise_sweep_plan(_base_parameters())
+    nominal = plan["nominal_strengths"]
+    rate_columns = {
+        "motional_heating": "motional_heating_s^-1",
+        "motional_dephasing": "motional_dephasing_s^-1",
+        "spin_dephasing": "spin_dephasing_s^-1",
+        "photon_scattering": "photon_scattering_s^-1",
+    }
+    main = {
+        source: (index + 1) * 1e-4
+        for index, source in enumerate(correlation.NOISE_SOURCES)
+    }
+    pair_coefficients = {
+        tuple(sorted(pair)): -(index + 1) * 1e-6
+        for index, pair in enumerate(
+            combinations(correlation.NOISE_SOURCES, 2)
+        )
+    }
+    nbar_values = (0.01, 4.0)
+    pairwise_rows = []
+    for _, condition in plan["catalog"].iterrows():
+        scaled = {
+            source: float(condition[rate_columns[source]])
+            / nominal[source]
+            for source in correlation.NOISE_SOURCES
+        }
+        for nbar in nbar_values:
+            infidelity = 0.002 + 1e-3 * nbar
+            infidelity += sum(
+                main[source] * scaled[source]
+                for source in correlation.NOISE_SOURCES
+            )
+            infidelity += sum(
+                coefficient * scaled[pair[0]] * scaled[pair[1]]
+                for pair, coefficient in pair_coefficients.items()
+            )
+            pairwise_rows.append({
+                "condition_id": condition["condition_id"],
+                "nbar": nbar,
+                "infidelity": infidelity,
+            })
+    pairwise_summary = pd.DataFrame(pairwise_rows)
+
+    higher_order = 8e-7
+    full_rows = []
+    expected_pair_sum = sum(pair_coefficients.values())
+    for source in correlation.NOISE_SOURCES:
+        for nbar in nbar_values:
+            full_rows.append({
+                "noise_source": source,
+                "multiplier": 1.0,
+                "nbar": nbar,
+                "infidelity": (
+                    0.002 + 1e-3 * nbar + sum(main.values())
+                    + expected_pair_sum + higher_order
+                ),
+            })
+
+    result = correlation.build_four_noise_reconstruction(
+        plan,
+        pairwise_summary,
+        pd.DataFrame(full_rows),
+    )
+    reconstruction = result["reconstruction"]
+    np.testing.assert_allclose(
+        reconstruction["total_pairwise_correction"],
+        expected_pair_sum,
+        atol=1e-15,
+        rtol=0.0,
+    )
+    np.testing.assert_allclose(
+        reconstruction["first_order_residual"],
+        expected_pair_sum + higher_order,
+        atol=1e-15,
+        rtol=0.0,
+    )
+    np.testing.assert_allclose(
+        reconstruction["pairwise_residual"],
+        higher_order,
+        atol=1e-15,
+        rtol=0.0,
+    )
+    assert len(result["single_components"]) == 4 * len(nbar_values)
+    assert len(result["pair_components"]) == 6 * len(nbar_values)
+
+    paths = correlation.save_four_noise_reconstruction(result, tmp_path)
+    assert all(path.exists() and path.stat().st_size > 0 for path in paths.values())
+
+
+def test_perturbation_plan_has_31_deduplicated_conditions():
+    plan = correlation.build_pairwise_perturbation_plan(_base_parameters())
+
+    assert len(plan["catalog"]) == 31
+    assert len(plan["requests"]) == 6 * 3
+    assert plan["catalog"]["is_all_noise_zero"].sum() == 1
+
+
+def test_perturbative_kappa_extrapolates_mixed_derivative_to_zero():
+    plan = correlation.build_pairwise_perturbation_plan(_base_parameters())
+    nominal = plan["nominal_strengths"]
+    rate_columns = {
+        "motional_heating": "motional_heating_s^-1",
+        "motional_dephasing": "motional_dephasing_s^-1",
+        "spin_dephasing": "spin_dephasing_s^-1",
+        "photon_scattering": "photon_scattering_s^-1",
+    }
+    main = {
+        source: (index + 1) * 1e-4
+        for index, source in enumerate(correlation.NOISE_SOURCES)
+    }
+    kappa_zero = {
+        tuple(sorted(pair)): -(index + 1) * 1e-6
+        for index, pair in enumerate(
+            combinations(correlation.NOISE_SOURCES, 2)
+        )
+    }
+    finite_rate_slope = 2e-7
+    rows = []
+    for _, condition in plan["catalog"].iterrows():
+        scaled = {
+            source: float(condition[rate_columns[source]]) / nominal[source]
+            for source in correlation.NOISE_SOURCES
+        }
+        infidelity = 0.002 + sum(
+            main[source] * scaled[source]
+            for source in correlation.NOISE_SOURCES
+        )
+        for pair, coefficient in kappa_zero.items():
+            multiplier_i = scaled[pair[0]]
+            multiplier_j = scaled[pair[1]]
+            infidelity += multiplier_i * multiplier_j * (
+                coefficient
+                + finite_rate_slope * (multiplier_i + multiplier_j) / 2.0
+            )
+        rows.append({
+            "condition_id": condition["condition_id"],
+            "nbar": 0.01,
+            "infidelity": infidelity,
+        })
+    result = correlation.calculate_pairwise_perturbative_kappa(
+        plan, pd.DataFrame(rows)
+    )
+
+    assert len(result["raw"]) == 18
+    assert len(result["extrapolated"]) == 6
+    for row in result["extrapolated"].itertuples(index=False):
+        pair = tuple(sorted((row.source_i, row.source_j)))
+        assert np.isclose(
+            row.kappa_multiplier_zero_rate,
+            kappa_zero[pair],
+            atol=1e-15,
+            rtol=0.0,
+        )

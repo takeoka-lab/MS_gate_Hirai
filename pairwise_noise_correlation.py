@@ -1082,6 +1082,796 @@ def run_two_noise_rate_grid(
     }
 
 
+def _collapse_infidelity_table(
+    table: pd.DataFrame,
+    *,
+    label: str,
+    consistency_tolerance: float,
+) -> pd.Series:
+    required = {"nbar", "infidelity"}
+    missing = required - set(table.columns)
+    if missing:
+        raise ValueError(f"{label} is missing columns: {sorted(missing)}")
+    if table.empty:
+        raise ValueError(f"{label} is empty")
+    grouped = table.groupby("nbar", sort=True)["infidelity"].agg(
+        ["mean", "min", "max"]
+    )
+    spread = grouped["max"] - grouped["min"]
+    if bool((spread > consistency_tolerance).any()):
+        worst_nbar = float(spread.idxmax())
+        raise ValueError(
+            f"{label} contains inconsistent duplicate results at "
+            f"nbar={worst_nbar:g}: spread={spread.max():.3e}"
+        )
+    series = grouped["mean"].astype(float)
+    series.index = series.index.astype(float)
+    return series.sort_index()
+
+
+def build_four_noise_reconstruction(
+    plan: Mapping[str, Any],
+    pairwise_summary: pd.DataFrame,
+    full_noise_summary: pd.DataFrame,
+    *,
+    all_noise_zero_summary: pd.DataFrame | None = None,
+    nominal_multiplier: float = 1.0,
+    consistency_tolerance: float = 1e-12,
+) -> dict[str, pd.DataFrame]:
+    """Reconstruct the nominal four-noise result through pairwise order.
+
+    The first-order prediction is ``I0 + sum_i (I_i - I0)``.  The pairwise
+    prediction additionally includes all six nominal-rate interactions
+    ``C_ij = I_ij - I_i - I_j + I0``.  All subset simulations keep noise
+    sources outside the selected subset at zero.
+    """
+
+    nominal_multiplier = float(nominal_multiplier)
+    if not np.isfinite(nominal_multiplier) or nominal_multiplier < 0.0:
+        raise ValueError("nominal_multiplier must be finite and non-negative")
+    if consistency_tolerance < 0.0:
+        raise ValueError("consistency_tolerance must be non-negative")
+
+    zero_condition_id = str(plan["zero_condition_id"])
+    pairwise_zero = _collapse_infidelity_table(
+        pairwise_summary[
+            pairwise_summary["condition_id"].eq(zero_condition_id)
+        ],
+        label="pairwise all-noise-zero reference",
+        consistency_tolerance=consistency_tolerance,
+    )
+    if all_noise_zero_summary is not None and not all_noise_zero_summary.empty:
+        zero = _collapse_infidelity_table(
+            all_noise_zero_summary,
+            label="all-noise-zero reference",
+            consistency_tolerance=consistency_tolerance,
+        )
+        if (
+            len(zero) != len(pairwise_zero)
+            or not np.allclose(zero.index, pairwise_zero.index)
+            or not np.allclose(
+                zero.to_numpy(), pairwise_zero.to_numpy(),
+                rtol=0.0, atol=consistency_tolerance,
+            )
+        ):
+            raise ValueError(
+                "The standalone and pairwise all-noise-zero references differ"
+            )
+    else:
+        zero = pairwise_zero
+
+    nbar_values = zero.index.to_numpy(float)
+
+    def align(series: pd.Series, label: str) -> np.ndarray:
+        if len(series) != len(zero) or not np.allclose(
+            series.index.to_numpy(float), nbar_values, rtol=0.0, atol=1e-12
+        ):
+            raise ValueError(f"{label} has a different nbar grid")
+        return series.to_numpy(float)
+
+    single_requests = plan["single_requests"]
+    nominal_singles = single_requests[
+        np.isclose(single_requests["multiplier"], nominal_multiplier)
+    ].drop_duplicates(["noise_source", "condition_id"])
+    if set(nominal_singles["noise_source"]) != set(NOISE_SOURCES):
+        raise ValueError("Nominal single-noise conditions are incomplete")
+
+    single_series: dict[str, pd.Series] = {}
+    single_rows = []
+    for source in NOISE_SOURCES:
+        request = nominal_singles[
+            nominal_singles["noise_source"].eq(source)
+        ]
+        if len(request) != 1:
+            raise ValueError(f"Expected one nominal condition for {source}")
+        condition_id = str(request.iloc[0]["condition_id"])
+        values = _collapse_infidelity_table(
+            pairwise_summary[
+                pairwise_summary["condition_id"].eq(condition_id)
+            ],
+            label=f"single-noise reference for {source}",
+            consistency_tolerance=consistency_tolerance,
+        )
+        align(values, f"single-noise reference for {source}")
+        single_series[source] = values
+        for nbar, infidelity, zero_infidelity in zip(
+            nbar_values, values.to_numpy(float), zero.to_numpy(float)
+        ):
+            single_rows.append({
+                "nbar": nbar,
+                "noise_source": source,
+                "single_only_infidelity": infidelity,
+                "single_noise_contribution": infidelity - zero_infidelity,
+            })
+    single_components = pd.DataFrame(single_rows)
+
+    pair_requests = plan["pair_requests"]
+    nominal_pairs = pair_requests[
+        np.isclose(pair_requests["varied_multiplier"], nominal_multiplier)
+        & np.isclose(pair_requests["fixed_multiplier"], nominal_multiplier)
+    ].drop_duplicates(["pair_id", "condition_id"])
+    if len(nominal_pairs) != len(tuple(combinations(NOISE_SOURCES, 2))):
+        raise ValueError("Nominal two-noise conditions are incomplete")
+
+    pair_rows = []
+    pair_series: list[pd.Series] = []
+    for request in nominal_pairs.itertuples(index=False):
+        source_i = str(request.source_i)
+        source_j = str(request.source_j)
+        pair_values = _collapse_infidelity_table(
+            pairwise_summary[
+                pairwise_summary["condition_id"].eq(str(request.condition_id))
+            ],
+            label=f"two-noise reference for {request.pair_id}",
+            consistency_tolerance=consistency_tolerance,
+        )
+        align(pair_values, f"two-noise reference for {request.pair_id}")
+        interaction = (
+            pair_values - single_series[source_i]
+            - single_series[source_j] + zero
+        )
+        pair_series.append(interaction)
+        for nbar, pair_infidelity, interaction_value in zip(
+            nbar_values,
+            pair_values.to_numpy(float),
+            interaction.to_numpy(float),
+        ):
+            pair_rows.append({
+                "nbar": nbar,
+                "pair_id": str(request.pair_id),
+                "source_i": source_i,
+                "source_j": source_j,
+                "pair_infidelity": pair_infidelity,
+                "interaction_infidelity": interaction_value,
+            })
+    pair_components = pd.DataFrame(pair_rows)
+
+    if "multiplier" in full_noise_summary.columns:
+        full_rows = full_noise_summary[
+            np.isclose(full_noise_summary["multiplier"], nominal_multiplier)
+        ]
+    else:
+        full_rows = full_noise_summary
+    full_noise = _collapse_infidelity_table(
+        full_rows,
+        label="full four-noise result",
+        consistency_tolerance=consistency_tolerance,
+    )
+    align(full_noise, "full four-noise result")
+
+    first_order_noise_penalty = sum(
+        values - zero for values in single_series.values()
+    )
+    total_pairwise_correction = sum(pair_series, start=zero * 0.0)
+    first_order_prediction = zero + first_order_noise_penalty
+    pairwise_prediction = first_order_prediction + total_pairwise_correction
+    full_noise_penalty = full_noise - zero
+    denominator = np.maximum(np.abs(full_noise_penalty.to_numpy(float)), 1e-18)
+
+    reconstruction = pd.DataFrame({
+        "nbar": nbar_values,
+        "zero_infidelity": zero.to_numpy(float),
+        "full_noise_infidelity": full_noise.to_numpy(float),
+        "full_noise_penalty": full_noise_penalty.to_numpy(float),
+        "first_order_noise_penalty": first_order_noise_penalty.to_numpy(float),
+        "first_order_prediction": first_order_prediction.to_numpy(float),
+        "total_pairwise_correction": total_pairwise_correction.to_numpy(float),
+        "pairwise_prediction": pairwise_prediction.to_numpy(float),
+    })
+    reconstruction["first_order_residual"] = (
+        reconstruction["full_noise_infidelity"]
+        - reconstruction["first_order_prediction"]
+    )
+    reconstruction["pairwise_residual"] = (
+        reconstruction["full_noise_infidelity"]
+        - reconstruction["pairwise_prediction"]
+    )
+    reconstruction["first_order_relative_residual_to_noise_penalty"] = (
+        reconstruction["first_order_residual"] / denominator
+    )
+    reconstruction["pairwise_relative_residual_to_noise_penalty"] = (
+        reconstruction["pairwise_residual"] / denominator
+    )
+    reconstruction["first_order_explained_fraction"] = (
+        reconstruction["first_order_noise_penalty"] / denominator
+    )
+    reconstruction["pairwise_explained_fraction"] = (
+        (reconstruction["pairwise_prediction"] - reconstruction["zero_infidelity"])
+        / denominator
+    )
+    return {
+        "reconstruction": reconstruction,
+        "single_components": single_components,
+        "pair_components": pair_components,
+    }
+
+
+def plot_four_noise_reconstruction(
+    result: Mapping[str, pd.DataFrame],
+    output_path: str | Path,
+) -> Path:
+    """Plot actual, first-order, and pairwise-corrected four-noise results."""
+
+    reconstruction = result["reconstruction"]
+    if reconstruction.empty:
+        raise ValueError("The four-noise reconstruction is empty")
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    nbar = reconstruction["nbar"].to_numpy(float)
+    figure, axes = plt.subplots(1, 3, figsize=(16.2, 4.6))
+
+    axes[0].plot(
+        nbar, reconstruction["full_noise_infidelity"],
+        "ko-", linewidth=2.0, label="Actual four-noise QPT",
+    )
+    axes[0].plot(
+        nbar, reconstruction["first_order_prediction"],
+        "s--", linewidth=1.8, label="First-order additive",
+    )
+    axes[0].plot(
+        nbar, reconstruction["pairwise_prediction"],
+        "d-.", linewidth=1.8, label="Pairwise corrected",
+    )
+    axes[0].set_xlabel(r"Mean phonon number $\bar n$")
+    axes[0].set_ylabel(r"Average infidelity $1-F_{avg}$")
+    axes[0].set_title("Four-noise reconstruction")
+    axes[0].grid(alpha=0.25)
+    axes[0].legend(fontsize=8)
+
+    residual_specs = (
+        ("first_order_residual", "|Actual - first order|", "s--"),
+        ("total_pairwise_correction", r"$|\sum C_{ij}|$", "^-"),
+        ("pairwise_residual", "|Actual - pairwise|", "d-."),
+    )
+    for column, label, style in residual_specs:
+        axes[1].semilogy(
+            nbar,
+            np.maximum(np.abs(reconstruction[column].to_numpy(float)), 1e-18),
+            style, linewidth=1.8, label=label,
+        )
+    axes[1].set_xlabel(r"Mean phonon number $\bar n$")
+    axes[1].set_ylabel("Absolute infidelity contribution")
+    axes[1].set_title("Corrections and unexplained residual")
+    axes[1].grid(alpha=0.25, which="both")
+    axes[1].legend(fontsize=8)
+
+    axes[2].semilogy(
+        nbar,
+        np.maximum(
+            100.0 * np.abs(
+                reconstruction[
+                    "first_order_relative_residual_to_noise_penalty"
+                ].to_numpy(float)
+            ),
+            1e-16,
+        ),
+        "s--", linewidth=1.8, label="First-order residual",
+    )
+    axes[2].semilogy(
+        nbar,
+        np.maximum(
+            100.0 * np.abs(
+                reconstruction[
+                    "pairwise_relative_residual_to_noise_penalty"
+                ].to_numpy(float)
+            ),
+            1e-16,
+        ),
+        "d-.", linewidth=1.8, label="After pairwise correction",
+    )
+    axes[2].set_xlabel(r"Mean phonon number $\bar n$")
+    axes[2].set_ylabel("Absolute residual / full noise penalty (%)")
+    axes[2].set_title("Reconstruction accuracy")
+    axes[2].grid(alpha=0.25, which="both")
+    axes[2].legend(fontsize=8)
+
+    figure.suptitle(
+        "Nominal four-noise infidelity from single and pairwise subsets",
+        fontsize=14,
+    )
+    figure.tight_layout()
+    figure.savefig(output_path, dpi=220, bbox_inches="tight")
+    plt.close(figure)
+    return output_path
+
+
+def save_four_noise_reconstruction(
+    result: Mapping[str, pd.DataFrame],
+    output_dir: str | Path,
+) -> dict[str, Path]:
+    """Save the four-noise reconstruction tables and summary figure."""
+
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    paths = {
+        "reconstruction_csv": _atomic_save_csv(
+            result["reconstruction"],
+            output_dir / "four_noise_reconstruction.csv",
+        ),
+        "single_components_csv": _atomic_save_csv(
+            result["single_components"],
+            output_dir / "four_noise_single_components.csv",
+        ),
+        "pair_components_csv": _atomic_save_csv(
+            result["pair_components"],
+            output_dir / "four_noise_pair_components.csv",
+        ),
+    }
+    paths["figure"] = plot_four_noise_reconstruction(
+        result,
+        output_dir / "four_noise_additive_pairwise_reconstruction.png",
+    )
+    return paths
+
+
+def _deduplicate_qpt_summaries(
+    *tables: pd.DataFrame | None,
+) -> pd.DataFrame:
+    available = [
+        table.copy()
+        for table in tables
+        if table is not None and not table.empty
+    ]
+    if not available:
+        return pd.DataFrame()
+    combined = pd.concat(available, ignore_index=True)
+    if {"condition_id", "nbar"}.issubset(combined.columns):
+        combined = combined.drop_duplicates(
+            ["condition_id", "nbar"], keep="last"
+        ).sort_values(["condition_id", "nbar"])
+    return combined.reset_index(drop=True)
+
+
+def run_all_pairwise_rate_grids(
+    *,
+    output_dir: str | Path,
+    base_parameters: Mapping[str, Any],
+    nbar_values: Iterable[float],
+    rate_multipliers: Iterable[float] = (0.0, 0.5, 1.0, 2.0, 4.0),
+    reusable_summary: pd.DataFrame | None = None,
+    all_noise_zero_summary: pd.DataFrame | None = None,
+    execute: bool = False,
+    resume: bool = True,
+) -> dict[str, Any]:
+    """Run/load complete 5x5 grids for all six unordered noise pairs."""
+
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    cache = _deduplicate_qpt_summaries(reusable_summary)
+    pair_results: dict[str, dict[str, Any]] = {}
+    budget_rows = []
+    interaction_tables = []
+    allowed_condition_ids: set[str] = set()
+
+    for source_x, source_y in combinations(NOISE_SOURCES, 2):
+        pair_id = f"{source_x}__{source_y}"
+        result = run_two_noise_rate_grid(
+            output_dir=output_dir / pair_id,
+            base_parameters=base_parameters,
+            nbar_values=nbar_values,
+            source_x=source_x,
+            source_y=source_y,
+            rate_multipliers=rate_multipliers,
+            reusable_summary=cache,
+            all_noise_zero_summary=all_noise_zero_summary,
+            execute=execute,
+            resume=resume,
+        )
+        pair_results[pair_id] = result
+        allowed_condition_ids.update(
+            result["plan"]["catalog"]["condition_id"].astype(str)
+        )
+        cache = _deduplicate_qpt_summaries(cache, result["summary"])
+        if not result["grid"].empty:
+            interactions = result["grid"].copy()
+            interactions.insert(0, "pair_id", pair_id)
+            interaction_tables.append(interactions)
+        budget_rows.append({
+            "pair_id": pair_id,
+            "source_x": source_x,
+            "source_y": source_y,
+            "complete": bool(result["complete"]),
+            "completed_conditions": int(result["reused_unique_conditions"]),
+            "pending_conditions": int(result["pending_unique_conditions"]),
+            "pending_master_equation_evolutions": int(
+                result["pending_master_equation_evolutions"]
+            ),
+        })
+
+    budget = pd.DataFrame(budget_rows)
+    aggregate_summary = cache[
+        cache["condition_id"].astype(str).isin(allowed_condition_ids)
+    ].copy() if not cache.empty else cache
+    aggregate_interactions = (
+        pd.concat(interaction_tables, ignore_index=True)
+        if interaction_tables else pd.DataFrame()
+    )
+    _atomic_save_csv(
+        aggregate_summary,
+        output_dir / "all_pairwise_grid_qpt_summary.csv",
+    )
+    _atomic_save_csv(
+        budget,
+        output_dir / "all_pairwise_grid_budget.csv",
+    )
+    if not aggregate_interactions.empty:
+        _atomic_save_csv(
+            aggregate_interactions,
+            output_dir / "all_pairwise_grid_interactions.csv",
+        )
+    return {
+        "pair_results": pair_results,
+        "summary": aggregate_summary,
+        "interactions": aggregate_interactions,
+        "budget": budget,
+        "complete": bool(budget["complete"].all()),
+        "pending_conditions": int(budget["pending_conditions"].sum()),
+        "pending_master_equation_evolutions": int(
+            budget["pending_master_equation_evolutions"].sum()
+        ),
+        "output_dir": output_dir,
+    }
+
+
+def build_pairwise_perturbation_plan(
+    base_parameters: Mapping[str, Any],
+    epsilon_multipliers: Iterable[float] = (0.5, 0.25, 0.125),
+) -> dict[str, Any]:
+    """Build the subset conditions for mixed derivatives at zero noise."""
+
+    epsilons = tuple(float(value) for value in epsilon_multipliers)
+    if len(epsilons) < 2 or len(epsilons) != len(set(epsilons)):
+        raise ValueError("epsilon_multipliers must contain at least two unique values")
+    if any(not np.isfinite(value) or value <= 0.0 for value in epsilons):
+        raise ValueError("epsilon_multipliers must be finite and positive")
+    epsilons = tuple(sorted(epsilons, reverse=True))
+    nominal = build_pairwise_sweep_plan(base_parameters)["nominal_strengths"]
+    conditions: dict[str, dict[str, Any]] = {}
+
+    def register(rates: Mapping[str, float]) -> str:
+        condition_id = _condition_id(rates)
+        conditions[condition_id] = {
+            "condition_id": condition_id,
+            **_rate_columns(rates),
+            "is_all_noise_zero": bool(
+                all(np.isclose(value, 0.0) for value in rates.values())
+            ),
+        }
+        return condition_id
+
+    zero = _zero_rate_vector()
+    zero_condition_id = register(zero)
+    single_lookup: dict[tuple[str, str], str] = {}
+    for source in NOISE_SOURCES:
+        for epsilon in epsilons:
+            rates = _zero_rate_vector()
+            rates[source] = epsilon * nominal[source]
+            single_lookup[(source, _multiplier_key(epsilon))] = register(rates)
+
+    request_rows = []
+    for source_i, source_j in combinations(NOISE_SOURCES, 2):
+        pair_id = f"{source_i}__{source_j}"
+        for epsilon in epsilons:
+            rates = _zero_rate_vector()
+            rates[source_i] = epsilon * nominal[source_i]
+            rates[source_j] = epsilon * nominal[source_j]
+            key = _multiplier_key(epsilon)
+            request_rows.append({
+                "pair_id": pair_id,
+                "source_i": source_i,
+                "source_j": source_j,
+                "epsilon_multiplier": epsilon,
+                "condition_id": register(rates),
+                "single_i_condition_id": single_lookup[(source_i, key)],
+                "single_j_condition_id": single_lookup[(source_j, key)],
+                "zero_condition_id": zero_condition_id,
+            })
+    catalog = pd.DataFrame(conditions.values()).sort_values(
+        ["is_all_noise_zero", "condition_id"], ascending=[False, True]
+    ).reset_index(drop=True)
+    return {
+        "epsilon_multipliers": epsilons,
+        "nominal_strengths": nominal,
+        "catalog": catalog,
+        "requests": pd.DataFrame(request_rows),
+        "zero_condition_id": zero_condition_id,
+    }
+
+
+def calculate_pairwise_perturbative_kappa(
+    plan: Mapping[str, Any],
+    summary: pd.DataFrame,
+) -> dict[str, pd.DataFrame]:
+    """Evaluate mixed Liouvillian-rate derivatives and extrapolate to zero."""
+
+    if summary.empty:
+        return {"raw": pd.DataFrame(), "extrapolated": pd.DataFrame()}
+    values = summary[["condition_id", "nbar", "infidelity"]].copy()
+    raw = plan["requests"].merge(
+        values.rename(columns={"infidelity": "pair_infidelity"}),
+        on="condition_id", how="inner",
+    )
+
+    def merge_reference(
+        frame: pd.DataFrame, request_column: str, output_column: str
+    ) -> pd.DataFrame:
+        reference = values.rename(columns={
+            "condition_id": request_column,
+            "infidelity": output_column,
+        })
+        return frame.merge(reference, on=[request_column, "nbar"], how="inner")
+
+    raw = merge_reference(raw, "single_i_condition_id", "single_i_infidelity")
+    raw = merge_reference(raw, "single_j_condition_id", "single_j_infidelity")
+    raw = merge_reference(raw, "zero_condition_id", "zero_infidelity")
+    raw["interaction_infidelity"] = (
+        raw["pair_infidelity"] - raw["single_i_infidelity"]
+        - raw["single_j_infidelity"] + raw["zero_infidelity"]
+    )
+    raw["kappa_multiplier"] = (
+        raw["interaction_infidelity"]
+        / np.square(raw["epsilon_multiplier"])
+    )
+    raw["kappa_physical_s2"] = raw.apply(
+        lambda row: row["kappa_multiplier"] / (
+            plan["nominal_strengths"][row["source_i"]]
+            * plan["nominal_strengths"][row["source_j"]]
+        ),
+        axis=1,
+    )
+    raw = raw.sort_values(
+        ["pair_id", "nbar", "epsilon_multiplier"],
+        ascending=[True, True, False],
+    ).reset_index(drop=True)
+
+    extrapolated_rows = []
+    for (pair_id, nbar), group in raw.groupby(["pair_id", "nbar"]):
+        group = group.sort_values("epsilon_multiplier")
+        if len(group) < 2:
+            continue
+        fine = group.iloc[0]
+        next_fine = group.iloc[1]
+
+        def linear_zero_intercept(row_a: pd.Series, row_b: pd.Series) -> float:
+            epsilon_a = float(row_a["epsilon_multiplier"])
+            epsilon_b = float(row_b["epsilon_multiplier"])
+            value_a = float(row_a["kappa_multiplier"])
+            value_b = float(row_b["kappa_multiplier"])
+            return (
+                epsilon_b * value_a - epsilon_a * value_b
+            ) / (epsilon_b - epsilon_a)
+
+        kappa_zero = linear_zero_intercept(fine, next_fine)
+        coarse_zero = np.nan
+        if len(group) >= 3:
+            coarse_zero = linear_zero_intercept(
+                next_fine, group.iloc[2]
+            )
+        source_i = str(fine["source_i"])
+        source_j = str(fine["source_j"])
+        nominal_product = (
+            plan["nominal_strengths"][source_i]
+            * plan["nominal_strengths"][source_j]
+        )
+        extrapolated_rows.append({
+            "pair_id": pair_id,
+            "source_i": source_i,
+            "source_j": source_j,
+            "nbar": float(nbar),
+            "finest_epsilon": float(fine["epsilon_multiplier"]),
+            "finest_kappa_multiplier": float(fine["kappa_multiplier"]),
+            "kappa_multiplier_zero_rate": kappa_zero,
+            "kappa_physical_s2_zero_rate": kappa_zero / nominal_product,
+            "coarse_extrapolated_kappa_multiplier": coarse_zero,
+            "extrapolation_difference": (
+                abs(kappa_zero - coarse_zero)
+                if np.isfinite(coarse_zero) else np.nan
+            ),
+            "relative_extrapolation_difference": (
+                abs(kappa_zero - coarse_zero) / max(abs(kappa_zero), 1e-18)
+                if np.isfinite(coarse_zero) else np.nan
+            ),
+        })
+    extrapolated = pd.DataFrame(extrapolated_rows).sort_values(
+        ["pair_id", "nbar"]
+    ).reset_index(drop=True) if extrapolated_rows else pd.DataFrame()
+    return {"raw": raw, "extrapolated": extrapolated}
+
+
+def plot_pairwise_perturbative_kappa(
+    result: Mapping[str, pd.DataFrame],
+    output_path: str | Path,
+) -> Path:
+    """Plot zero-rate mixed-response coefficients for all six pairs."""
+
+    raw = result["raw"]
+    extrapolated = result["extrapolated"]
+    if raw.empty or extrapolated.empty:
+        raise ValueError("Perturbative kappa results are incomplete")
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    pair_ids = tuple(extrapolated["pair_id"].drop_duplicates())
+    figure, axes = plt.subplots(2, 3, figsize=(15.8, 8.4), squeeze=False)
+    for axis, pair_id in zip(axes.flat, pair_ids):
+        pair_raw = raw[raw["pair_id"].eq(pair_id)]
+        for epsilon, group in pair_raw.groupby("epsilon_multiplier"):
+            axis.plot(
+                group["nbar"], group["kappa_multiplier"],
+                "o--", linewidth=1.3, markersize=4,
+                label=rf"$\epsilon={epsilon:g}$",
+            )
+        pair_extrapolated = extrapolated[
+            extrapolated["pair_id"].eq(pair_id)
+        ]
+        axis.plot(
+            pair_extrapolated["nbar"],
+            pair_extrapolated["kappa_multiplier_zero_rate"],
+            "kD-", linewidth=2.0, markersize=5, label=r"$\epsilon\to0$",
+        )
+        axis.axhline(0.0, color="0.5", linewidth=0.8)
+        axis.set_title(pair_id.replace("__", " x ").replace("_", " "))
+        axis.set_xlabel(r"Mean phonon number $\bar n$")
+        axis.set_ylabel(r"$\kappa_{ij}$ (multiplier basis)")
+        axis.grid(alpha=0.25)
+        axis.legend(fontsize=7)
+    figure.suptitle(
+        "Mixed second-order coefficients from the zero-rate Master-equation expansion",
+        fontsize=14,
+    )
+    figure.tight_layout()
+    figure.savefig(output_path, dpi=220, bbox_inches="tight")
+    plt.close(figure)
+    return output_path
+
+
+def run_pairwise_perturbative_kappa(
+    *,
+    output_dir: str | Path,
+    base_parameters: Mapping[str, Any],
+    nbar_values: Iterable[float],
+    epsilon_multipliers: Iterable[float] = (0.5, 0.25, 0.125),
+    reusable_summary: pd.DataFrame | None = None,
+    all_noise_zero_summary: pd.DataFrame | None = None,
+    execute: bool = False,
+    resume: bool = True,
+) -> dict[str, Any]:
+    """Run/load the conditions required for zero-rate mixed derivatives."""
+
+    output_dir = Path(output_dir)
+    nbar_values = tuple(float(value) for value in nbar_values)
+    plan = build_pairwise_perturbation_plan(
+        base_parameters, epsilon_multipliers
+    )
+    payload = {
+        "analysis": "pairwise_zero_rate_liouvillian_perturbation",
+        "version": 1,
+        "base_parameters": _scientific_parameters(base_parameters),
+        "nbar_values": list(nbar_values),
+        "epsilon_multipliers": list(plan["epsilon_multipliers"]),
+        "nominal_strengths": _json_safe(plan["nominal_strengths"]),
+        "definition": (
+            "kappa_ij = d^2 I / (d m_i d m_j) at zero rates, "
+            "evaluated from C_ij(epsilon, epsilon)/epsilon^2 and "
+            "linearly extrapolated to epsilon=0"
+        ),
+    }
+    _ensure_manifest(output_dir, payload, execute=execute, resume=resume)
+    summary_path = output_dir / "perturbative_kappa_qpt_summary.csv"
+    if resume and summary_path.exists():
+        summary = pd.read_csv(summary_path)
+    else:
+        summary = pd.DataFrame(columns=[
+            "condition_id", "nbar", "F_avg", "infidelity",
+            "motional_heating_s^-1", "motional_dephasing_s^-1",
+            "spin_dephasing_s^-1", "photon_scattering_s^-1",
+            "is_all_noise_zero",
+        ])
+    summary = _merge_reusable_conditions(
+        summary, reusable_summary, plan["catalog"], nbar_values
+    )
+    summary = _seed_zero_reference(
+        summary, all_noise_zero_summary, plan, nbar_values
+    )
+    if not summary.empty:
+        summary = summary.sort_values(["condition_id", "nbar"]).reset_index(drop=True)
+        _atomic_save_csv(summary, summary_path)
+
+    for condition_index, condition in plan["catalog"].iterrows():
+        condition_id = str(condition["condition_id"])
+        if resume and _condition_complete(summary, condition_id, nbar_values):
+            continue
+        if not execute:
+            continue
+        print(
+            f"Run perturbative-kappa condition {condition_index + 1}/"
+            f"{len(plan['catalog'])}: {condition_id}"
+        )
+        parameters = parameters_for_rate_vector(
+            base_parameters, condition, nbar_values=nbar_values
+        )
+        simulation = mg.run_infidelity_analysis(show_plot=False, **parameters)
+        rows = pd.DataFrame({
+            "condition_id": condition_id,
+            "nbar": np.asarray(simulation["parameters"]["n_bar_list"], dtype=float),
+            "F_avg": np.asarray(simulation["f_avg_list"], dtype=float),
+            "infidelity": np.asarray(simulation["infidelity_list"], dtype=float),
+        })
+        for column in (
+            "motional_heating_s^-1", "motional_dephasing_s^-1",
+            "spin_dephasing_s^-1", "photon_scattering_s^-1",
+        ):
+            rows[column] = float(condition[column])
+        rows["is_all_noise_zero"] = bool(condition["is_all_noise_zero"])
+        summary = summary.loc[~summary["condition_id"].eq(condition_id)].copy()
+        summary = pd.concat([summary, rows], ignore_index=True)
+        summary = summary.sort_values(["condition_id", "nbar"]).reset_index(drop=True)
+        _atomic_save_csv(summary, summary_path)
+
+    coefficients = calculate_pairwise_perturbative_kappa(plan, summary)
+    if not coefficients["raw"].empty:
+        _atomic_save_csv(
+            coefficients["raw"], output_dir / "perturbative_kappa_raw.csv"
+        )
+    if not coefficients["extrapolated"].empty:
+        _atomic_save_csv(
+            coefficients["extrapolated"],
+            output_dir / "perturbative_kappa_extrapolated.csv",
+        )
+    complete = _all_conditions_complete(summary, plan["catalog"], nbar_values)
+    figure = (
+        plot_pairwise_perturbative_kappa(
+            coefficients, output_dir / "perturbative_kappa.png"
+        ) if complete else None
+    )
+    pending = plan["catalog"][
+        ~plan["catalog"]["condition_id"].map(
+            lambda condition_id: _condition_complete(
+                summary, condition_id, nbar_values
+            )
+        )
+    ].reset_index(drop=True)
+    evolutions_per_condition = (
+        len(nbar_values)
+        * int(base_parameters.get("laser_noise_samples", 1)) * 16
+    )
+    return {
+        "plan": plan,
+        "summary": summary,
+        "raw": coefficients["raw"],
+        "extrapolated": coefficients["extrapolated"],
+        "pending_conditions": pending,
+        "complete": complete,
+        "figure": figure,
+        "total_conditions": len(plan["catalog"]),
+        "completed_conditions": len(plan["catalog"]) - len(pending),
+        "pending_condition_count": len(pending),
+        "pending_master_equation_evolutions": (
+            len(pending) * evolutions_per_condition
+        ),
+        "output_dir": output_dir,
+    }
+
+
 __all__ = [
     "NOISE_SOURCES",
     "SOURCE_TITLES",
@@ -1094,4 +1884,12 @@ __all__ = [
     "calculate_two_noise_grid_interactions",
     "plot_two_noise_grid",
     "run_two_noise_rate_grid",
+    "build_four_noise_reconstruction",
+    "plot_four_noise_reconstruction",
+    "save_four_noise_reconstruction",
+    "run_all_pairwise_rate_grids",
+    "build_pairwise_perturbation_plan",
+    "calculate_pairwise_perturbative_kappa",
+    "plot_pairwise_perturbative_kappa",
+    "run_pairwise_perturbative_kappa",
 ]
