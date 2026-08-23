@@ -213,3 +213,115 @@ def test_surface_and_reduced_pairwise_models_recover_bilinear_data(tmp_path):
     )
     paths = rate_model.save_model_comparison(result, tmp_path)
     assert all(path.exists() for path in paths.values())
+
+
+def test_high_nbar_dry_run_budget_includes_zero_reference(tmp_path):
+    base = _base_parameters()
+    high_nbars = tuple(float(value) for value in range(5, 21))
+    validation = rate_model.run_validation_qpt(
+        output_dir=tmp_path / "validation",
+        base_parameters=base,
+        nbar_values=high_nbars,
+        plan=rate_model.build_validation_rate_plan(base),
+        execute=False,
+        resume=True,
+    )
+    zero = rate_model.run_validation_qpt(
+        output_dir=tmp_path / "zero",
+        base_parameters=base,
+        nbar_values=high_nbars,
+        plan=rate_model.build_zero_rate_plan(base),
+        execute=False,
+        resume=True,
+    )
+
+    assert validation["pending_master_equation_evolutions"] == 3072
+    assert zero["pending_master_equation_evolutions"] == 256
+    assert zero["total_conditions"] == 1
+
+
+def test_linear_tail_high_nbar_model_and_ncrit_recover_linear_data(tmp_path):
+    base, summary, interactions, zero, validation = (
+        _synthetic_training_and_validation()
+    )
+    in_domain = rate_model.build_model_comparison(
+        base_parameters=base,
+        pair_grid_summary=summary,
+        pair_grid_interactions=interactions,
+        all_noise_zero_summary=zero,
+        validation_summary=validation,
+    )
+    high_nbars = [5.0, 10.0]
+
+    def extrapolate_group(group, nbar):
+        group = group.sort_values("nbar")
+        x = group["nbar"].to_numpy(float)
+        y = group["infidelity"].to_numpy(float)
+        return y[-1] + (y[-1] - y[-2]) / (x[-1] - x[-2]) * (nbar - x[-1])
+
+    high_zero = pd.DataFrame({
+        "nbar": high_nbars,
+        "infidelity": [
+            extrapolate_group(zero, nbar) for nbar in high_nbars
+        ],
+    })
+    high_rows = []
+    for validation_id, group in validation.groupby("validation_id"):
+        template = group.iloc[0]
+        for nbar in high_nbars:
+            high_rows.append({
+                "validation_id": validation_id,
+                "condition_id": template["condition_id"],
+                "nbar": nbar,
+                "infidelity": extrapolate_group(group, nbar),
+                **{
+                    rate_model.MULTIPLIER_COLUMNS[source]: template[
+                        rate_model.MULTIPLIER_COLUMNS[source]
+                    ]
+                    for source in rate_model.NOISE_SOURCES
+                },
+            })
+    extrapolation = rate_model.build_high_nbar_extrapolation(
+        base_parameters=base,
+        pair_grid_summary=summary,
+        pair_grid_interactions=interactions,
+        training_zero_summary=zero,
+        high_nbar_zero_summary=high_zero,
+        validation_summary=pd.DataFrame(high_rows),
+    )
+    predictions = extrapolation["predictions"]
+    np.testing.assert_allclose(
+        predictions["fixed_extrapolated_prediction"],
+        predictions["actual_infidelity"],
+        atol=2e-15,
+        rtol=0.0,
+    )
+    np.testing.assert_allclose(
+        predictions["zero_anchored_prediction"],
+        predictions["actual_infidelity"],
+        atol=2e-15,
+        rtol=0.0,
+    )
+
+    crossing_metrics = extrapolation["metrics"].copy()
+    crossing_mask = (
+        crossing_metrics["scope"].eq("nbar")
+        & crossing_metrics["model"].eq("fixed_nbar_extrapolation")
+        & crossing_metrics["nbar"].eq(10.0)
+    )
+    crossing_metrics.loc[
+        crossing_mask, "rmse_relative_to_noise_penalty"
+    ] = 0.02
+    criterion = rate_model.build_ncrit_summary(
+        in_domain_metrics=in_domain["metrics"],
+        extrapolation_metrics=crossing_metrics,
+        relative_rmse_threshold=0.01,
+    )
+    row = criterion["summary"].iloc[0]
+    assert row["status"] == "bracketed"
+    assert row["discrete_nbar_crit"] == 5.0
+    assert row["first_failed_tested_nbar"] == 10.0
+
+    result = {"extrapolation": extrapolation, "criterion": criterion}
+    paths = rate_model.save_ncrit_search(result, tmp_path / "saved")
+    assert all(path.exists() for path in paths.values())

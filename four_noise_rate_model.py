@@ -42,6 +42,10 @@ MODEL_COLUMNS = {
     "strict_pairwise_surface": "strict_pairwise_prediction",
     "reduced_bilinear_pairwise": "bilinear_pairwise_prediction",
 }
+HIGH_NBAR_MODEL_COLUMNS = {
+    "fixed_nbar_extrapolation": "fixed_extrapolated_prediction",
+    "zero_anchored_extrapolation": "zero_anchored_prediction",
+}
 RUNTIME_ONLY_PARAMETER_KEYS = {"parallel_workers", "show_progress"}
 
 
@@ -144,6 +148,40 @@ def build_validation_rate_plan(
         "n_points": n_points,
         "multiplier_bounds": (lower, upper),
         "seed": int(seed),
+    }
+
+
+def build_zero_rate_plan(
+    base_parameters: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Build a one-condition plan with all four dissipative rates set to zero."""
+
+    nominal = {
+        source: float(value)
+        for source, value in mg.nominal_noise_source_strengths(
+            base_parameters
+        ).items()
+        if source in NOISE_SOURCES
+    }
+    rates = {source: 0.0 for source in NOISE_SOURCES}
+    row = {
+        "validation_id": "all_four_noises_off",
+        "condition_id": _condition_id(rates),
+        **{
+            MULTIPLIER_COLUMNS[source]: 0.0
+            for source in NOISE_SOURCES
+        },
+        **{
+            RATE_COLUMNS[source]: 0.0
+            for source in NOISE_SOURCES
+        },
+    }
+    return {
+        "catalog": pd.DataFrame([row]),
+        "nominal_strengths": nominal,
+        "n_points": 1,
+        "multiplier_bounds": (0.0, 0.0),
+        "seed": 0,
     }
 
 
@@ -656,15 +694,448 @@ def save_model_comparison(
     return paths
 
 
+def _linear_tail_extrapolate(
+    x_values: Iterable[float],
+    y_values: Iterable[float],
+    target: float,
+) -> float:
+    """Interpolate internally and extrapolate linearly from the nearest edge."""
+
+    x_values = np.asarray(tuple(x_values), dtype=float)
+    y_values = np.asarray(tuple(y_values), dtype=float)
+    order = np.argsort(x_values)
+    x_values = x_values[order]
+    y_values = y_values[order]
+    if len(x_values) < 2 or len(x_values) != len(y_values):
+        raise ValueError("At least two aligned training points are required")
+    if np.any(np.diff(x_values) <= 0.0):
+        raise ValueError("Training coordinates must be strictly increasing")
+    target = float(target)
+    if target < x_values[0]:
+        low, high = 0, 1
+    elif target > x_values[-1]:
+        low, high = len(x_values) - 2, len(x_values) - 1
+    else:
+        return float(np.interp(target, x_values, y_values))
+    slope = (
+        (y_values[high] - y_values[low])
+        / (x_values[high] - x_values[low])
+    )
+    return float(y_values[low] + slope * (target - x_values[low]))
+
+
+def build_high_nbar_extrapolation(
+    *,
+    base_parameters: Mapping[str, Any],
+    pair_grid_summary: pd.DataFrame,
+    pair_grid_interactions: pd.DataFrame,
+    training_zero_summary: pd.DataFrame,
+    high_nbar_zero_summary: pd.DataFrame,
+    validation_summary: pd.DataFrame,
+) -> dict[str, pd.DataFrame]:
+    """Test the fixed reduced model after linear-tail extrapolation in nbar.
+
+    The zero-noise curve, every single-noise grid node, and each fitted
+    effective pair coefficient are extrapolated from the two largest trained
+    nbar values.  The zero-anchored prediction replaces only the extrapolated
+    zero-noise baseline with its newly calculated high-nbar QPT value, which
+    diagnoses whether failure is driven by the baseline or by noise response.
+    """
+
+    if validation_summary.empty or high_nbar_zero_summary.empty:
+        return {
+            "predictions": pd.DataFrame(),
+            "metrics": pd.DataFrame(),
+            "kappa_training": pd.DataFrame(),
+        }
+    nominal = {
+        source: float(value)
+        for source, value in mg.nominal_noise_source_strengths(
+            base_parameters
+        ).items()
+        if source in NOISE_SOURCES
+    }
+    training_nbars = np.sort(
+        training_zero_summary["nbar"].astype(float).unique()
+    )
+    zero_training = _aligned_series(
+        training_zero_summary,
+        training_nbars,
+        label="training all-noise-zero reference",
+    )
+    trained_multipliers = np.sort(
+        pair_grid_interactions["multiplier_x"].astype(float).unique()
+    )
+    if len(trained_multipliers) < 2:
+        raise ValueError("The pair-grid multiplier axis is incomplete")
+
+    single_components: dict[tuple[str, float], np.ndarray] = {}
+    for source in NOISE_SOURCES:
+        for multiplier in trained_multipliers:
+            mask = np.ones(len(pair_grid_summary), dtype=bool)
+            for candidate in NOISE_SOURCES:
+                expected = (
+                    multiplier * nominal[source]
+                    if candidate == source else 0.0
+                )
+                mask &= np.isclose(
+                    pair_grid_summary[RATE_COLUMNS[candidate]], expected
+                )
+            values = _aligned_series(
+                pair_grid_summary[mask],
+                training_nbars,
+                label=(
+                    f"single {source} at multiplier {multiplier:g}"
+                ),
+            )
+            single_components[(source, float(multiplier))] = (
+                values - zero_training
+            )
+
+    kappa_rows = []
+    pair_sources: dict[str, tuple[str, str]] = {}
+    for (pair_id, nbar), group in pair_grid_interactions.groupby(
+        ["pair_id", "nbar"]
+    ):
+        positive = group[
+            (group["multiplier_x"] > 0.0)
+            & (group["multiplier_y"] > 0.0)
+        ]
+        product = (
+            positive["multiplier_x"] * positive["multiplier_y"]
+        ).to_numpy(float)
+        interaction = positive["interaction_infidelity"].to_numpy(float)
+        if len(product) == 0 or np.isclose(product @ product, 0.0):
+            raise ValueError(f"Pair {pair_id} has no positive grid points")
+        source_i = str(group.iloc[0]["source_x"])
+        source_j = str(group.iloc[0]["source_y"])
+        pair_sources[str(pair_id)] = (source_i, source_j)
+        kappa_rows.append({
+            "pair_id": str(pair_id),
+            "source_i": source_i,
+            "source_j": source_j,
+            "nbar": float(nbar),
+            "kappa_effective_multiplier": float(
+                product @ interaction / (product @ product)
+            ),
+        })
+    kappa_training = pd.DataFrame(kappa_rows).sort_values(
+        ["pair_id", "nbar"]
+    ).reset_index(drop=True)
+
+    high_zero = (
+        high_nbar_zero_summary.groupby("nbar", sort=True)["infidelity"]
+        .mean()
+    )
+    rows = []
+    for validation in validation_summary.itertuples(index=False):
+        nbar = float(validation.nbar)
+        if nbar not in high_zero.index:
+            raise ValueError(
+                f"The high-nbar zero reference is missing nbar={nbar:g}"
+            )
+        multipliers = {
+            source: float(getattr(validation, MULTIPLIER_COLUMNS[source]))
+            for source in NOISE_SOURCES
+        }
+        if any(
+            value < trained_multipliers[0]
+            or value > trained_multipliers[-1]
+            for value in multipliers.values()
+        ):
+            raise ValueError("A validation rate lies outside the trained grid")
+
+        predicted_zero = _linear_tail_extrapolate(
+            training_nbars, zero_training, nbar
+        )
+        single_sum = 0.0
+        for source in NOISE_SOURCES:
+            extrapolated_nodes = np.asarray([
+                _linear_tail_extrapolate(
+                    training_nbars,
+                    single_components[(source, float(multiplier))],
+                    nbar,
+                )
+                for multiplier in trained_multipliers
+            ])
+            single_sum += float(np.interp(
+                multipliers[source],
+                trained_multipliers,
+                extrapolated_nodes,
+            ))
+
+        pairwise_sum = 0.0
+        for pair_id, group in kappa_training.groupby("pair_id"):
+            group = group.sort_values("nbar")
+            kappa = _linear_tail_extrapolate(
+                group["nbar"], group["kappa_effective_multiplier"], nbar
+            )
+            source_i, source_j = pair_sources[str(pair_id)]
+            pairwise_sum += (
+                kappa * multipliers[source_i] * multipliers[source_j]
+            )
+
+        actual_zero = float(high_zero.loc[nbar])
+        actual = float(validation.infidelity)
+        fixed_prediction = predicted_zero + single_sum + pairwise_sum
+        zero_anchored_prediction = actual_zero + single_sum + pairwise_sum
+        full_noise_penalty = actual - actual_zero
+        denominator = max(abs(full_noise_penalty), 1e-18)
+        row = {
+            "validation_id": str(validation.validation_id),
+            "condition_id": str(validation.condition_id),
+            "nbar": nbar,
+            **{
+                MULTIPLIER_COLUMNS[source]: multipliers[source]
+                for source in NOISE_SOURCES
+            },
+            "actual_zero_infidelity": actual_zero,
+            "predicted_zero_infidelity": predicted_zero,
+            "zero_extrapolation_error": actual_zero - predicted_zero,
+            "actual_infidelity": actual,
+            "full_noise_penalty": full_noise_penalty,
+            "extrapolated_single_noise_sum": single_sum,
+            "extrapolated_pairwise_correction": pairwise_sum,
+            "fixed_extrapolated_prediction": fixed_prediction,
+            "zero_anchored_prediction": zero_anchored_prediction,
+        }
+        for model_name, column in HIGH_NBAR_MODEL_COLUMNS.items():
+            residual = actual - row[column]
+            row[f"{model_name}_residual"] = residual
+            row[f"{model_name}_relative_residual"] = (
+                residual / denominator
+            )
+        rows.append(row)
+    predictions = pd.DataFrame(rows).sort_values(
+        ["validation_id", "nbar"]
+    ).reset_index(drop=True)
+    metrics = summarize_high_nbar_metrics(predictions)
+    return {
+        "predictions": predictions,
+        "metrics": metrics,
+        "kappa_training": kappa_training,
+    }
+
+
+def summarize_high_nbar_metrics(predictions: pd.DataFrame) -> pd.DataFrame:
+    """Summarize fixed and zero-anchored high-nbar prediction errors."""
+
+    rows = []
+    scopes = [("all", np.nan, predictions)]
+    scopes.extend(
+        ("nbar", float(nbar), group)
+        for nbar, group in predictions.groupby("nbar")
+    )
+    for scope, nbar, group in scopes:
+        for model_name, prediction_column in HIGH_NBAR_MODEL_COLUMNS.items():
+            residual = (
+                group["actual_infidelity"] - group[prediction_column]
+            ).to_numpy(float)
+            relative = residual / np.maximum(
+                np.abs(group["full_noise_penalty"].to_numpy(float)), 1e-18
+            )
+            rows.append({
+                "scope": scope,
+                "nbar": nbar,
+                "model": model_name,
+                "count": len(group),
+                "bias": float(np.mean(residual)),
+                "mae": float(np.mean(np.abs(residual))),
+                "rmse": float(np.sqrt(np.mean(np.square(residual)))),
+                "max_abs_residual": float(np.max(np.abs(residual))),
+                "mean_abs_relative_to_noise_penalty": float(
+                    np.mean(np.abs(relative))
+                ),
+                "rmse_relative_to_noise_penalty": float(
+                    np.sqrt(np.mean(np.square(relative)))
+                ),
+                "max_abs_relative_to_noise_penalty": float(
+                    np.max(np.abs(relative))
+                ),
+            })
+    return pd.DataFrame(rows)
+
+
+def build_ncrit_summary(
+    *,
+    in_domain_metrics: pd.DataFrame,
+    extrapolation_metrics: pd.DataFrame,
+    relative_rmse_threshold: float = 0.01,
+) -> dict[str, Any]:
+    """Find the largest contiguous tested nbar with relative RMSE below threshold."""
+
+    threshold = float(relative_rmse_threshold)
+    if not 0.0 < threshold < 1.0:
+        raise ValueError("relative_rmse_threshold must lie between zero and one")
+    trained = in_domain_metrics[
+        in_domain_metrics["scope"].eq("nbar")
+        & in_domain_metrics["model"].eq("reduced_bilinear_pairwise")
+    ].copy()
+    trained["phase"] = "held_out_in_domain"
+    extrapolated = extrapolation_metrics[
+        extrapolation_metrics["scope"].eq("nbar")
+        & extrapolation_metrics["model"].eq("fixed_nbar_extrapolation")
+    ].copy()
+    extrapolated["phase"] = "fixed_nbar_extrapolation"
+    if trained.empty or extrapolated.empty:
+        raise ValueError("Both in-domain and extrapolation metrics are required")
+    maximum_trained_nbar = float(trained["nbar"].max())
+    extrapolated = extrapolated[
+        extrapolated["nbar"].astype(float) > maximum_trained_nbar
+    ]
+    curve = pd.concat([trained, extrapolated], ignore_index=True)
+    curve = curve.sort_values("nbar").drop_duplicates(
+        "nbar", keep="first"
+    ).reset_index(drop=True)
+    curve["relative_rmse_threshold"] = threshold
+    curve["passes_criterion"] = (
+        curve["rmse_relative_to_noise_penalty"] <= threshold
+    )
+    failures = np.flatnonzero(~curve["passes_criterion"].to_numpy(bool))
+    if len(failures) == 0:
+        nbar_crit = float(curve.iloc[-1]["nbar"])
+        first_failed = np.nan
+        status = "lower_bound"
+    else:
+        first_index = int(failures[0])
+        first_failed = float(curve.iloc[first_index]["nbar"])
+        nbar_crit = (
+            np.nan
+            if first_index == 0
+            else float(curve.iloc[first_index - 1]["nbar"])
+        )
+        status = "bracketed"
+    summary = pd.DataFrame([{
+        "criterion": "rmse_relative_to_full_noise_penalty",
+        "relative_rmse_threshold": threshold,
+        "discrete_nbar_crit": nbar_crit,
+        "first_failed_tested_nbar": first_failed,
+        "status": status,
+        "maximum_tested_nbar": float(curve["nbar"].max()),
+    }])
+    return {"curve": curve, "summary": summary}
+
+
+def plot_ncrit_search(
+    result: Mapping[str, Any],
+    output_path: str | Path,
+) -> Path:
+    """Plot the one-percent nbar validity search and its baseline diagnostic."""
+
+    curve = result["criterion"]["curve"]
+    high_metrics = result["extrapolation"]["metrics"]
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    threshold = float(curve["relative_rmse_threshold"].iloc[0])
+    anchored = high_metrics[
+        high_metrics["scope"].eq("nbar")
+        & high_metrics["model"].eq("zero_anchored_extrapolation")
+    ].sort_values("nbar")
+    summary = result["criterion"]["summary"].iloc[0]
+
+    figure, axes = plt.subplots(1, 2, figsize=(12.8, 4.7))
+    trained = curve[curve["phase"].eq("held_out_in_domain")]
+    extrapolated = curve[curve["phase"].eq("fixed_nbar_extrapolation")]
+    axes[0].semilogy(
+        trained["nbar"],
+        100.0 * trained["rmse_relative_to_noise_penalty"],
+        "o-", label="Held-out, trained nbar range",
+    )
+    axes[0].semilogy(
+        extrapolated["nbar"],
+        100.0 * extrapolated["rmse_relative_to_noise_penalty"],
+        "o-", label="Fixed model extrapolation",
+    )
+    axes[0].semilogy(
+        anchored["nbar"],
+        100.0 * anchored["rmse_relative_to_noise_penalty"],
+        "s--", label="Actual zero baseline anchored",
+    )
+    axes[0].axhline(
+        100.0 * threshold, color="black", linestyle=":", label="1% criterion"
+    )
+    if np.isfinite(summary["first_failed_tested_nbar"]):
+        axes[0].axvline(
+            float(summary["first_failed_tested_nbar"]),
+            color="tab:red", linestyle="--", alpha=0.7,
+        )
+    axes[0].set_xlabel(r"Mean phonon number $\bar n$")
+    axes[0].set_ylabel("Relative RMSE (%)")
+    axes[0].set_title("Validity threshold")
+    axes[0].grid(alpha=0.25, which="both")
+    axes[0].legend(fontsize=8)
+
+    axes[1].plot(
+        extrapolated["nbar"],
+        100.0 * extrapolated["max_abs_relative_to_noise_penalty"],
+        "o-", label="Fixed model maximum error",
+    )
+    axes[1].plot(
+        anchored["nbar"],
+        100.0 * anchored["max_abs_relative_to_noise_penalty"],
+        "s--", label="Zero-anchored maximum error",
+    )
+    axes[1].axhline(100.0 * threshold, color="black", linestyle=":")
+    axes[1].set_xlabel(r"Mean phonon number $\bar n$")
+    axes[1].set_ylabel("Maximum |residual| / noise penalty (%)")
+    axes[1].set_title("Worst held-out rate vector")
+    axes[1].grid(alpha=0.25)
+    axes[1].legend(fontsize=8)
+    figure.suptitle("Search for the one-percent nbar validity limit")
+    figure.tight_layout()
+    figure.savefig(output_path, dpi=220, bbox_inches="tight")
+    plt.close(figure)
+    return output_path
+
+
+def save_ncrit_search(
+    result: Mapping[str, Any],
+    output_dir: str | Path,
+) -> dict[str, Path]:
+    """Save high-nbar predictions, metrics, ncrit table, and summary figure."""
+
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    paths = {
+        "predictions_csv": _atomic_save_csv(
+            result["extrapolation"]["predictions"],
+            output_dir / "high_nbar_model_predictions.csv",
+        ),
+        "metrics_csv": _atomic_save_csv(
+            result["extrapolation"]["metrics"],
+            output_dir / "high_nbar_model_metrics.csv",
+        ),
+        "criterion_curve_csv": _atomic_save_csv(
+            result["criterion"]["curve"],
+            output_dir / "nbar_critical_curve.csv",
+        ),
+        "criterion_summary_csv": _atomic_save_csv(
+            result["criterion"]["summary"],
+            output_dir / "nbar_critical_summary.csv",
+        ),
+    }
+    paths["figure"] = plot_ncrit_search(
+        result, output_dir / "nbar_critical_search.png"
+    )
+    return paths
+
+
 __all__ = [
     "NOISE_SOURCES",
     "RATE_COLUMNS",
     "MULTIPLIER_COLUMNS",
     "MODEL_COLUMNS",
+    "HIGH_NBAR_MODEL_COLUMNS",
     "build_validation_rate_plan",
+    "build_zero_rate_plan",
     "run_validation_qpt",
     "build_model_comparison",
     "summarize_model_metrics",
     "plot_model_comparison",
     "save_model_comparison",
+    "build_high_nbar_extrapolation",
+    "summarize_high_nbar_metrics",
+    "build_ncrit_summary",
+    "plot_ncrit_search",
+    "save_ncrit_search",
 ]
