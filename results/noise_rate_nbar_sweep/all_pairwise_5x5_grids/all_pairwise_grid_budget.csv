@@ -1,7 +1,7 @@
 pair_id,source_x,source_y,complete,completed_conditions,pending_conditions,pending_master_equation_evolutions
 motional_heating__motional_dephasing,motional_heating,motional_dephasing,True,25,0,0
-motional_heating__spin_dephasing,motional_heating,spin_dephasing,False,16,9,720
-motional_heating__photon_scattering,motional_heating,photon_scattering,False,16,9,720
-motional_dephasing__spin_dephasing,motional_dephasing,spin_dephasing,False,16,9,720
-motional_dephasing__photon_scattering,motional_dephasing,photon_scattering,False,16,9,720
-spin_dephasing__photon_scattering,spin_dephasing,photon_scattering,False,16,9,720
+motional_heating__spin_dephasing,motional_heating,spin_dephasing,True,25,0,0
+motional_heating__photon_scattering,motional_heating,photon_scattering,True,25,0,0
+motional_dephasing__spin_dephasing,motional_dephasing,spin_dephasing,True,25,0,0
+motional_dephasing__photon_scattering,motional_dephasing,photon_scattering,True,25,0,0
+spin_dephasing__photon_scattering,spin_dephasing,photon_scattering,True,25,0,0
