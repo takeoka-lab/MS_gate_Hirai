@@ -1,0 +1,2 @@
+validation_id,condition_id,motional_heating_multiplier,motional_dephasing_multiplier,spin_dephasing_multiplier,photon_scattering_multiplier,motional_heating_s^-1,motional_dephasing_s^-1,spin_dephasing_s^-1,photon_scattering_s^-1
+all_four_noises_off,rates_7283b228c09abbcb,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0

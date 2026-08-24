@@ -1,0 +1,61 @@
+{
+  "analysis": "held_out_four_noise_rate_validation",
+  "base_parameters": {
+    "A": 0.125,
+    "T2_star": 0.3,
+    "delta": 0.5,
+    "dephasing_rate_phys": 18.0,
+    "eta": 0.1,
+    "heating_rate_phys": 10.0,
+    "laser_detuning_fluctuation": 0.0,
+    "laser_intensity_fluctuation": 0.0,
+    "laser_noise_samples": 1,
+    "laser_noise_seed": 1234,
+    "laser_rotation_angle_fluctuation": 0.0,
+    "raman_rate_phys": 1.0,
+    "rayleigh_rate_phys": 3.0,
+    "rho0": 0.0,
+    "t_gate_phys": 0.0001,
+    "time_points": 500,
+    "use_full_order": true
+  },
+  "catalog": [
+    {
+      "condition_id": "rates_7283b228c09abbcb",
+      "motional_dephasing_multiplier": 0.0,
+      "motional_dephasing_s^-1": 0.0,
+      "motional_heating_multiplier": 0.0,
+      "motional_heating_s^-1": 0.0,
+      "photon_scattering_multiplier": 0.0,
+      "photon_scattering_s^-1": 0.0,
+      "spin_dephasing_multiplier": 0.0,
+      "spin_dephasing_s^-1": 0.0,
+      "validation_id": "all_four_noises_off"
+    }
+  ],
+  "multiplier_bounds": [
+    0.0,
+    0.0
+  ],
+  "n_points": 1,
+  "nbar_values": [
+    5.0,
+    6.0,
+    7.0,
+    8.0,
+    9.0,
+    10.0,
+    11.0,
+    12.0,
+    13.0,
+    14.0,
+    15.0,
+    16.0,
+    17.0,
+    18.0,
+    19.0,
+    20.0
+  ],
+  "seed": 0,
+  "version": 1
+}
