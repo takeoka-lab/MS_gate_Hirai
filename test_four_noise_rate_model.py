@@ -66,6 +66,57 @@ def test_validation_dry_run_reports_960_evolutions(tmp_path):
     assert (tmp_path / "validation_rate_catalog.csv").exists()
 
 
+def test_changed_nbar_grid_reuses_common_cached_points(tmp_path):
+    base = _base_parameters()
+    plan = rate_model.build_zero_rate_plan(base)
+    rate_model.run_validation_qpt(
+        output_dir=tmp_path,
+        base_parameters=base,
+        nbar_values=[5.0, 6.0],
+        plan=plan,
+        execute=False,
+        resume=True,
+    )
+    condition = plan["catalog"].iloc[0]
+    cached = pd.DataFrame({
+        "validation_id": "all_four_noises_off",
+        "condition_id": condition["condition_id"],
+        "nbar": [5.0, 6.0],
+        "F_avg": [0.99, 0.98],
+        "infidelity": [0.01, 0.02],
+    })
+    for source in rate_model.NOISE_SOURCES:
+        cached[rate_model.MULTIPLIER_COLUMNS[source]] = 0.0
+        cached[rate_model.RATE_COLUMNS[source]] = 0.0
+    cached.to_csv(tmp_path / "validation_qpt_summary.csv", index=False)
+
+    subset = rate_model.run_validation_qpt(
+        output_dir=tmp_path,
+        base_parameters=base,
+        nbar_values=[6.0],
+        plan=plan,
+        execute=False,
+        resume=True,
+    )
+    assert subset["complete"]
+    assert len(subset["summary"]) == 1
+    assert subset["summary"].iloc[0]["nbar"] == 6.0
+
+    superset = rate_model.run_validation_qpt(
+        output_dir=tmp_path,
+        base_parameters=base,
+        nbar_values=[5.0, 6.0, 7.0],
+        plan=plan,
+        execute=False,
+        resume=True,
+    )
+    assert not superset["complete"]
+    assert superset["pending_condition_count"] == 1
+    assert superset["pending_nbar_count"] == 1
+    assert superset["pending_master_equation_evolutions"] == 16
+    assert len(superset["summary"]) == 2
+
+
 def _synthetic_training_and_validation():
     base = _base_parameters()
     sources = rate_model.NOISE_SOURCES

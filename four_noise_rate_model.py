@@ -190,16 +190,26 @@ def _condition_complete(
     condition_id: str,
     nbar_values: Iterable[float],
 ) -> bool:
+    return len(_missing_nbar_values(summary, condition_id, nbar_values)) == 0
+
+
+def _missing_nbar_values(
+    summary: pd.DataFrame,
+    condition_id: str,
+    nbar_values: Iterable[float],
+) -> tuple[float, ...]:
+    """Return requested nbar points that are absent from one cached condition."""
+
+    expected = tuple(float(value) for value in nbar_values)
     if summary.empty or "condition_id" not in summary.columns:
-        return False
-    observed = np.sort(
-        summary.loc[
-            summary["condition_id"].eq(condition_id), "nbar"
-        ].astype(float).unique()
-    )
-    expected = np.sort(np.asarray(tuple(nbar_values), dtype=float))
-    return len(observed) == len(expected) and np.allclose(
-        observed, expected, rtol=0.0, atol=1e-12
+        return expected
+    observed = summary.loc[
+        summary["condition_id"].eq(condition_id), "nbar"
+    ].astype(float).to_numpy()
+    return tuple(
+        value
+        for value in expected
+        if not np.isclose(observed, value, rtol=0.0, atol=1e-12).any()
     )
 
 
@@ -231,11 +241,25 @@ def run_validation_qpt(
     if resume and manifest_path.exists():
         saved = json.loads(manifest_path.read_text(encoding="utf-8"))
         if saved != manifest:
-            raise RuntimeError(
-                "Saved validation configuration differs from the current settings. "
-                "Use a new output directory or set resume=False."
+            saved_scientific = dict(saved)
+            current_scientific = dict(manifest)
+            saved_nbars = saved_scientific.pop("nbar_values", None)
+            current_nbars = current_scientific.pop("nbar_values", None)
+            if saved_scientific != current_scientific:
+                raise RuntimeError(
+                    "Saved validation configuration differs from the current "
+                    "physical settings or rate catalog. Use a new output "
+                    "directory or set resume=False."
+                )
+            print(
+                "Requested nbar grid changed; reusing common cached points "
+                f"({saved_nbars} -> {current_nbars})."
             )
-    if execute or not manifest_path.exists():
+    if execute or not manifest_path.exists() or (
+        resume
+        and manifest_path.exists()
+        and json.loads(manifest_path.read_text(encoding="utf-8")) != manifest
+    ):
         manifest_path.write_text(
             json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8"
         )
@@ -250,16 +274,20 @@ def run_validation_qpt(
 
     for condition_index, condition in plan["catalog"].iterrows():
         condition_id = str(condition["condition_id"])
-        if resume and _condition_complete(summary, condition_id, nbar_values):
+        missing_nbars = _missing_nbar_values(
+            summary, condition_id, nbar_values
+        )
+        if resume and not missing_nbars:
             continue
         if not execute:
             continue
         print(
             f"Run four-noise validation {condition_index + 1}/"
-            f"{len(plan['catalog'])}: {condition['validation_id']}"
+            f"{len(plan['catalog'])}: {condition['validation_id']} "
+            f"for nbar={missing_nbars}"
         )
         parameters = pnc.parameters_for_rate_vector(
-            base_parameters, condition, nbar_values=nbar_values
+            base_parameters, condition, nbar_values=missing_nbars
         )
         simulation = mg.run_infidelity_analysis(show_plot=False, **parameters)
         rows = pd.DataFrame({
@@ -277,36 +305,64 @@ def run_validation_qpt(
             )
             rows[RATE_COLUMNS[source]] = float(condition[RATE_COLUMNS[source]])
         if not summary.empty:
-            summary = summary.loc[
-                ~summary["condition_id"].eq(condition_id)
-            ].copy()
+            same_condition = summary["condition_id"].eq(condition_id)
+            same_nbar = np.zeros(len(summary), dtype=bool)
+            for nbar in rows["nbar"].astype(float):
+                same_nbar |= np.isclose(
+                    summary["nbar"].astype(float),
+                    nbar,
+                    rtol=0.0,
+                    atol=1e-12,
+                )
+            summary = summary.loc[~(same_condition & same_nbar)].copy()
         summary = pd.concat([summary, rows], ignore_index=True)
         summary = summary.sort_values(
             ["validation_id", "nbar"]
         ).reset_index(drop=True)
         _atomic_save_csv(summary, summary_path)
 
-    pending = plan["catalog"][
-        ~plan["catalog"]["condition_id"].map(
-            lambda condition_id: _condition_complete(
-                summary, condition_id, nbar_values
-            )
+    missing_counts = plan["catalog"]["condition_id"].map(
+        lambda condition_id: len(
+            _missing_nbar_values(summary, condition_id, nbar_values)
         )
-    ].reset_index(drop=True)
-    evolutions_per_condition = (
-        len(nbar_values)
-        * int(base_parameters.get("laser_noise_samples", 1)) * 16
     )
+    pending = plan["catalog"][missing_counts.gt(0)].copy()
+    pending["missing_nbar_count"] = missing_counts[missing_counts.gt(0)].to_numpy()
+    pending = pending.reset_index(drop=True)
+    requested_condition_ids = set(
+        plan["catalog"]["condition_id"].astype(str)
+    )
+    if summary.empty:
+        requested_summary = summary.copy()
+    else:
+        requested_nbar_mask = np.zeros(len(summary), dtype=bool)
+        for nbar in nbar_values:
+            requested_nbar_mask |= np.isclose(
+                summary["nbar"].astype(float),
+                nbar,
+                rtol=0.0,
+                atol=1e-12,
+            )
+        requested_summary = summary[
+            summary["condition_id"].astype(str).isin(requested_condition_ids)
+            & requested_nbar_mask
+        ].copy().sort_values(["validation_id", "nbar"]).reset_index(drop=True)
+    evolutions_per_nbar = (
+        int(base_parameters.get("laser_noise_samples", 1)) * 16
+    )
+    pending_nbar_count = int(missing_counts.sum())
     return {
         "plan": plan,
-        "summary": summary,
+        "summary": requested_summary,
+        "cache_summary": summary,
         "pending_conditions": pending,
         "complete": len(pending) == 0,
         "total_conditions": len(plan["catalog"]),
         "completed_conditions": len(plan["catalog"]) - len(pending),
         "pending_condition_count": len(pending),
+        "pending_nbar_count": pending_nbar_count,
         "pending_master_equation_evolutions": (
-            len(pending) * evolutions_per_condition
+            pending_nbar_count * evolutions_per_nbar
         ),
         "catalog_path": catalog_path,
         "summary_path": summary_path,
