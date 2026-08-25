@@ -357,12 +357,20 @@ def _seed_zero_reference(
         return summary
     requested = np.sort(np.asarray(tuple(nbar_values), dtype=float))
     available = np.sort(all_noise_zero_summary["nbar"].astype(float).unique())
-    if len(requested) != len(available) or not np.allclose(requested, available):
+    if any(not np.any(np.isclose(available, value)) for value in requested):
         return summary
     zero_condition = plan["catalog"].loc[
         plan["catalog"]["condition_id"].eq(zero_condition_id)
     ].iloc[0]
-    rows = all_noise_zero_summary[["nbar", "F_avg", "infidelity"]].copy()
+    requested_mask = np.zeros(len(all_noise_zero_summary), dtype=bool)
+    for value in requested:
+        requested_mask |= np.isclose(
+            all_noise_zero_summary["nbar"].astype(float), value
+        )
+    rows = all_noise_zero_summary.loc[
+        requested_mask, ["nbar", "F_avg", "infidelity"]
+    ].copy()
+    rows = rows.drop_duplicates("nbar").sort_values("nbar").reset_index(drop=True)
     rows.insert(0, "condition_id", zero_condition_id)
     for column in (
         "motional_heating_s^-1",
@@ -1506,6 +1514,23 @@ def run_all_pairwise_rate_grids(
         pd.concat(interaction_tables, ignore_index=True)
         if interaction_tables else pd.DataFrame()
     )
+    pending_unique_condition_ids = {
+        condition_id
+        for condition_id in allowed_condition_ids
+        if not _condition_complete(
+            aggregate_summary, condition_id, nbar_values
+        )
+    }
+    total_unique_conditions = len(allowed_condition_ids)
+    pending_unique_conditions = len(pending_unique_condition_ids)
+    completed_unique_conditions = (
+        total_unique_conditions - pending_unique_conditions
+    )
+    evolutions_per_condition = (
+        len(tuple(float(value) for value in nbar_values))
+        * int(base_parameters.get("laser_noise_samples", 1))
+        * 16
+    )
     _atomic_save_csv(
         aggregate_summary,
         output_dir / "all_pairwise_grid_qpt_summary.csv",
@@ -1525,9 +1550,14 @@ def run_all_pairwise_rate_grids(
         "interactions": aggregate_interactions,
         "budget": budget,
         "complete": bool(budget["complete"].all()),
-        "pending_conditions": int(budget["pending_conditions"].sum()),
-        "pending_master_equation_evolutions": int(
-            budget["pending_master_equation_evolutions"].sum()
+        "total_unique_conditions": total_unique_conditions,
+        "completed_unique_conditions": completed_unique_conditions,
+        "pending_unique_conditions": pending_unique_conditions,
+        # Backward-compatible alias; unlike the per-pair budget sum, this
+        # deduplicates the zero and single-source axes shared by pair grids.
+        "pending_conditions": pending_unique_conditions,
+        "pending_master_equation_evolutions": (
+            pending_unique_conditions * evolutions_per_condition
         ),
         "output_dir": output_dir,
     }

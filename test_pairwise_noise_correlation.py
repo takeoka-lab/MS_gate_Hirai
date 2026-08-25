@@ -235,6 +235,36 @@ def test_grid_dry_run_reuses_16_conditions_and_reports_720_evolutions(tmp_path):
     assert not result["complete"]
 
 
+def test_all_pair_grids_at_two_nbar_reuse_zero_and_report_3584_evolutions(
+    tmp_path,
+):
+    nbar_values = [5.0, 6.0]
+    zero = pd.DataFrame(
+        {
+            "condition": "all_four_noises_off",
+            # A larger all-zero cache must be reusable for this requested subset.
+            "nbar": [5.0, 6.0, 7.0],
+            "F_avg": [0.99, 0.98, 0.97],
+            "infidelity": [0.01, 0.02, 0.03],
+        }
+    )
+
+    result = correlation.run_all_pairwise_rate_grids(
+        output_dir=tmp_path,
+        base_parameters=_base_parameters(),
+        nbar_values=nbar_values,
+        all_noise_zero_summary=zero,
+        execute=False,
+        resume=True,
+    )
+
+    assert not result["complete"]
+    assert result["pending_conditions"] == 112
+    assert result["pending_master_equation_evolutions"] == 3584
+    assert len(result["summary"]) == 2
+    assert result["summary"]["condition_id"].nunique() == 1
+
+
 def test_four_noise_reconstruction_recovers_pair_and_higher_order_terms(
     tmp_path,
 ):
