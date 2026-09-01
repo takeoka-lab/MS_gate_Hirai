@@ -1,0 +1,2 @@
+alpha_zero_point,beta_per_nbar,formula
+1.1139270112234741e-07,3.3498591765592534e-07,-(alpha + beta*nbar)*m_heating*m_motional_dephasing

@@ -1,0 +1,101 @@
+\documentclass[dvipdfmx,a4paper,10pt,twocolumn]{jsarticle}
+
+% 余白
+\usepackage[top=13mm,bottom=13mm,left=12mm,right=12mm]{geometry}
+
+% 数式
+\usepackage{amsmath,amsfonts}
+\usepackage{bm}
+
+% 画像
+\usepackage{graphicx}
+\graphicspath{{results/note/}}
+\usepackage[haranoaji]{pxchfon}
+
+% 表
+\usepackage{array}
+
+\setlength{\columnsep}{7mm}
+\setlength{\parindent}{1em}
+\setlength{\parskip}{0pt}
+
+\begin{document}
+
+\title{\vspace{-2em}
+M{\o}lmer--S{\o}rensenゲートの解析
+\vspace{-1em}}
+\author{平井 希空}
+\date{\today}
+\maketitle
+\vspace{-3em}
+
+\section{Motivation}
+
+平均ゲートinfidelityは性能比較には便利だが，コヒーレントな較正ずれと確率的な散逸を区別できない．特にM{\o}lmer--S{\o}rensen（MS）ゲートでは，運動自由度を消去した後に相関二量子ビット誤差が生じ得る．そこで，master equation（ME）から得た量子チャネルをQPTで再構成し，理想MSゲートに対する\textbf{error channel}を用いて，実験で調整可能な誤差成分へ分解する．
+
+\section{Prior work \& Method}
+
+MSゲートは二色光により運動モードを介して
+$U_{\rm MS}=\exp(i\pi XX/4)$を実装する\cite{MS}．本計算ではmotional heating，motional dephasing，spin dephasing，photon scatteringを含むMEを解き，16個の入力演算子からQPTチャネル$\mathcal E$を構成する\cite{QPT}．理想操作を除いた
+\begin{equation}
+ \mathcal E_{\rm err}=\mathcal U_{\rm MS}^{\dagger}\circ\mathcal E
+ \label{eq:error_channel}
+\end{equation}
+をCPTPチャネルへ射影し，Pauli transfer matrix $R_{\rm err}$に変換する．一ゲート当たりのeffective generatorを
+\begin{equation}
+ K=\log R_{\rm err}
+ \end{equation}
+とし，Pauli基底で
+\begin{equation}
+ K\simeq\sum_{P\ne I}h_P\mathcal H_P
+       +\sum_{P\ne I}\gamma_P\mathcal D_P,
+ \quad
+ \begin{cases}
+ \mathcal H_P(\rho)=-i[P,\rho],\\
+ \mathcal D_P(\rho)=P\rho P-\rho
+ \end{cases}
+ \label{eq:generator}
+\end{equation}
+と分解する\cite{GST}．$h_{XX}$はcoherentなXX回転誤差，$\gamma_{XX}$はstochasticな相関Pauli-XX誤差を表す．散逸係数は非負最小二乗法で推定した．
+
+\newpage
+\section{Results}
+
+\begin{center}
+\small
+\setlength{\tabcolsep}{3.4pt}
+\renewcommand{\arraystretch}{1.08}
+\begin{tabular}{c|c|c|c|c}
+\hline
+$\bar n$ & $1-F_{\rm avg}$ & $h_{XX}$ & $\gamma_{XX}$ & $\gamma_{XI,IX}$ \\
+ &  & [rad/gate] & [/gate] & [/gate] \\
+\hline
+$0.01$ & $1.95\!\times\!10^{-3}$ & $1.37\!\times\!10^{-2}$ & $1.64\!\times\!10^{-4}$ & $5.51\!\times\!10^{-4}$ \\
+$1$    & $3.64\!\times\!10^{-3}$ & $2.88\!\times\!10^{-2}$ & $6.16\!\times\!10^{-4}$ & $1.07\!\times\!10^{-3}$ \\
+$4$    & $1.23\!\times\!10^{-2}$ & $7.27\!\times\!10^{-2}$ & $4.29\!\times\!10^{-3}$ & $2.48\!\times\!10^{-3}$ \\
+\hline
+\end{tabular}
+\end{center}
+
+$\bar n$の増加とともにinfidelity，$h_{XX}$，$\gamma_{XX}$はいずれも増大した．低温では局所的な$XI/IX$散逸が$XX$散逸より大きいが，$\bar n=4$では$\gamma_{XX}$が最大のPauli散逸成分となる．すなわち，熱占有数の増加により，誤差チャネルは\textbf{局所誤差優勢から相関XX誤差優勢へクロスオーバーする}．実験的には，$h_{XX}$はパルス面積・detuningの再較正で補償可能である一方，$\gamma_{XX}$はユニタリ補正では除けず，冷却および運動コヒーレンスの改善が必要となる．
+
+ここで$\gamma_{XX}$は\emph{有効二量子ビットチャネル中の相関誤差}であり，異なる環境浴の統計相関を直接意味しない．浴相関を主張するには，MEに非対角Kossakowski成分または相互相関スペクトルを導入し，独立浴モデルと比較する必要がある．
+
+\begin{thebibliography}{99}
+\small
+
+\bibitem{MS}
+A. S{\o}rensen and K. M{\o}lmer,
+Phys. Rev. A \textbf{62}, 022311 (2000).
+
+\bibitem{QPT}
+I. L. Chuang and M. A. Nielsen,
+J. Mod. Opt. \textbf{44}, 2455--2467 (1997).
+
+\bibitem{GST}
+E. Nielsen \textit{et al.},
+Quantum \textbf{5}, 557 (2021).
+
+\end{thebibliography}
+
+\end{document}

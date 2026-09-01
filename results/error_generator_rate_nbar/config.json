@@ -1,0 +1,52 @@
+{
+  "analysis": "single_axis_error_generator_rate_nbar",
+  "base_parameters": {
+    "A": 0.125,
+    "T2_star": 0.3,
+    "delta": 0.5,
+    "dephasing_rate_phys": 18.0,
+    "eta": 0.1,
+    "heating_rate_phys": 10.0,
+    "laser_detuning_fluctuation": 0.0,
+    "laser_intensity_fluctuation": 0.0,
+    "laser_noise_samples": 1,
+    "laser_noise_seed": 1234,
+    "laser_rotation_angle_fluctuation": 0.0,
+    "raman_rate_phys": 1.0,
+    "rayleigh_rate_phys": 3.0,
+    "rho0": 0.0,
+    "t_gate_phys": 0.0001,
+    "time_points": 500,
+    "use_full_order": true
+  },
+  "error_channel_convention": "undo_before_actual",
+  "generator_model": "diagonal Pauli dissipators after CPTP projection",
+  "nbar_values": [
+    0.01,
+    1.0,
+    2.0,
+    3.0,
+    4.0
+  ],
+  "noise_sources": [
+    "motional_heating",
+    "motional_dephasing",
+    "spin_dephasing",
+    "photon_scattering"
+  ],
+  "nominal_strengths": {
+    "motional_dephasing": 18.0,
+    "motional_heating": 10.0,
+    "photon_scattering": 4.0,
+    "spin_dephasing": 3.3333333333333335
+  },
+  "rate_multipliers": [
+    0.0,
+    0.5,
+    1.0,
+    2.0,
+    4.0
+  ],
+  "sweep_definition": "Vary one dissipative rate; keep the other three nominal.",
+  "version": 1
+}

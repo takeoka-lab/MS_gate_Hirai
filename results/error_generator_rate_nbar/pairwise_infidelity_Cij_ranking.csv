@@ -1,0 +1,7 @@
+rank,pair_id,source_x,source_y,signed_C_at_max_abs,max_abs_C,most_positive_C,has_positive_enhancement,nbar_at_max_abs,multiplier_x_at_max_abs,multiplier_y_at_max_abs,grid_infidelity_at_max_abs,additive_prediction_at_max_abs,relative_C_at_max_abs
+1,motional_heating__motional_dephasing,motional_heating,motional_dephasing,-4.380776243899723e-05,4.380776243899723e-05,-9.961186470011479e-08,False,4.0,4.0,4.0,0.0208609160383874,0.0209047238008264,-0.0034659468407585
+2,motional_dephasing__photon_scattering,motional_dephasing,photon_scattering,-3.252003271762144e-05,3.252003271762144e-05,-9.297068396477842e-08,False,4.0,4.0,4.0,0.0216541050611592,0.0216866250938769,-0.0024209660040437
+3,motional_dephasing__spin_dephasing,motional_dephasing,spin_dephasing,-1.4979561383202111e-05,1.4979561383202111e-05,-6.485589475278136e-08,False,4.0,4.0,4.0,0.0205131805674338,0.0205281601288171,-0.0012186685560152
+4,motional_heating__photon_scattering,motional_heating,photon_scattering,-4.537745303946801e-06,4.537745303946801e-06,-5.874913797457305e-08,False,0.01,4.0,4.0,0.0040368395040033,0.0040413772493073,-0.0011979025950645
+5,spin_dephasing__photon_scattering,spin_dephasing,photon_scattering,-3.5628165265377126e-06,3.5628165265377126e-06,-4.617578018215051e-08,False,0.01,4.0,4.0,0.0035462362371717,0.0035497990536983,-0.0010804690459721
+6,motional_heating__spin_dephasing,motional_heating,spin_dephasing,-2.08693396961529e-06,2.08693396961529e-06,-2.105452970996291e-08,False,0.01,4.0,4.0,0.0028691442090836,0.0028712311430533,-0.000796424151401

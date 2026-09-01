@@ -1,0 +1,588 @@
+\documentclass[dvipdfmx,a4paper,10pt]{jsarticle}
+
+\usepackage[top=20mm,bottom=22mm,left=20mm,right=20mm]{geometry}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{bm}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage[haranoaji]{pxchfon}
+
+\setlength{\parindent}{1em}
+\setlength{\parskip}{0.25em}
+\renewcommand{\arraystretch}{1.15}
+
+\newcommand{\ii}{\mathrm{i}}
+\newcommand{\tr}{\operatorname{Tr}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Var}{\operatorname{Var}}
+\newcommand{\Hc}{\mathcal{H}}
+\newcommand{\Dc}{\mathcal{D}}
+\newcommand{\Cc}{\mathcal{C}}
+\newcommand{\ket}[1]{\lvert #1\rangle}
+\newcommand{\bra}[1]{\langle #1\rvert}
+
+\title{Fock状態から導く有限Lamb--Dicke MSゲートの\\
+有効誤差生成子}
+\author{平井 希空}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+有限Lamb--Dicke（LD）補正を含むM{\o}lmer--S{\o}rensen（MS）ゲートに
+ついて，数値的に観測された主要な三つの誤差成分をFock状態から解析的に
+導出する．有限LD補正はFock数に依存する幾何学的位相と不完全な位相空間
+軌道閉鎖を生じさせる．その熱平均を取ることにより，有効誤差生成子は
+\[
+ \mathcal{K}_{\mathrm{err}}
+ \simeq
+ h_{XX}\Hc[XX]
+ +\gamma_{XX}\Dc[XX]
+ +\gamma_{\mathrm{col}}\Dc[IX+XI]
+\]
+と表される．ここで三係数はそれぞれ，Fock依存回転角の平均，その熱分散，
+および残留スピン振動エンタングルメントに対応する．一点較正後の第二Magnus予測と
+第三Magnus予測は，$\bar n\leq4$の範囲でfull numerical evolutionから
+得た係数を約$3.1\%$以内で再現する．
+\end{abstract}
+
+\section{有効誤差生成子}
+
+本稿では
+\begin{align}
+ \Hc[P](\rho)&=-\ii[P,\rho],\\
+ \Dc[L](\rho)&=
+ L\rho L^\dagger-\frac{1}{2}\{L^\dagger L,\rho\}
+\end{align}
+と定義する．導出する三成分は
+\begin{equation}
+ \boxed{
+ \mathcal{K}_{\mathrm{err}}
+ \simeq
+ h_{XX}\Hc[XX]
+ +\gamma_{XX}\Dc[XX]
+ +\gamma_{\mathrm{col}}\Dc[S_x],
+ \qquad S_x=IX+XI
+ }
+ \label{eq:main_generator}
+\end{equation}
+である．各係数の物理的起源は
+\begin{align}
+ h_{XX}
+ &:\quad \text{Fock依存$XX$回転角の熱平均},\nonumber\\
+ \gamma_{XX}
+ &:\quad \text{Fock依存$XX$回転角の熱分散},\nonumber\\
+ \gamma_{\mathrm{col}}
+ &:\quad \text{残留スピン振動エンタングルメント}
+ \label{eq:physical_origins}
+\end{align}
+である．
+
+\section{有限LD演算子とFock依存力}
+
+矩形パルスに対する相互作用Hamiltonianを
+\begin{equation}
+ H(t)=A S_x
+ \left(
+ B e^{-\ii\delta t}+B^\dagger e^{\ii\delta t}
+ \right)
+ \label{eq:hamiltonian}
+\end{equation}
+とする．現在の数値実装で用いている運動演算子は
+\begin{equation}
+ B
+ =a-\frac{\eta^2}{2}(N+1)a
+ =a f(N),
+ \qquad
+ f(N)=1-\frac{\eta^2}{2}N
+ \label{eq:B_operator}
+\end{equation}
+である．したがってFock状態に対して
+\begin{equation}
+ B\ket{n}
+ =\sqrt{n}\,f_n\ket{n-1},
+ \qquad
+ f_n=1-\frac{\eta^2}{2}n
+ \label{eq:B_on_fock}
+\end{equation}
+と作用する．通常のLD近似では$f_n=1$であり，すべてのFock状態が
+同じスピン依存力を受ける．有限LD補正を含めると力の強さが$n$に
+依存し，Fock状態ごとに異なる幾何学的位相と残留軌道を生じる．
+
+\section{第二Magnus項とFock依存位相}
+
+\subsection{交換子のFock表示}
+
+$S_x$の固有値を$s\in\{2,0,0,-2\}$とする．各スピン枝での
+Hamiltonianは
+\begin{equation}
+ H_s(t)
+ =g_s\left(
+ B e^{-\ii\delta t}+B^\dagger e^{\ii\delta t}
+ \right),
+ \qquad g_s=sA
+ \label{eq:branch_hamiltonian}
+\end{equation}
+である．一周期$T=2\pi/\delta$では第一Magnus項は消え，第二項は
+\begin{equation}
+ \Omega_{2,s}
+ =\ii\,2\pi
+ \left(\frac{g_s}{\delta}\right)^2
+ [B,B^\dagger]
+ \label{eq:omega2}
+\end{equation}
+となる．交換子はFock基底で対角であり，
+\begin{equation}
+ [B,B^\dagger]\ket{n}
+ =\Delta_n\ket{n}
+\end{equation}
+を満たす．式\eqref{eq:B_on_fock}から
+\begin{align}
+ \Delta_n
+ &=(n+1)f_{n+1}^2-nf_n^2\nonumber\\
+ &=1-\eta^2(2n+1)
+ +\frac{\eta^4}{4}(3n^2+3n+1)
+ \label{eq:delta_n}
+\end{align}
+を得る．
+
+\subsection{$XX$回転角}
+
+$s=2$のforced branchと$s=0$のnull branchとの相対位相を
+$2\theta_n$と定義する．式\eqref{eq:omega2}より
+\begin{equation}
+ \boxed{
+ \theta_n^{(2)}
+ =\theta_{\mathrm{LD}}\Delta_n,
+ \qquad
+ \theta_{\mathrm{LD}}
+ =4\pi\left(\frac{A}{\delta}\right)^2
+ }
+ \label{eq:theta_n}
+\end{equation}
+となる．現在のパラメータ
+\begin{equation}
+ A=0.125,\qquad
+ \delta=0.5,\qquad
+ \eta=0.1
+\end{equation}
+では$\theta_{\mathrm{LD}}=\pi/4$であり，
+\begin{equation}
+ \theta_n^{(2)}
+ =0.777564
+ -0.0156490\,n
+ +5.89049\times10^{-5}n^2
+ \label{eq:theta_n_numerical_analytic}
+\end{equation}
+を得る．一方，$n=0,\ldots,51$のfull numerical evolutionは
+\begin{equation}
+ \theta_n^{\mathrm{num}}
+ \simeq
+ 0.771842
+ -0.0154539\,n
+ +5.75093\times10^{-5}n^2
+ \label{eq:theta_n_fit}
+\end{equation}
+で近似でき，最大残差は$2.66\times10^{-5}\,\mathrm{rad}$である．
+
+第二Magnus項は$n$依存性をよく説明するが，ほぼ$n$に依存しない
+$-5.75\times10^{-3}\,\mathrm{rad}$程度のオフセットが残る．これは
+強駆動および高次Magnus項による基準角のずれである．以下では$n=0$の
+一点でこのオフセットを較正し，
+\begin{equation}
+ \theta_n^{\mathrm{ana}}
+ =
+ \theta_0^{\mathrm{num}}
+ +\theta_{\mathrm{LD}}(\Delta_n-\Delta_0)
+ \label{eq:one_point_calibration}
+\end{equation}
+とする．この較正後，温度依存部分には自由パラメータがない．
+
+\section{熱平均チャネルと三成分への写像}
+
+\subsection{スピン枝ごとのチャネル}
+
+運動初期状態を平均フォノン数$\bar n=\mu$の熱状態
+\begin{equation}
+ \rho_{\mathrm{th}}
+ =\sum_{n=0}^{\infty}p_n\ket{n}\bra{n},
+ \qquad
+ p_n=(1-q)q^n,
+ \qquad
+ q=\frac{\mu}{1+\mu}
+ \label{eq:thermal_distribution}
+\end{equation}
+とする．$S_x$固有空間への射影を$\Pi_s$とすれば，一周期の全時間発展は
+\begin{equation}
+ U(T)=\sum_s\Pi_s\otimes U_s(T)
+\end{equation}
+と分解できる．運動をtrace outしたスピンチャネルは
+\begin{equation}
+ \mathcal{E}
+ \left(\Pi_s\rho\Pi_{s'}\right)
+ =
+ G_{ss'}\Pi_s\rho\Pi_{s'},
+ \qquad
+ G_{ss'}
+ =\tr\left[
+ U_s\rho_{\mathrm{th}}U_{s'}^\dagger
+ \right]
+ \label{eq:branch_channel}
+\end{equation}
+である．したがって，各スピン枝間のcoherenceは運動波束のoverlap
+$G_{ss'}$によって決まる．
+
+forced--null overlapをFock状態ごとに
+\begin{equation}
+ c_n
+ =\bra{n}U_{s=2}(T)\ket{n}
+ =r_ne^{2\ii\theta_n}
+ \label{eq:c_n}
+\end{equation}
+と定義する．位相のみの熱平均と，Fock leakageも含む完全なoverlapは
+\begin{align}
+ Z&=\sum_{n=0}^{\infty}p_ne^{2\ii\theta_n},
+ \label{eq:Z_definition}\\
+ C&=\sum_{n=0}^{\infty}p_nc_n
+ =\sum_{n=0}^{\infty}p_nr_ne^{2\ii\theta_n}
+ \label{eq:C_definition}
+\end{align}
+である．
+
+\subsection{三係数の抽出}
+
+目標ゲート角を$\theta_\star=\pi/4$とする．理想ゲートを除いた
+forced--null coherenceに式\eqref{eq:main_generator}を作用させると，
+\begin{equation}
+ \exp(-2\ii h_{XX})
+ \exp(-2\gamma_{XX})
+ \exp(-2\gamma_{\mathrm{col}})
+ \label{eq:generator_coherence}
+\end{equation}
+を得る．これを$e^{-2\ii\theta_\star}C$と比較すれば，
+\begin{align}
+ \boxed{
+ h_{XX}
+ =\theta_\star-\frac{1}{2}\arg C
+ }
+ \label{eq:hxx_exact}\\
+ \boxed{
+ \gamma_{XX}
+ =-\frac{1}{2}\log|Z|
+ }
+ \label{eq:gammaxx_exact}\\
+ \boxed{
+ \gamma_{\mathrm{col}}
+ =-\frac{1}{2}\log|C|-\gamma_{XX}
+ }
+ \label{eq:gammacol_exact}
+\end{align}
+を得る．これらはforced--null coherenceを厳密に再現する．
+$r_n$と$\theta_n$の相関が弱い場合，式\eqref{eq:hxx_exact}の$C$を
+$Z$で置き換えてもほぼ同じ結果となる．
+
+\section{平均角ずれと位相分散の閉形式}
+
+\subsection{Fock数に対する線形近似}
+
+Fock依存角を
+\begin{equation}
+ \theta_n=\theta_0-\kappa n
+\end{equation}
+と近似すると，式\eqref{eq:Z_definition}は幾何級数となり，
+\begin{equation}
+ Z
+ =e^{2\ii\theta_0}
+ \frac{1-q}{1-qe^{-2\ii\kappa}}
+ \label{eq:Z_linear}
+\end{equation}
+と閉じた形で書ける．したがって
+\begin{align}
+ \theta_{\mathrm{eff}}
+ &\equiv\frac{1}{2}\arg Z\nonumber\\
+ &=\theta_0-\frac{1}{2}
+ \operatorname{atan2}
+ \left(
+ q\sin2\kappa,\,
+ 1-q\cos2\kappa
+ \right),
+ \label{eq:theta_eff_linear}\\
+ \gamma_{XX}
+ &=\frac{1}{4}\log
+ \left[
+ \frac{1-2q\cos2\kappa+q^2}{(1-q)^2}
+ \right].
+ \label{eq:gammaxx_linear}
+\end{align}
+特に$|\kappa|\ll1$では
+\begin{equation}
+ \boxed{
+ h_{XX}
+ \simeq
+ (\theta_\star-\theta_0)+\kappa\mu,
+ \qquad
+ \gamma_{XX}
+ \simeq
+ \kappa^2\mu(1+\mu)
+ }
+ \label{eq:linear_small_kappa}
+\end{equation}
+となる．平均角ずれはほぼ$\bar n$に比例し，位相分散は熱分布の分散
+$\bar n(1+\bar n)$に比例する．
+
+\subsection{二次のFock依存性}
+
+式\eqref{eq:delta_n}に対応して
+\begin{equation}
+ \theta_n=\theta_0+bn+cn^2
+\end{equation}
+まで残す．cumulant展開の最低次では
+\begin{equation}
+ \theta_{\mathrm{eff}}\simeq\E[\theta_n],
+ \qquad
+ \gamma_{XX}\simeq\Var(\theta_n)
+ \label{eq:cumulant_leading}
+\end{equation}
+である．熱分布のモーメントから
+\begin{equation}
+ \E[\theta_n]
+ =\theta_0+b\mu+c(2\mu^2+\mu)
+ \label{eq:theta_mean_quadratic}
+\end{equation}
+および
+\begin{align}
+ \Var(\theta_n)
+ ={}&
+ b^2\mu(1+\mu)\nonumber\\
+ &+2bc\,\mu(1+\mu)(4\mu+1)\nonumber\\
+ &+c^2\mu(1+\mu)(20\mu^2+12\mu+1)
+ \label{eq:theta_variance_quadratic}
+\end{align}
+を得る．より高精度には，式\eqref{eq:one_point_calibration}を
+式\eqref{eq:Z_definition}の幾何重み付き級数に直接代入すればよい．
+
+\section{第三Magnus項と残留運動リーク}
+
+有限LD演算子では$[B,B^\dagger]$が定数でないため，高次交換子が
+消えない．一周期の第三Magnus項は
+\begin{equation}
+ \Omega_{3,s}
+ =\ii\,2\pi
+ \left(\frac{g_s}{\delta}\right)^3Q
+ \label{eq:omega3}
+\end{equation}
+であり，
+\begin{equation}
+ Q
+ =[B,[B,B^\dagger]]
+ +[B^\dagger,[B^\dagger,B]]
+ \label{eq:Q_operator}
+\end{equation}
+と定義する．式\eqref{eq:delta_n}を用いると
+\begin{equation}
+ Q\ket{n}
+ =q_n\ket{n-1}+q_{n+1}\ket{n+1},
+\end{equation}
+\begin{equation}
+ \boxed{
+ q_n
+ =\sqrt{n}\,f_n(\Delta_n-\Delta_{n-1}),
+ \qquad q_0=0
+ }
+ \label{eq:q_n}
+\end{equation}
+を得る．したがってforced branch
+$(s=2,\ g_s=2A)$における弱リーク確率は
+\begin{equation}
+ \boxed{
+ \ell_n^{(3)}
+ \simeq
+ \left[
+ 2\pi
+ \left(\frac{2A}{\delta}\right)^3
+ \right]^2
+ \left(q_n^2+q_{n+1}^2\right)
+ }
+ \label{eq:leakage_n}
+\end{equation}
+となる．$r_n=\sqrt{1-\ell_n}\simeq1-\ell_n/2$を
+式\eqref{eq:C_definition}に代入し，位相分散を分離すると
+\begin{equation}
+ \boxed{
+ \gamma_{\mathrm{col}}
+ \simeq
+ \frac{1}{4}\sum_{n=0}^{\infty}p_n\ell_n^{(3)}
+ }
+ \label{eq:gammacol_leakage}
+\end{equation}
+を得る．
+
+この減衰は$s$の異なるスピン枝が異なる残留運動状態を持つために生じる．
+したがって結合演算子は$S_x=IX+XI$である．実際，
+\begin{equation}
+ \Dc[IX+XI]
+ =\Dc[IX]+\Dc[XI]+\Cc_{IX,XI}
+ \label{eq:collective_decomposition}
+\end{equation}
+であり，ここで
+\begin{equation}
+ \Cc_{P,Q}(\rho)
+ =
+ P\rho Q+Q\rho P
+ -\frac{1}{2}\{PQ+QP,\rho\}.
+\end{equation}
+よって，数値的なgeneratorにおいて$\Dc[IX]$，$\Dc[XI]$，
+$\Cc_{IX,XI}$の係数がほぼ等しいことも説明できる．
+
+先頭の$O(\eta^2)$だけを残すと
+\begin{equation}
+ q_n\simeq-2\eta^2\sqrt{n}
+\end{equation}
+であるため，
+\begin{equation}
+ \gamma_{\mathrm{col}}
+ \propto
+ \eta^4
+ \left(\frac{2A}{\delta}\right)^6
+ (2\bar n+1)
+ \label{eq:gammacol_scaling}
+\end{equation}
+という温度・パラメータ依存性を得る．定量比較には
+式\eqref{eq:q_n}の$f_n,\Delta_n,q_n$を用いた熱和を使用する．
+
+\section{数値結果との比較}
+
+\subsection{平均角ずれと位相分散}
+
+$n=0$の位相だけを較正し，第二Magnus項から得た$\Delta_n$を用いて
+温度依存性を予測した結果を表\ref{tab:phase_comparison}に示す．
+
+\begin{table}[htbp]
+ \centering
+ \small
+ \caption{平均角ずれと位相分散の比較．}
+ \label{tab:phase_comparison}
+ \setlength{\tabcolsep}{5pt}
+ \begin{tabular}{c@{\quad}rrrr}
+  \toprule
+  $\bar n$
+  & $h_{XX}^{\mathrm{num}}$
+  & $h_{XX}^{\mathrm{ana}}$
+  & $\gamma_{XX}^{\mathrm{num}}$
+  & $\gamma_{XX}^{\mathrm{ana}}$\\
+  \midrule
+  $0.01$ & $0.0137369$ & $0.0137390$ & $2.3913{\times}10^{-6}$ & $2.4541{\times}10^{-6}$\\
+  $1$    & $0.0288390$ & $0.0290554$ & $4.5936{\times}10^{-4}$ & $4.7158{\times}10^{-4}$\\
+  $2$    & $0.0438260$ & $0.0442921$ & $1.3352{\times}10^{-3}$ & $1.3720{\times}10^{-3}$\\
+  $3$    & $0.0585297$ & $0.0592932$ & $2.5850{\times}10^{-3}$ & $2.6602{\times}10^{-3}$\\
+  $4$    & $0.0729375$ & $0.0740587$ & $4.1656{\times}10^{-3}$ & $4.2966{\times}10^{-3}$\\
+  \bottomrule
+ \end{tabular}
+\end{table}
+
+$\bar n=4$においても，平均角ずれの相対差は約$1.5\%$，
+位相分散の相対差は約$3.1\%$である．
+
+\subsection{集団$X$成分}
+
+第三Magnus項の$q_n$を熱平均した予測を
+表\ref{tab:collective_comparison}に示す．
+
+\begin{table}[htbp]
+ \centering
+ \small
+ \caption{集団$X$成分の比較．}
+ \label{tab:collective_comparison}
+ \setlength{\tabcolsep}{8pt}
+ \begin{tabular}{crrr}
+  \toprule
+  $\bar n$
+  & $\gamma_{\mathrm{col}}^{\mathrm{num}}$
+  & $\gamma_{\mathrm{col}}^{\Omega_3}$
+  & 相対差\\
+  \midrule
+  $0.01$ & $5.9979{\times}10^{-5}$ & $6.1330{\times}10^{-5}$ & $+2.25\%$\\
+  $1$    & $1.6774{\times}10^{-4}$ & $1.7172{\times}10^{-4}$ & $+2.37\%$\\
+  $2$    & $2.6556{\times}10^{-4}$ & $2.7241{\times}10^{-4}$ & $+2.58\%$\\
+  $3$    & $3.5315{\times}10^{-4}$ & $3.6312{\times}10^{-4}$ & $+2.82\%$\\
+  $4$    & $4.3146{\times}10^{-4}$ & $4.4470{\times}10^{-4}$ & $+3.07\%$\\
+  \bottomrule
+ \end{tabular}
+\end{table}
+
+さらに，full numerical evolutionから直接得たFock leakage
+\begin{equation}
+ \ell_n=1-|c_n|^2
+\end{equation}
+を式\eqref{eq:gammacol_leakage}に代入すると，$\bar n\leq4$の
+全範囲で$\gamma_{\mathrm{col}}$と$0.84\%$以内で一致する．したがって
+約$3\%$の残差は主として第三Magnus近似の打ち切りに由来し，
+$\gamma_{\mathrm{col}}$をFock leakageの熱平均と解釈すること自体は
+高精度に成立する．
+
+\section{物理的帰結}
+
+以上から，数値的に得られた三成分は独立なfit parameterではなく，
+同じ有限LD Hamiltonianが作るFock分解の異なる統計量として
+\begin{equation}
+ \boxed{
+ \begin{aligned}
+  h_{XX}
+  &\longleftarrow
+  \text{Fock依存位相の平均},\\
+  \gamma_{XX}
+  &\longleftarrow
+  \text{Fock依存位相の分散},\\
+  \gamma_{\mathrm{col}}
+  &\longleftarrow
+  \text{Fock依存の残留軌道リーク}
+ \end{aligned}
+ }
+ \label{eq:unified_picture}
+\end{equation}
+と統一的に理解できる．
+
+単一のパルス面積またはdetuning較正で除去できるのは平均角ずれ
+$h_{XX}$だけである．$\gamma_{XX}$と$\gamma_{\mathrm{col}}$は
+熱分布による混合および残留スピン運動絡み合いに由来するため，
+単一のユニタリ較正後にも誤差床として残る．したがって，
+「平均MS回転角を較正しても有限温度誤差は消えず，確率的$XX$成分と
+集団$X$成分へ分離される」という結論が得られる．
+
+\section{適用範囲と残された課題}
+
+本解析で使用した$B$は，第一側帯波演算子を$O(\eta^2)$まで保持した
+Hamiltonianである．そのHamiltonian自体は数値的に厳密時間発展
+させているが，光学相互作用の全次数表式ではない．また，現時点では
+次の二点を解析的に完全には取り込んでいない．
+\begin{enumerate}
+ \item $n$にほぼ依存しない強駆動・高次Magnus由来の回転角オフセット．
+ \item 第三Magnus項より高次の小さなFock leakage補正．
+\end{enumerate}
+したがって本結果は「全次数の厳密解」ではなく，
+\begin{quote}
+ $n=0$の一点較正を施した第二Magnus予測と第三Magnus予測が，
+ full numerical evolutionおよびQPTから得た三成分を
+ $\bar n\leq4$で約$3.1\%$以内に説明する
+\end{quote}
+と位置付けるのが適切である．
+
+\section*{対応する実装と数値データ}
+
+\begin{itemize}
+ \item \texttt{ms\_gate\_functions.py}: 有限LD Hamiltonian．
+ \item \texttt{phonon\_xx\_angle\_analysis.py}:
+       $c_n$, $Z$, $C$と三係数の抽出．
+ \item \texttt{noise\_error\_structure.py}:
+       QPT generatorの基底規約．
+ \item \texttt{results/noise\_rate\_nbar\_sweep/noise\_free\_diagnostics/}\\
+       \texttt{fock\_resolved/fock\_resolved\_curve.csv}:
+       Fock分解データ．
+ \item \texttt{results/noise\_rate\_nbar\_sweep/noise\_free\_diagnostics/}\\
+       \texttt{fock\_resolved/fock\_thermal\_summary.csv}:
+       熱平均結果．
+\end{itemize}
+
+\end{document}

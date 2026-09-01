@@ -1,0 +1,52 @@
+{
+  "analysis": "motional_dephasing_dyson_frechet_taylor_convergence",
+  "base_parameters": {
+    "A": 0.125,
+    "T2_star": 0.3,
+    "delta": 0.5,
+    "dephasing_rate_phys": 18.0,
+    "eta": 0.1,
+    "heating_rate_phys": 10.0,
+    "laser_detuning_fluctuation": 0.0,
+    "laser_intensity_fluctuation": 0.0,
+    "laser_noise_samples": 1,
+    "laser_noise_seed": 1234,
+    "laser_rotation_angle_fluctuation": 0.0,
+    "raman_rate_phys": 1.0,
+    "rayleigh_rate_phys": 3.0,
+    "rho0": 0.0,
+    "t_gate_phys": 0.0001,
+    "time_points": 500,
+    "use_full_order": true
+  },
+  "nbar_values": [
+    0.01,
+    1.0,
+    2.0,
+    3.0,
+    4.0
+  ],
+  "nominal_rate_s^-1": 18.0,
+  "other_explicit_rates_s^-1": 0.0,
+  "parallel_workers": 8,
+  "polynomial_degrees": [
+    2,
+    3,
+    4
+  ],
+  "qpt_batch_size": 1,
+  "show_progress": true,
+  "training_multipliers": [
+    0.0
+  ],
+  "validation_multipliers": [
+    0.05,
+    0.1,
+    0.15000000000000002,
+    0.2,
+    0.30000000000000004,
+    0.4,
+    0.6000000000000001,
+    0.8
+  ]
+}

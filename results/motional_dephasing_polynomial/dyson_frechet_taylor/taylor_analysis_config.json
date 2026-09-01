@@ -1,0 +1,63 @@
+{
+  "analysis": "motional_dephasing_dyson_frechet_taylor_convergence",
+  "coefficient_rtol": 0.05,
+  "fit_degree": 4,
+  "key_modes": [
+    [
+      "H",
+      "XX"
+    ],
+    [
+      "S",
+      "IX"
+    ],
+    [
+      "C",
+      "IX,XI"
+    ],
+    [
+      "S",
+      "XX"
+    ]
+  ],
+  "nbar_values": [
+    0.01,
+    1.0,
+    2.0,
+    3.0,
+    4.0
+  ],
+  "near_zero_multipliers": [
+    0.05,
+    0.1,
+    0.15000000000000002,
+    0.2,
+    0.30000000000000004,
+    0.4,
+    0.6000000000000001,
+    0.8
+  ],
+  "nominal_rate_s^-1": 18.0,
+  "output_dir": "results/motional_dephasing_polynomial/dyson_frechet_taylor",
+  "parallel_workers": 8,
+  "qpt_batch_size": 1,
+  "refinement_ratio": 2.0,
+  "show_progress": true,
+  "stencil_multiples": [
+    1.0,
+    2.0,
+    3.0,
+    4.0
+  ],
+  "step_sizes": [
+    0.2,
+    0.1,
+    0.05
+  ],
+  "training_cache": "results/error_generator_rate_nbar/top3_pairwise_generator",
+  "truncation_degrees": [
+    2,
+    3,
+    4
+  ]
+}
