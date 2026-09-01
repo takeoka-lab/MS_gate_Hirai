@@ -1,6 +1,6 @@
 question,criterion,value,supported
 角度較正は収束したか,全点で |h_XX| <= 0.002,True,True
-h_XX は強く除去されたか,median reduction >= 10,167.42473410496015,True
-角度較正後の infidelity floor は残るか,median remaining fraction >= 0.5,0.8019612404698504,True
-三成分 model は全点で十分か,max residual fraction <= 0.25,0.27655507054750494,False
-collective-X の係数閉包は全点で良いか,max relative spread <= 0.25,0.04514201785108597,True
+h_XX は強く除去されたか,median reduction >= 10,167.42473410495865,True
+角度較正後の infidelity floor は残るか,median remaining fraction >= 0.5,0.8019612404699189,True
+三成分 model は全点で十分か,max residual fraction <= 0.25,0.2765550705475806,False
+collective-X の係数閉包は全点で良いか,max relative spread <= 0.25,0.045142017850884994,True
