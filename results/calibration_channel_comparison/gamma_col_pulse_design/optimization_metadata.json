@@ -1,0 +1,12 @@
+{
+  "optimizer_success": false,
+  "optimizer_message": "Maximum number of iterations has been exceeded.",
+  "optimizer_cost": 0.0005191333779962144,
+  "workers": 8,
+  "control_points": 7,
+  "max_fock_n": 27,
+  "design_nbars": [
+    4.0
+  ],
+  "qpt_validated": true
+}
