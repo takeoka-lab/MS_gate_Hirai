@@ -1,0 +1,37 @@
+{
+  "analysis": "XX-angle calibration before/after channel comparison",
+  "error_channel_convention": "undo_before_actual",
+  "calibration_protocol": "independent hXX feedback at each n_bar",
+  "n_bar_values": [
+    0.01,
+    1.0,
+    2.0,
+    4.0,
+    6.0,
+    8.0,
+    10.0
+  ],
+  "worker_count": 24,
+  "run_qpt": true,
+  "force_recompute": false,
+  "outputs": [
+    "results/calibration_channel_comparison/channel_before_after_main.pdf",
+    "results/calibration_channel_comparison/channel_before_after_main.png",
+    "results/calibration_channel_comparison/channel_comparison_long.csv",
+    "results/calibration_channel_comparison/channel_comparison_paired.csv",
+    "results/calibration_channel_comparison/chi_before_after_nbar_4p0.pdf",
+    "results/calibration_channel_comparison/chi_before_after_nbar_4p0.png",
+    "results/calibration_channel_comparison/hypothesis_checks.csv",
+    "results/calibration_channel_comparison/projected_chi_before_after.npz",
+    "results/calibration_channel_comparison/three_component_diagnostics.pdf",
+    "results/calibration_channel_comparison/three_component_diagnostics.png",
+    "results/calibration_channel_comparison/three_component_model_diagnostics.csv"
+  ],
+  "operational_thresholds": {
+    "hxx_tolerance_rad_per_gate": 0.002,
+    "model_residual_fraction_max": 0.25,
+    "collective_spread_relative_max": 0.25,
+    "strong_hxx_reduction_factor": 10.0,
+    "infidelity_floor_remaining_min": 0.5
+  }
+}
