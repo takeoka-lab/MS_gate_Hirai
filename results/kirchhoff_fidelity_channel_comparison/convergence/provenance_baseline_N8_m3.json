@@ -1,0 +1,177 @@
+{
+  "settings": {
+    "K": 28.0,
+    "L": 25.0,
+    "eta": 0.18,
+    "gate_duration_seconds": 2.8e-05,
+    "phonon_dim": 8,
+    "sideband_cutoff": 3,
+    "solver": "adaptive_dop853",
+    "relative_tolerance": 1e-09,
+    "absolute_tolerance": 1e-11,
+    "trotter_step_scale": 1.0,
+    "maximum_step_divisor": 20.0
+  },
+  "nbar": 0.02,
+  "sources": {
+    "1068899.4744694775": {
+      "path": "results/chi_error_element_fit/advanced_publication_validation/hxx_drive_amplitude_calibration/kirchhoff_paper_infidelity/propagator_cache/omega_mhz_1p068899474__75c0eaef5b6ef9.npz",
+      "sha256": "8bbeb99b293b9037f56174330778ad4a0dacf50e7b3534af116ce2506d768516",
+      "source_kind": "legacy_exact_parameter_hash",
+      "parameters": {
+        "K": 28.0,
+        "L": 25.0,
+        "eta": 0.18,
+        "gate_duration_seconds": 2.8e-05,
+        "phonon_dim": 8,
+        "sideband_cutoff": 3,
+        "solver": "adaptive_dop853",
+        "relative_tolerance": 1e-09,
+        "absolute_tolerance": 1e-11,
+        "trotter_step_scale": 1.0,
+        "maximum_step_divisor": 20.0,
+        "omega_per_second": 1068899.4744694775,
+        "paper_module_sha256": "e88edcce9b913a16ce5bb2f73fd986f4000c9dab84600a2d9a67cea94e984710"
+      },
+      "solver_metadata": {
+        "absolute_tolerance": 1e-11,
+        "function_evaluations": 26174,
+        "maximum_step": 0.00045871559633027525,
+        "number_of_steps": 2181,
+        "omega_per_second": 1068899.4744694775,
+        "relative_tolerance": 1e-09,
+        "solver": "adaptive_dop853",
+        "unitarity_frobenius_error": 2.5435718202465046e-14,
+        "wall_time_seconds": 14.599645416
+      }
+    },
+    "1089192.4703937843": {
+      "path": "results/chi_error_element_fit/advanced_publication_validation/hxx_drive_amplitude_calibration/kirchhoff_paper_infidelity/propagator_cache/omega_mhz_1p089192470__afb5f707a84049.npz",
+      "sha256": "6162f37d21b3054a40e5e301c7eb68a6af6d2ee82bc4cd6e8df481d2aa331421",
+      "source_kind": "legacy_exact_parameter_hash",
+      "parameters": {
+        "K": 28.0,
+        "L": 25.0,
+        "eta": 0.18,
+        "gate_duration_seconds": 2.8e-05,
+        "phonon_dim": 8,
+        "sideband_cutoff": 3,
+        "solver": "adaptive_dop853",
+        "relative_tolerance": 1e-09,
+        "absolute_tolerance": 1e-11,
+        "trotter_step_scale": 1.0,
+        "maximum_step_divisor": 20.0,
+        "omega_per_second": 1089192.4703937843,
+        "paper_module_sha256": "e88edcce9b913a16ce5bb2f73fd986f4000c9dab84600a2d9a67cea94e984710"
+      },
+      "solver_metadata": {
+        "absolute_tolerance": 1e-11,
+        "function_evaluations": 26174,
+        "maximum_step": 0.00045871559633027525,
+        "number_of_steps": 2181,
+        "omega_per_second": 1089192.4703937843,
+        "relative_tolerance": 1e-09,
+        "solver": "adaptive_dop853",
+        "unitarity_frobenius_error": 2.718705630853427e-14,
+        "wall_time_seconds": 5.632401333999997
+      }
+    },
+    "1090276.8465979532": {
+      "path": "results/kirchhoff_fidelity_channel_comparison/convergence/propagators/09d3368d64fcdda0e2d5.npz",
+      "sha256": "7be32c4f583cf20361ca3aa21fcd5055fb6a297897e10a928051866482536369",
+      "source_kind": "benchmark_cache",
+      "parameters": {
+        "K": 28.0,
+        "L": 25.0,
+        "eta": 0.18,
+        "gate_duration_seconds": 2.8e-05,
+        "phonon_dim": 8,
+        "sideband_cutoff": 3,
+        "solver": "adaptive_dop853",
+        "relative_tolerance": 1e-09,
+        "absolute_tolerance": 1e-11,
+        "trotter_step_scale": 1.0,
+        "maximum_step_divisor": 20.0,
+        "omega_per_second": 1090276.8465979532,
+        "paper_module_sha256": "e88edcce9b913a16ce5bb2f73fd986f4000c9dab84600a2d9a67cea94e984710"
+      },
+      "solver_metadata": {
+        "absolute_tolerance": 1e-11,
+        "function_evaluations": 26174,
+        "maximum_step": 0.00045871559633027525,
+        "number_of_steps": 2181,
+        "parameters": {
+          "K": 28.0,
+          "L": 25.0,
+          "absolute_tolerance": 1e-11,
+          "eta": 0.18,
+          "gate_duration_seconds": 2.8e-05,
+          "maximum_step_divisor": 20.0,
+          "omega_per_second": 1090276.8465979532,
+          "paper_module_sha256": "e88edcce9b913a16ce5bb2f73fd986f4000c9dab84600a2d9a67cea94e984710",
+          "phonon_dim": 8,
+          "relative_tolerance": 1e-09,
+          "sideband_cutoff": 3,
+          "solver": "adaptive_dop853",
+          "trotter_step_scale": 1.0
+        },
+        "relative_tolerance": 1e-09,
+        "solver": "adaptive_dop853",
+        "unitarity_frobenius_error": 2.8486218044437645e-14,
+        "wall_time_seconds": 2.3086015000000017
+      }
+    },
+    "1090969.8104990216": {
+      "path": "results/kirchhoff_fidelity_channel_comparison/convergence/propagators/561815b1e09e99a0dabe.npz",
+      "sha256": "b6e6a38c721726687a9bde585ca1734ef4807e1e82a5f0ef3758405038b5f8c2",
+      "source_kind": "benchmark_cache",
+      "parameters": {
+        "K": 28.0,
+        "L": 25.0,
+        "eta": 0.18,
+        "gate_duration_seconds": 2.8e-05,
+        "phonon_dim": 8,
+        "sideband_cutoff": 3,
+        "solver": "adaptive_dop853",
+        "relative_tolerance": 1e-09,
+        "absolute_tolerance": 1e-11,
+        "trotter_step_scale": 1.0,
+        "maximum_step_divisor": 20.0,
+        "omega_per_second": 1090969.8104990216,
+        "paper_module_sha256": "e88edcce9b913a16ce5bb2f73fd986f4000c9dab84600a2d9a67cea94e984710"
+      },
+      "solver_metadata": {
+        "absolute_tolerance": 1e-11,
+        "function_evaluations": 26174,
+        "maximum_step": 0.00045871559633027525,
+        "number_of_steps": 2181,
+        "parameters": {
+          "K": 28.0,
+          "L": 25.0,
+          "absolute_tolerance": 1e-11,
+          "eta": 0.18,
+          "gate_duration_seconds": 2.8e-05,
+          "maximum_step_divisor": 20.0,
+          "omega_per_second": 1090969.8104990216,
+          "paper_module_sha256": "e88edcce9b913a16ce5bb2f73fd986f4000c9dab84600a2d9a67cea94e984710",
+          "phonon_dim": 8,
+          "relative_tolerance": 1e-09,
+          "sideband_cutoff": 3,
+          "solver": "adaptive_dop853",
+          "trotter_step_scale": 1.0
+        },
+        "relative_tolerance": 1e-09,
+        "solver": "adaptive_dop853",
+        "unitarity_frobenius_error": 2.485542528121876e-14,
+        "wall_time_seconds": 2.179571917000004
+      }
+    }
+  },
+  "module_hashes": {
+    "kirchhoff_channel_benchmark.py": "8fae370c6b832a26322dc9b8ecf90ceb6e755883087a596123a8879eb0411527",
+    "kirchhoff_paper_infidelity.py": "e88edcce9b913a16ce5bb2f73fd986f4000c9dab84600a2d9a67cea94e984710",
+    "drive_amplitude_calibration.py": "558babaeb29f436e981c9b13064f5cacc7dacfbed9ecada679ce0a0069485d7a",
+    "drive_calibration_qpt_analysis.py": "d0f319c802ed655aeab13f73b96b354b2e031029979c49394f3221e4296a2135",
+    "pauli_channel_distance.py": "cc64b19fa7aa8740b93009bdea6f53d5ffed2abf2e743e603b240e932373288d"
+  }
+}

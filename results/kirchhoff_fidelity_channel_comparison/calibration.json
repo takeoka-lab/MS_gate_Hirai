@@ -1,0 +1,33 @@
+{
+  "paper_overlap_opt": {
+    "omega_mhz": 1.0902456109496441,
+    "objective": "paper_average_infidelity",
+    "success": true,
+    "bracket_mhz": [
+      1.0891924703937843,
+      1.0899999999999999,
+      1.0999999999999999
+    ],
+    "nfev": 11
+  },
+  "standard_Favg_opt": {
+    "omega_mhz": 1.0902768465979533,
+    "objective": "standard_average_infidelity",
+    "success": true,
+    "bracket_mhz": [
+      1.0891924703937843,
+      1.0899999999999999,
+      1.0999999999999999
+    ],
+    "nfev": 10
+  },
+  "hXX_zero": {
+    "omega_mhz": 1.0909698104990215,
+    "success": true,
+    "bracket_mhz": [
+      1.0902779402515033,
+      1.09145898025156
+    ],
+    "residual_hXX": 3.3354617274702884e-11
+  }
+}

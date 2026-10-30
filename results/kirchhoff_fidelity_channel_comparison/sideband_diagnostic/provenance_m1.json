@@ -1,0 +1,115 @@
+{
+  "settings": {
+    "K": 28.0,
+    "L": 25.0,
+    "eta": 0.18,
+    "gate_duration_seconds": 2.8e-05,
+    "phonon_dim": 8,
+    "sideband_cutoff": 1,
+    "solver": "adaptive_dop853",
+    "relative_tolerance": 1e-09,
+    "absolute_tolerance": 1e-11,
+    "trotter_step_scale": 1.0,
+    "maximum_step_divisor": 20.0
+  },
+  "nbar": 0.02,
+  "sources": {
+    "1068899.4744694775": {
+      "path": "results/kirchhoff_fidelity_channel_comparison/sideband_diagnostic/propagators/9bdbb8b2a11113587dc6.npz",
+      "sha256": "c692e10e5017e915480a0c95b1b1189844852cf7505b68aa2f5b5cfeaf676967",
+      "source_kind": "new_simulation",
+      "parameters": {
+        "K": 28.0,
+        "L": 25.0,
+        "eta": 0.18,
+        "gate_duration_seconds": 2.8e-05,
+        "phonon_dim": 8,
+        "sideband_cutoff": 1,
+        "solver": "adaptive_dop853",
+        "relative_tolerance": 1e-09,
+        "absolute_tolerance": 1e-11,
+        "trotter_step_scale": 1.0,
+        "maximum_step_divisor": 20.0,
+        "omega_per_second": 1068899.4744694775,
+        "paper_module_sha256": "e88edcce9b913a16ce5bb2f73fd986f4000c9dab84600a2d9a67cea94e984710"
+      },
+      "solver_metadata": {
+        "solver": "adaptive_dop853",
+        "number_of_steps": 1061,
+        "function_evaluations": 12734,
+        "relative_tolerance": 1e-09,
+        "absolute_tolerance": 1e-11,
+        "maximum_step": 0.0009433962264150943,
+        "unitarity_frobenius_error": 7.360181608182316e-12,
+        "wall_time_seconds": 1.0711347089999999,
+        "parameters": {
+          "K": 28.0,
+          "L": 25.0,
+          "eta": 0.18,
+          "gate_duration_seconds": 2.8e-05,
+          "phonon_dim": 8,
+          "sideband_cutoff": 1,
+          "solver": "adaptive_dop853",
+          "relative_tolerance": 1e-09,
+          "absolute_tolerance": 1e-11,
+          "trotter_step_scale": 1.0,
+          "maximum_step_divisor": 20.0,
+          "omega_per_second": 1068899.4744694775,
+          "paper_module_sha256": "e88edcce9b913a16ce5bb2f73fd986f4000c9dab84600a2d9a67cea94e984710"
+        }
+      }
+    },
+    "1089192.4703937843": {
+      "path": "results/kirchhoff_fidelity_channel_comparison/sideband_diagnostic/propagators/9769479815849a1ec3c0.npz",
+      "sha256": "e7cd119346cd740ae2d4c9024122d398c5611d5e227738fd7c77b5a9a0bec993",
+      "source_kind": "new_simulation",
+      "parameters": {
+        "K": 28.0,
+        "L": 25.0,
+        "eta": 0.18,
+        "gate_duration_seconds": 2.8e-05,
+        "phonon_dim": 8,
+        "sideband_cutoff": 1,
+        "solver": "adaptive_dop853",
+        "relative_tolerance": 1e-09,
+        "absolute_tolerance": 1e-11,
+        "trotter_step_scale": 1.0,
+        "maximum_step_divisor": 20.0,
+        "omega_per_second": 1089192.4703937843,
+        "paper_module_sha256": "e88edcce9b913a16ce5bb2f73fd986f4000c9dab84600a2d9a67cea94e984710"
+      },
+      "solver_metadata": {
+        "solver": "adaptive_dop853",
+        "number_of_steps": 1061,
+        "function_evaluations": 12734,
+        "relative_tolerance": 1e-09,
+        "absolute_tolerance": 1e-11,
+        "maximum_step": 0.0009433962264150943,
+        "unitarity_frobenius_error": 7.802316263418066e-12,
+        "wall_time_seconds": 1.0070830829999995,
+        "parameters": {
+          "K": 28.0,
+          "L": 25.0,
+          "eta": 0.18,
+          "gate_duration_seconds": 2.8e-05,
+          "phonon_dim": 8,
+          "sideband_cutoff": 1,
+          "solver": "adaptive_dop853",
+          "relative_tolerance": 1e-09,
+          "absolute_tolerance": 1e-11,
+          "trotter_step_scale": 1.0,
+          "maximum_step_divisor": 20.0,
+          "omega_per_second": 1089192.4703937843,
+          "paper_module_sha256": "e88edcce9b913a16ce5bb2f73fd986f4000c9dab84600a2d9a67cea94e984710"
+        }
+      }
+    }
+  },
+  "module_hashes": {
+    "kirchhoff_channel_benchmark.py": "db58f65133570a57d88165727fa784bb0448163fb365cb98d78949f2e20d3dad",
+    "kirchhoff_paper_infidelity.py": "e88edcce9b913a16ce5bb2f73fd986f4000c9dab84600a2d9a67cea94e984710",
+    "drive_amplitude_calibration.py": "558babaeb29f436e981c9b13064f5cacc7dacfbed9ecada679ce0a0069485d7a",
+    "drive_calibration_qpt_analysis.py": "d0f319c802ed655aeab13f73b96b354b2e031029979c49394f3221e4296a2135",
+    "pauli_channel_distance.py": "cc64b19fa7aa8740b93009bdea6f53d5ffed2abf2e743e603b240e932373288d"
+  }
+}

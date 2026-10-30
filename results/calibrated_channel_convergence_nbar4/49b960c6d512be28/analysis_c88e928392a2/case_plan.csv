@@ -1,0 +1,10 @@
+case_id,axis,level,phonon_dim,coefficient_points,output_points,atol,rtol,method,nsteps,max_step,normalize_output,thermal_tail_initial
+baseline,baseline,0,67,500,500,1e-12,1e-09,adams,100000,0.0,False,3.2138760885179925e-07
+cutoff_plus16,cutoff,1,83,500,500,1e-12,1e-09,adams,100000,0.0,False,9.04625697166537e-09
+cutoff_plus32,cutoff,2,99,500,500,1e-12,1e-09,adams,100000,0.0,False,2.5462949704181216e-10
+grid_1000,coefficient_grid,1,67,1000,500,1e-12,1e-09,adams,100000,0.0,False,3.2138760885179925e-07
+grid_2000,coefficient_grid,2,67,2000,500,1e-12,1e-09,adams,100000,0.0,False,3.2138760885179925e-07
+ode_tight,ode,1,67,500,500,1e-13,1e-10,adams,100000,0.0,False,3.2138760885179925e-07
+ode_tighter,ode,2,67,500,500,1e-14,1e-11,adams,100000,0.0,False,3.2138760885179925e-07
+joint_ref,joint,1,99,2000,500,1e-14,1e-11,adams,100000,0.0,False,2.5462949704181216e-10
+joint_check,joint,2,115,4000,500,1e-14,1e-11,adams,100000,0.012566370614359173,False,7.167183174969019e-12

@@ -1,0 +1,49 @@
+{
+  "n_bar_values": [
+    0.01,
+    1.0,
+    2.0,
+    3.0,
+    4.0
+  ],
+  "method": "Exact saved channels plus new hXX-feedback QPT at nbar=3; no interpolation",
+  "new_simulation_params": {
+    "A": 0.125,
+    "delta": 0.5,
+    "rho0": 0.0,
+    "time_points": 500,
+    "t_gate_phys": 0.0001,
+    "heating_rate_phys": 10.0,
+    "dephasing_rate_phys": 18.0,
+    "T2_star": 0.3,
+    "rayleigh_rate_phys": 3.0,
+    "raman_rate_phys": 1.0,
+    "eta": 0.1,
+    "laser_intensity_fluctuation": 0.0,
+    "laser_detuning_fluctuation": 0.0,
+    "laser_rotation_angle_fluctuation": 0.0,
+    "laser_noise_samples": 1,
+    "laser_noise_seed": 1234,
+    "use_full_order": true,
+    "show_progress": false,
+    "parallel_workers": 4
+  },
+  "hxx_tolerance": 0.002,
+  "nbar3_history": [
+    {
+      "iteration": 1,
+      "A": 0.1299216499343479,
+      "A_factor": 1.0393731994747832,
+      "h_XX_rad_per_gate": 0.00039017042761917327,
+      "source_path": "results/pauli_twirl_channel_distance/inputs/hxx_feedback_nbar_3_i01_e446bdbea2f0.npz",
+      "cache_sha256": "f7489fa18f3bc7a938fa8bf8adf369a27a710e19e4892089a87058ce77ba2d6a"
+    }
+  ],
+  "source_hashes": {
+    "results/calibration_channel_comparison/projected_chi_before_after.npz": "9fff57c19fa4aaabe5dedcc6132a3c81ff88d415a228d9fba5a9dc8fba6a3b3d",
+    "results/calibration_channel_comparison/post_gate_noise_chi_before_after.npz": "24457adabd942d8ca80811057a528f448d159df6688e75385a1fd518f2676c9d",
+    "results/calibration_channel_comparison/channel_comparison_long.csv": "47fa5c5b4463c2deab2f2277d546e624c646a0bb2328ca2d29737dfb7da04dc2",
+    "results/chi_error_element_fit/exact_full_chi/error_chi_nbar_3p0.npz": "b7b8165d03945a49d12d517f34cb1a598522b1dee04d38d9aa99239df5fc3c3b",
+    "prepare_pauli_distance_inputs.py": "64643620efa134667ff22871c8e3940564a45bea0eca9dd47fe31902a9bb018b"
+  }
+}

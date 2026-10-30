@@ -1,0 +1,40 @@
+{
+  "source_raw": "/Users/hirainoa/Desktop/量子/project/Moon_shot__高橋PJ/MS_gate_Hirai/results/calibration_channel_comparison/post_gate_noise_chi_before_after.npz",
+  "source_projected": "/Users/hirainoa/Desktop/量子/project/Moon_shot__高橋PJ/MS_gate_Hirai/results/calibration_channel_comparison/projected_chi_before_after.npz",
+  "convention": "N_post = S_noisy @ inverse(S_ideal)",
+  "interpretation": "Saved-channel postprocessing only; not QEC or a new converged dynamical simulation.",
+  "diagnostics": [
+    {
+      "nbar": 0.01,
+      "chi_trace_real": 1.0,
+      "chi_hermiticity_fro": 6.727546687599567e-17,
+      "min_chi_eigenvalue": 3.406675269206163e-08,
+      "direct_pauli_tp_fro": 2.454257495692496e-07,
+      "raw_to_projected_chi_fro": 1.4431971643539192e-15
+    },
+    {
+      "nbar": 1.0,
+      "chi_trace_real": 1.0000000000000002,
+      "chi_hermiticity_fro": 4.8076363449001325e-17,
+      "min_chi_eigenvalue": 4.044424719339449e-08,
+      "direct_pauli_tp_fro": 5.0753097832133174e-08,
+      "raw_to_projected_chi_fro": 1.1673701503819872e-15
+    },
+    {
+      "nbar": 2.0,
+      "chi_trace_real": 1.0,
+      "chi_hermiticity_fro": 8.554947654256647e-17,
+      "min_chi_eigenvalue": 2.2718254140479058e-08,
+      "direct_pauli_tp_fro": 1.7074172476894467e-07,
+      "raw_to_projected_chi_fro": 6.310451307155811e-16
+    },
+    {
+      "nbar": 4.0,
+      "chi_trace_real": 1.0,
+      "chi_hermiticity_fro": 1.0151287248987158e-16,
+      "min_chi_eigenvalue": -3.900013755511201e-13,
+      "direct_pauli_tp_fro": 2.816402158092818e-07,
+      "raw_to_projected_chi_fro": 4.519516038156323e-10
+    }
+  ]
+}

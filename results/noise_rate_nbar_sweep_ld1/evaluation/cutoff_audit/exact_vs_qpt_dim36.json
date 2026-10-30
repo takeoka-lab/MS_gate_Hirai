@@ -1,0 +1,8 @@
+{
+  "nbar": 2,
+  "phonon_dim": 36,
+  "superoperator_frobenius_error": 0.00011730480497203749,
+  "max_entry_difference": 2.0792086954046773e-05,
+  "exact_min_choi_eigenvalue": -3.0481769935609383e-16,
+  "exact_infidelity_unitary": 8.180735476037704e-06
+}

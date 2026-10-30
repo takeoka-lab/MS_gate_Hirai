@@ -1,0 +1,5 @@
+noise_source,heating_rate_s-1,motional_dephasing_rate_s-1,spin_dephasing_rate_s-1,rayleigh_rate_s-1,raman_rate_s-1
+motional_heating,10.0,0.0,0.0,0.0,0.0
+motional_dephasing,0.0,18.0,0.0,0.0,0.0
+spin_dephasing,0.0,0.0,3.3333333333333335,0.0,0.0
+photon_scattering,0.0,0.0,0.0,3.0,1.0

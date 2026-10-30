@@ -1,0 +1,6 @@
+panel,quantity,condition,nbar,value,unit
+a,abs(h_XX),before,4,0.0727,rad/gate
+a,abs(h_XX),after,4,0.000434,rad/gate
+b,Im(chi_II_XX),after,4,0.000427,dimensionless
+b,Re(chi_II_XX),after,4,-0.00276,dimensionless
+b,Re(chi_IX_XI),after,4,0.00276,dimensionless

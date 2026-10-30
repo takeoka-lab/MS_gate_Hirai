@@ -1,0 +1,9 @@
+{
+  "complete_sweep_rows_per_model": 100,
+  "ld1_no_noise_max_infidelity": 8.146405913955768e-06,
+  "ld1_no_noise_min_raw_infidelity": -1.0093403890465424e-08,
+  "no_md_minus_no_noise_range": 9.74222297974673e-08,
+  "thermal_growth_removed_by_switching_off_md_fraction": 0.9993257548095622,
+  "md_first_order_theory_max_relative_difference": 0.01370168060136312,
+  "all_noise_first_order_theory_max_relative_difference": 0.009900117760217486
+}

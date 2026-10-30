@@ -1,0 +1,429 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[margin=23mm]{geometry}
+\usepackage{amsmath,amssymb,bm,booktabs}
+\usepackage[hidelinks]{hyperref}
+\newcommand{\ii}{\mathrm{i}}
+\newcommand{\Tr}{\operatorname{Tr}}
+\newcommand{\ket}[1]{\lvert #1\rangle}
+\newcommand{\bra}[1]{\langle #1\rvert}
+\newcommand{\Diss}{\mathcal D}
+\newcommand{\Ham}{\mathcal H}
+\newcommand{\id}{\mathcal I}
+\setlength{\parskip}{0.25em}
+\setlength{\parindent}{1em}
+\allowdisplaybreaks
+
+% Working Methods draft, 2026-10-04.
+% The body between BEGIN/END METHODS can be copied into the manuscript.
+% Current scope: single-mode first-sideband model, rectangular-pulse
+% amplitude feedback, Fock-resolved diagnostics, and Pauli-channel distances.
+% Source mapping and checks still needed are in methods_draft_notes.md.
+
+\begin{document}
+\setcounter{section}{1}
+% BEGIN METHODS
+\section{Methods}
+\label{sec:methods}
+
+We characterize the errors of a two-ion M{\o}lmer--S{\o}rensen (MS) gate
+by reconstructing its reduced two-qubit channel from master-equation
+simulations. The ideal gate is factored out before analyzing the process
+matrix and its logarithmic error generator. We then calibrate the drive
+amplitude, repeat the channel reconstruction, and compare the remaining
+noise with its Pauli-twirled approximation. A separate calculation resolved
+by the initial motional Fock state is used to identify the contribution of
+thermal motion to the error structure.
+
+\subsection{Effective spin--motion Hamiltonian}
+\label{subsec:hamiltonian}
+
+We consider two qubits coupled to a single collective motional mode.
+Let $a$ and $a^\dagger$ be its ladder operators, $N=a^\dagger a$, and
+$S_x=X\otimes I+I\otimes X$. With a fixed spin phase, the effective
+interaction-picture Hamiltonian is
+\begin{equation}
+ H(t)=\hbar A(t)S_x\otimes
+ \left[B e^{-\ii\Phi(t)}+B^\dagger e^{\ii\Phi(t)}\right],
+ \qquad \Phi(t)=\int_0^t\delta(t')\,dt',
+ \label{eq:methods_hamiltonian}
+\end{equation}
+where $A(t)$ is the effective sideband coupling in angular-frequency units
+and $\delta(t)$ is the detuning from the motional sideband. The leading
+Lamb--Dicke factor is already absorbed into $A(t)$. To retain the leading
+relative correction to the first-sideband coupling, we use
+\begin{equation}
+ B=a-\frac{\eta^2}{2}(N+1)a
+   =a\left(1-\frac{\eta^2}{2}N\right),
+ \qquad
+ B\ket{n}=\sqrt n\left(1-\frac{\eta^2 n}{2}\right)\ket{n-1},
+ \label{eq:methods_B}
+\end{equation}
+where $\eta$ is the Lamb--Dicke parameter. Thus the model retains an
+$O(\eta^2)$ correction relative to the linear force. It does not include
+the full optical interaction to all orders or additional motional
+sidebands. The leading-order reference model is obtained by setting
+$B=a$ at the same effective coupling.
+
+For the baseline rectangular pulse, $A(t)=A_0$ and $\delta(t)=\delta>0$,
+with $T=2\pi/\delta$. In the leading-order model and in the absence of
+dissipation, the motional trajectory closes at $T$, giving, up to a global
+phase,
+\begin{equation}
+ U_{\mathrm{LD}}(T)=\exp(\ii\phi_{\mathrm{LD}}XX),
+ \qquad \phi_{\mathrm{LD}}=4\pi(A_0/\delta)^2,
+ \qquad XX=X\otimes X.
+\end{equation}
+We choose $A_0/\delta=1/4$ and define the target operation as
+$U_\star=\exp(\ii\phi_\star XX)$ with $\phi_\star=\pi/4$.
+All rotation-angle coefficients below use this convention, without a
+factor of $1/2$ in the exponent.
+
+\subsection{Initial state and dissipative dynamics}
+\label{subsec:master_equation}
+
+The spin and motion are initially uncorrelated. For each input spin state
+$\rho$, we initialize the motion in a thermal state,
+\begin{equation}
+ \varrho(0)=\rho\otimes\rho_{\mathrm{th}}(\bar n),\qquad
+ \rho_{\mathrm{th}}(\bar n)=\sum_{n=0}^{\infty}p_n\ket n\bra n,
+ \qquad p_n=\frac{\bar n^n}{(1+\bar n)^{n+1}}.
+ \label{eq:methods_thermal}
+\end{equation}
+The $\bar n=0$ case is understood as the motional ground state.
+The joint density operator evolves according to
+\begin{align}
+ \dot\varrho={}&-\frac{\ii}{\hbar}[H(t),\varrho]
+ +\Gamma_{\mathrm h}\bigl(\Diss[a]+\Diss[a^\dagger]\bigr)(\varrho)
+ +\Gamma_{\mathrm m}\Diss[N](\varrho) \nonumber\\
+ &+\sum_{j=1}^2\left[
+ \left(\frac{\Gamma_{\mathrm s}}{2}+\Gamma_{\mathrm{Ray}}\right)
+       \Diss[Z_j]
+ +\frac{\Gamma_{\mathrm{Ram}}}{2}
+       \bigl(\Diss[\sigma_j^+]+\Diss[\sigma_j^-]\bigr)
+ \right](\varrho),
+ \label{eq:methods_master}
+\end{align}
+where
+\begin{equation}
+ \Diss[L](\varrho)=L\varrho L^\dagger
+   -\frac12\{L^\dagger L,\varrho\}.
+\end{equation}
+Identity operators on unaffected subsystems are implicit.
+Here $\Gamma_{\mathrm h}$ describes motional diffusion, with
+$d\langle N\rangle/dt=\Gamma_{\mathrm h}$ for this dissipator alone in
+an untruncated oscillator; $\Gamma_{\mathrm m}$ describes motional
+dephasing; and $\Gamma_{\mathrm s}=1/T_2^*$ describes independent spin
+dephasing. Rayleigh and Raman scattering are represented by effective
+two-level dephasing and symmetric spin-flip terms, respectively. Leakage
+out of the qubit subspace is not included.
+
+The initial occupation $\bar n$ and the dynamical noise rates are
+independent model parameters. In particular, an initially thermal mode
+does not imply that the heating terms describe equilibration with a bath
+at the same temperature. The baseline comparison has no additional
+quasi-static fluctuations of the drive amplitude, detuning, or spin phase.
+
+\subsection{Channel reconstruction and removal of the ideal gate}
+\label{subsec:channel_reconstruction}
+
+We reconstruct the physical two-qubit channel
+$\mathcal G(\rho)=\Tr_{\mathrm m}[\varrho(T)]$
+using numerical quantum process tomography~\cite{QPT}. The input set
+contains the 16 tensor products of the four single-qubit states
+$\ket0\bra0$, $\ket1\bra1$, $\ket+\bra+$, and
+$\ket{+\ii}\bra{+\ii}$, where
+$\ket+=(\ket0+\ket1)/\sqrt2$ and
+$\ket{+\ii}=(\ket0+\ii\ket1)/\sqrt2$.
+The same initial thermal state and dynamical parameters are used for
+every input. If $M_{\mathrm{in}}$ and $M_{\mathrm{out}}$ contain the
+column-vectorized input and output density matrices, respectively, the
+superoperator is $S_{\mathcal G}=M_{\mathrm{out}}M_{\mathrm{in}}^{-1}$.
+This reconstruction uses the simulated density matrices directly and
+does not include measurement sampling or state-preparation errors.
+
+We define the post-gate noise channel by
+\begin{equation}
+ \mathcal E=\mathcal G\circ\mathcal U_\star^{-1},
+ \qquad \mathcal G=\mathcal E\circ\mathcal U_\star,
+ \qquad \mathcal U_\star(\rho)=U_\star\rho U_\star^\dagger.
+ \label{eq:methods_postgate}
+\end{equation}
+Thus the noise is placed after the ideal gate. All subsequent error
+matrices refer to $\mathcal E$, whose ideal limit is the identity channel.
+Using the standard two-qubit Pauli operators
+$P_\mu\in\{I,X,Y,Z\}^{\otimes2}$, ordered as
+$II,IX,IY,IZ,XI,\ldots,ZZ$, we write
+\begin{equation}
+ \mathcal E(\rho)=\sum_{\mu,\nu=0}^{15}
+       \chi_{\mu\nu}P_\mu\rho P_\nu^\dagger,
+ \qquad
+ R_{\mu\nu}=\frac14\Tr\!\left[P_\mu^\dagger\mathcal E(P_\nu)\right].
+ \label{eq:methods_representations}
+\end{equation}
+Our normalization is $\Tr(P_\mu^\dagger P_\nu)=4\delta_{\mu\nu}$
+and $\Tr\chi=1$ for a trace-preserving channel. Complete positivity and
+trace preservation are checked using the Choi matrix
+$J(\mathcal E)=\sum_{i,j}\ket i\bra j\otimes\mathcal E(\ket i\bra j)$,
+which must satisfy $J\succeq0$ and $\Tr_{\mathrm{out}}J=I_4$.
+Trace normalization of $\chi$ alone is not used as a physicality test.
+
+For generator extraction and channel-distance calculations, we project
+the reconstructed Choi matrix onto these two constraints in Frobenius
+norm using Dykstra's alternating-projection algorithm. The unprojected
+matrices are retained to assess the effect of this numerical correction.
+
+\subsection{Error-generator decomposition}
+\label{subsec:error_generator}
+
+The effective error generator per gate is represented by the principal
+matrix logarithm $K=\log R$. We record the imaginary remainder and the
+reconstruction residual $\|e^K-R\|_F$. This finite-gate representation
+does not assume that the reduced spin dynamics forms a time-homogeneous
+Lindblad semigroup.
+
+To distinguish Hamiltonian and non-Hamiltonian components, we use the
+complete elementary-generator basis of Ref.~\cite{Markovian_Errors}.
+For nonidentity Pauli operators $P,Q$, the convention is
+\begin{align}
+ \Ham_P(\rho)&=-\ii[P,\rho], &
+ \mathcal S_P(\rho)&=P\rho P-\rho,\\
+ \mathcal C_{P,Q}(\rho)&=P\rho Q+Q\rho P
+            -\tfrac12\{PQ+QP,\rho\},\\
+ \mathcal A_{P,Q}(\rho)&=\ii\left(P\rho Q-Q\rho P
+            +\tfrac12\{[P,Q],\rho\}\right).
+\end{align}
+Their PTM representations span the 240-dimensional space of
+trace-preserving, Hermiticity-preserving two-qubit generators. We obtain
+the coefficients by linear least squares in
+\begin{equation}
+ \mathcal K=\sum_{P\ne II}h_P\Ham_P
+     +\sum_{P\ne II}s_P\mathcal S_P
+     +\sum_{P<Q}\left(c_{P,Q}\mathcal C_{P,Q}
+                      +a_{P,Q}\mathcal A_{P,Q}\right).
+ \label{eq:methods_full_generator}
+\end{equation}
+These are signed decomposition coefficients; they are not independently
+constrained to be positive Lindblad rates.
+
+We also examine a reduced three-component description,
+\begin{equation}
+ \mathcal K_3=h_{XX}\Ham_{XX}
+           +\gamma_{XX}\Diss[XX]
+           +\gamma_{\mathrm{col}}\Diss[S_x].
+ \label{eq:methods_reduced_generator}
+\end{equation}
+The Hamiltonian contribution is obtained from the antisymmetric part of
+$K$; the two dissipative coefficients are fitted to the remaining
+symmetric part by nonnegative least squares. We report the reconstruction
+residual rather than assuming that this reduced model exhausts the
+channel. Its fitted $\gamma_{XX}$ and $\gamma_{\mathrm{col}}$ are
+distinguished from the coefficients of the complete decomposition.
+In particular,
+$\Diss[S_x]=\mathcal S_{XI}+\mathcal S_{IX}+\mathcal C_{XI,IX}$,
+so a collective $X$ contribution includes a cross term absent from a
+model containing only independent $XI$ and $IX$ jumps.
+
+\subsection{Drive-amplitude calibration}
+\label{subsec:amplitude_calibration}
+
+For amplitude feedback, the Hamiltonian coefficients are extracted by
+least-squares projection of $(K-K^{\mathsf T})/2$ onto the Pauli
+Hamiltonian generators. With our target-gate convention, a pure angle
+error $U_{\mathrm{actual}}=\exp[\ii(\phi_\star-\epsilon)XX]$
+gives $h_{XX}=\epsilon$; positive $h_{XX}$ therefore denotes
+underrotation. Guided by the leading-order scaling
+$\phi\propto A^2$, we update the rectangular-pulse amplitude as
+\begin{equation}
+ A_{k+1}=A_k
+ \sqrt{\frac{\phi_\star}{\phi_\star-h_{XX}^{(k)}}}.
+ \label{eq:methods_calibration}
+\end{equation}
+The update is used on the branch $\phi_\star-h_{XX}^{(k)}>0$.
+After each update, the master equation and all 16 tomography inputs are
+recomputed. Consequently, the calibrated channel includes changes in
+both its coherent and nonunitary components. The quadratic relation is
+an update estimate, not an exact expression for the corrected dynamics.
+
+Calibration is performed independently at each $\bar n$, holding the
+detuning, gate duration, and dissipative rates fixed. In particular, the
+scattering rates are held fixed in this baseline comparison. The feedback
+target is $|h_{XX}|<2\times10^{-3}$, with at most two updates in the
+baseline protocol. The achieved residual is retained for every condition.
+% AUTHOR CHECK: Keep the protocol aligned with the final figure dataset.
+% The current five-point before/after data use one update at each nbar.
+
+\subsection{Fock-state-resolved analysis of thermal errors}
+\label{subsec:fock_analysis}
+
+To isolate the Hamiltonian contribution of thermal motion, we set all
+explicit dissipative rates to zero and replace the thermal initial state
+by individual Fock states. Since $H(t)$ commutes with $S_x$, the unitary
+propagator has the conditional form
+\begin{equation}
+ U(T)=\sum_{s\in\{-2,0,2\}}\Pi_s\otimes U_s(T),
+ \qquad
+ H_s(t)=\hbar sA(t)
+   \left[B e^{-\ii\Phi(t)}+B^\dagger e^{\ii\Phi(t)}\right],
+\end{equation}
+where $\Pi_s$ projects onto a collective-spin eigenspace.
+The $s=0$ branch is stationary in this interaction picture. We calculate
+the overlap between the $s=2$ and $s=0$ motional branches,
+\begin{equation}
+ c_n=\bra n U_2(T)\ket n=r_n e^{2\ii\theta_n}.
+ \label{eq:methods_fock_coherence}
+\end{equation}
+The phase, unwrapped across $n$, defines the effective Fock-conditioned
+$XX$ angle $\theta_n$. The magnitude $r_n$ measures the loss of spin
+coherence caused by distinguishable conditional motional states. For a
+coherent superposition of the two spin branches and a pure Fock input,
+$r_n<1$ signals residual spin--motion entanglement.
+
+Using the thermal probabilities in Eq.~\eqref{eq:methods_thermal}, we
+evaluate
+\begin{align}
+ \bar\theta&=\sum_n p_n\theta_n,
+ &\sigma_\theta^2&=\sum_n p_n(\theta_n-\bar\theta)^2,\\
+ Z&=\sum_n p_n e^{2\ii\theta_n},
+ &C&=\sum_n p_n c_n.
+\end{align}
+The phase-only quantity $Z$ isolates angular dispersion, whereas $C$
+also contains residual motional distinguishability. Useful diagnostics
+are $h_{XX}^{\mathrm{Fock}}=\phi_\star-\tfrac12\arg C$ and
+$\gamma_{\mathrm{phase}}=-\tfrac12\log|Z|$, with the angular branch
+chosen continuously near the target. For a narrow angular distribution,
+$\gamma_{\mathrm{phase}}\simeq\sigma_\theta^2$.
+These diagnostics are compared with the reconstructed generators; a
+single branch overlap is not assumed to determine the entire two-qubit
+channel. In particular, a collective dissipative interpretation is
+assessed using the complete generator and the residual of
+Eq.~\eqref{eq:methods_reduced_generator}.
+
+\subsection{Comparison with the Pauli-twirled channel}
+\label{subsec:pauli_comparison}
+
+For each channel before and after calibration, we construct its own
+Pauli-twirled approximation,
+\begin{equation}
+ \mathcal T(\mathcal E)(\rho)
+ =\frac1{16}\sum_{P\in\{I,X,Y,Z\}^{\otimes2}}
+   P^\dagger\mathcal E(P\rho P^\dagger)P
+ =\sum_\mu\chi_{\mu\mu}P_\mu\rho P_\mu^\dagger.
+ \label{eq:methods_twirl}
+\end{equation}
+Thus $\chi_{\mathrm P}=\operatorname{diag}(\chi)$ and
+$R_{\mathrm P}=\operatorname{diag}(R)$. Twirling is applied to the
+channel, not to its logarithmic generator. The average gate infidelity
+relative to $U_\star$ is
+\begin{equation}
+ r=1-F_{\mathrm{avg}}(\mathcal G,\mathcal U_\star)
+   =\frac45(1-\chi_{II,II}).
+\end{equation}
+It is unchanged by Pauli twirling and therefore cannot quantify the
+accuracy of that approximation.
+
+We instead evaluate the diamond distance
+\begin{equation}
+ \epsilon_{\mathrm P}
+   =\frac12\|\mathcal E-\mathcal T(\mathcal E)\|_\diamond,
+ \label{eq:methods_diamond}
+\end{equation}
+using primal and dual semidefinite programs~\cite{WatrousDiamond} and
+retaining their numerical bounds and gap. As complementary diagnostics,
+we report
+\begin{equation}
+ D_F=\|R-R_{\mathrm P}\|_F,\qquad
+ f_F=\frac{D_F}{\|R-I_{16}\|_F},\qquad
+ D_J=\frac12\left\|\frac{J(\mathcal E)-J(\mathcal T(\mathcal E))}{4}
+        \right\|_1.
+ \label{eq:methods_distances}
+\end{equation}
+Here $\|\cdot\|_1$ is the trace norm and $f_F$ is undefined for the
+identity channel. These distances describe the error in replacing a
+single physical channel by its Pauli approximation. Logical error rates
+of a particular QEC circuit are not computed in this analysis.
+
+\subsection{Numerical settings}
+\label{subsec:numerics}
+
+The baseline parameters are listed in Table~\ref{tab:methods_parameters}.
+The current before/after channel comparison uses
+$\bar n\in\{0.01,1,2,3,4\}$. The equations are integrated with QuTiP,
+using absolute and relative solver tolerances of $10^{-12}$ and
+$10^{-9}$. Time-dependent Hamiltonian coefficients are sampled at 500
+uniformly spaced times over the gate and linearly interpolated; this
+coefficient grid is distinct from the adaptive integration steps.
+The simulation uses dimensionless values $A_0=0.125$, $\delta=0.5$, and
+$T_{\mathrm{sim}}=4\pi$. Physical dissipative rates are multiplied by
+$T/T_{\mathrm{sim}}$ when expressed in these simulation units.
+
+\begin{table}[htbp]
+ \centering
+ \caption{Baseline physical parameters. $A_0$ denotes the effective
+ sideband coupling defined in Eq.~\eqref{eq:methods_hamiltonian}.}
+ \label{tab:methods_parameters}
+ \begin{tabular}{ll}
+  \toprule
+  Parameter & Value\\
+  \midrule
+  Gate duration $T$ & $100\,\mu\mathrm{s}$\\
+  Detuning $\delta/(2\pi)$ & $10\,\mathrm{kHz}$\\
+  Initial coupling $A_0/(2\pi)$ & $2.5\,\mathrm{kHz}$\\
+  Lamb--Dicke parameter $\eta$ & $0.1$\\
+  Motional diffusion rate $\Gamma_{\mathrm h}$ & $10\,\mathrm{s}^{-1}$\\
+  Motional dephasing rate $\Gamma_{\mathrm m}$ & $18\,\mathrm{s}^{-1}$\\
+  Spin dephasing parameter $T_2^*$ & $0.3\,\mathrm{s}$\\
+  Rayleigh coefficient $\Gamma_{\mathrm{Ray}}$ & $3\,\mathrm{s}^{-1}$\\
+  Raman coefficient $\Gamma_{\mathrm{Ram}}$ & $1\,\mathrm{s}^{-1}$\\
+  \bottomrule
+ \end{tabular}
+\end{table}
+
+The oscillator is truncated at a finite dimension $N_{\mathrm{cut}}$,
+and the retained thermal probabilities are renormalized. The baseline
+QPT implementation chooses this dimension from an occupation-based rule:
+with $b=2|A|/\delta$, $\mu=\bar n+b^2$, and
+$v=(2\bar n+1)b^2+\bar n(\bar n+1)$, it uses
+\begin{equation}
+ N_{\mathrm{cut}}=\max\!\left[
+ \left\lceil\mu+\bigl(10+2\log(1+\bar n)\bigr)\sqrt v\right\rceil,
+ \lfloor5\bar n\rfloor+20,\,2\right]
+ \quad(\bar n>0).
+\end{equation}
+This is a numerical cutoff prescription, not an error bound.
+For the Fock-resolved calculation, the largest initial $n$ is selected
+so that the omitted thermal probability is below $10^{-5}$, and 24
+additional oscillator levels are included above it.
+% AUTHOR CHECK: Before submission, add actual cutoff/coefficient-grid/ODE
+% convergence results for the final reported observables and conditions.
+% Solver tolerances and the cutoff heuristic do not establish convergence.
+
+The CPTP projection uses a tolerance of $10^{-11}$ and at most 5000
+iterations, with its constraint residuals recorded. The diamond-distance
+calculation uses CVXPY with the SCS solver and tolerance $10^{-8}$.
+Projection sensitivity and the SDP gap quantify numerical effects in
+the channel post-processing; they do not bound errors due to the
+Hamiltonian approximation or oscillator truncation. Finally, the
+reconstructed channel assumes an initially factorized spin--motion state
+for each gate. Applying it repeatedly in a circuit would require a
+separate assessment of motional memory between gates.
+% END METHODS
+
+\begin{thebibliography}{9}
+\bibitem{QPT}
+I.~L. Chuang and M.~A. Nielsen,
+``Prescription for experimental determination of the dynamics of a quantum
+black box,'' J. Mod. Opt. \textbf{44}, 2455--2467 (1997).
+\href{https://doi.org/10.1080/09500349708231894}{doi:10.1080/09500349708231894}.
+
+\bibitem{Markovian_Errors}
+R. Blume-Kohout, M.~P. da Silva, E. Nielsen, T. Proctor,
+K. Rudinger, M. Sarovar, and K. Young,
+``A Taxonomy of Small Markovian Errors,''
+PRX Quantum \textbf{3}, 020335 (2022).
+\href{https://doi.org/10.1103/PRXQuantum.3.020335}{doi:10.1103/PRXQuantum.3.020335}.
+
+\bibitem{WatrousDiamond}
+J. Watrous, ``Simpler semidefinite programs for completely bounded norms,''
+\href{https://arxiv.org/abs/1207.5726}{arXiv:1207.5726}.
+\end{thebibliography}
+\end{document}

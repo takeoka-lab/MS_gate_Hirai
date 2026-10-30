@@ -1,0 +1,205 @@
+{
+  "settings": {
+    "K": 28.0,
+    "L": 25.0,
+    "eta": 0.18,
+    "gate_duration_seconds": 2.8e-05,
+    "phonon_dim": 16,
+    "sideband_cutoff": 4,
+    "solver": "adaptive_dop853",
+    "relative_tolerance": 1e-09,
+    "absolute_tolerance": 1e-11,
+    "trotter_step_scale": 1.0,
+    "maximum_step_divisor": 20.0
+  },
+  "nbar": 0.02,
+  "sources": {
+    "1068899.4744694775": {
+      "path": "results/kirchhoff_fidelity_channel_comparison/convergence/propagators/e3df66469541748c2507.npz",
+      "sha256": "2b1e383a0fa15f0e49115594d3aa07f6567f34fda5b9a7bb9777510d30ffb7ec",
+      "source_kind": "benchmark_cache",
+      "parameters": {
+        "K": 28.0,
+        "L": 25.0,
+        "eta": 0.18,
+        "gate_duration_seconds": 2.8e-05,
+        "phonon_dim": 16,
+        "sideband_cutoff": 4,
+        "solver": "adaptive_dop853",
+        "relative_tolerance": 1e-09,
+        "absolute_tolerance": 1e-11,
+        "trotter_step_scale": 1.0,
+        "maximum_step_divisor": 20.0,
+        "omega_per_second": 1068899.4744694775,
+        "paper_module_sha256": "e88edcce9b913a16ce5bb2f73fd986f4000c9dab84600a2d9a67cea94e984710"
+      },
+      "solver_metadata": {
+        "absolute_tolerance": 1e-11,
+        "function_evaluations": 32894,
+        "maximum_step": 0.000364963503649635,
+        "number_of_steps": 2741,
+        "parameters": {
+          "K": 28.0,
+          "L": 25.0,
+          "absolute_tolerance": 1e-11,
+          "eta": 0.18,
+          "gate_duration_seconds": 2.8e-05,
+          "maximum_step_divisor": 20.0,
+          "omega_per_second": 1068899.4744694775,
+          "paper_module_sha256": "e88edcce9b913a16ce5bb2f73fd986f4000c9dab84600a2d9a67cea94e984710",
+          "phonon_dim": 16,
+          "relative_tolerance": 1e-09,
+          "sideband_cutoff": 4,
+          "solver": "adaptive_dop853",
+          "trotter_step_scale": 1.0
+        },
+        "relative_tolerance": 1e-09,
+        "solver": "adaptive_dop853",
+        "unitarity_frobenius_error": 3.163993071107789e-14,
+        "wall_time_seconds": 8.457018542
+      }
+    },
+    "1089192.4703937843": {
+      "path": "results/kirchhoff_fidelity_channel_comparison/convergence/propagators/9b5766443674d18cdd35.npz",
+      "sha256": "bc1a70f86453b296bca1048e1e644b8c35f47de2e76fffce452e2d9d71e39cc2",
+      "source_kind": "benchmark_cache",
+      "parameters": {
+        "K": 28.0,
+        "L": 25.0,
+        "eta": 0.18,
+        "gate_duration_seconds": 2.8e-05,
+        "phonon_dim": 16,
+        "sideband_cutoff": 4,
+        "solver": "adaptive_dop853",
+        "relative_tolerance": 1e-09,
+        "absolute_tolerance": 1e-11,
+        "trotter_step_scale": 1.0,
+        "maximum_step_divisor": 20.0,
+        "omega_per_second": 1089192.4703937843,
+        "paper_module_sha256": "e88edcce9b913a16ce5bb2f73fd986f4000c9dab84600a2d9a67cea94e984710"
+      },
+      "solver_metadata": {
+        "absolute_tolerance": 1e-11,
+        "function_evaluations": 32894,
+        "maximum_step": 0.000364963503649635,
+        "number_of_steps": 2741,
+        "parameters": {
+          "K": 28.0,
+          "L": 25.0,
+          "absolute_tolerance": 1e-11,
+          "eta": 0.18,
+          "gate_duration_seconds": 2.8e-05,
+          "maximum_step_divisor": 20.0,
+          "omega_per_second": 1089192.4703937843,
+          "paper_module_sha256": "e88edcce9b913a16ce5bb2f73fd986f4000c9dab84600a2d9a67cea94e984710",
+          "phonon_dim": 16,
+          "relative_tolerance": 1e-09,
+          "sideband_cutoff": 4,
+          "solver": "adaptive_dop853",
+          "trotter_step_scale": 1.0
+        },
+        "relative_tolerance": 1e-09,
+        "solver": "adaptive_dop853",
+        "unitarity_frobenius_error": 3.397631249545191e-14,
+        "wall_time_seconds": 8.316332708999994
+      }
+    },
+    "1090276.8465979532": {
+      "path": "results/kirchhoff_fidelity_channel_comparison/convergence/propagators/bc7d6404d08f6a798002.npz",
+      "sha256": "76dd3bf6fcd687423bbc48910ce4ffc0136a2d837013b5100e22fd00ece21c20",
+      "source_kind": "benchmark_cache",
+      "parameters": {
+        "K": 28.0,
+        "L": 25.0,
+        "eta": 0.18,
+        "gate_duration_seconds": 2.8e-05,
+        "phonon_dim": 16,
+        "sideband_cutoff": 4,
+        "solver": "adaptive_dop853",
+        "relative_tolerance": 1e-09,
+        "absolute_tolerance": 1e-11,
+        "trotter_step_scale": 1.0,
+        "maximum_step_divisor": 20.0,
+        "omega_per_second": 1090276.8465979532,
+        "paper_module_sha256": "e88edcce9b913a16ce5bb2f73fd986f4000c9dab84600a2d9a67cea94e984710"
+      },
+      "solver_metadata": {
+        "absolute_tolerance": 1e-11,
+        "function_evaluations": 32894,
+        "maximum_step": 0.000364963503649635,
+        "number_of_steps": 2741,
+        "parameters": {
+          "K": 28.0,
+          "L": 25.0,
+          "absolute_tolerance": 1e-11,
+          "eta": 0.18,
+          "gate_duration_seconds": 2.8e-05,
+          "maximum_step_divisor": 20.0,
+          "omega_per_second": 1090276.8465979532,
+          "paper_module_sha256": "e88edcce9b913a16ce5bb2f73fd986f4000c9dab84600a2d9a67cea94e984710",
+          "phonon_dim": 16,
+          "relative_tolerance": 1e-09,
+          "sideband_cutoff": 4,
+          "solver": "adaptive_dop853",
+          "trotter_step_scale": 1.0
+        },
+        "relative_tolerance": 1e-09,
+        "solver": "adaptive_dop853",
+        "unitarity_frobenius_error": 3.842707715546831e-14,
+        "wall_time_seconds": 8.26778541600001
+      }
+    },
+    "1090969.8104990216": {
+      "path": "results/kirchhoff_fidelity_channel_comparison/convergence/propagators/d01c80676ddf93b2a5c8.npz",
+      "sha256": "8dbd3a59d7b7b7b44bdcee45b51451a0faeebc37a1de19f003aa9c290a9e9b47",
+      "source_kind": "benchmark_cache",
+      "parameters": {
+        "K": 28.0,
+        "L": 25.0,
+        "eta": 0.18,
+        "gate_duration_seconds": 2.8e-05,
+        "phonon_dim": 16,
+        "sideband_cutoff": 4,
+        "solver": "adaptive_dop853",
+        "relative_tolerance": 1e-09,
+        "absolute_tolerance": 1e-11,
+        "trotter_step_scale": 1.0,
+        "maximum_step_divisor": 20.0,
+        "omega_per_second": 1090969.8104990216,
+        "paper_module_sha256": "e88edcce9b913a16ce5bb2f73fd986f4000c9dab84600a2d9a67cea94e984710"
+      },
+      "solver_metadata": {
+        "absolute_tolerance": 1e-11,
+        "function_evaluations": 32894,
+        "maximum_step": 0.000364963503649635,
+        "number_of_steps": 2741,
+        "parameters": {
+          "K": 28.0,
+          "L": 25.0,
+          "absolute_tolerance": 1e-11,
+          "eta": 0.18,
+          "gate_duration_seconds": 2.8e-05,
+          "maximum_step_divisor": 20.0,
+          "omega_per_second": 1090969.8104990216,
+          "paper_module_sha256": "e88edcce9b913a16ce5bb2f73fd986f4000c9dab84600a2d9a67cea94e984710",
+          "phonon_dim": 16,
+          "relative_tolerance": 1e-09,
+          "sideband_cutoff": 4,
+          "solver": "adaptive_dop853",
+          "trotter_step_scale": 1.0
+        },
+        "relative_tolerance": 1e-09,
+        "solver": "adaptive_dop853",
+        "unitarity_frobenius_error": 3.815913790285914e-14,
+        "wall_time_seconds": 8.198650125
+      }
+    }
+  },
+  "module_hashes": {
+    "kirchhoff_channel_benchmark.py": "8fae370c6b832a26322dc9b8ecf90ceb6e755883087a596123a8879eb0411527",
+    "kirchhoff_paper_infidelity.py": "e88edcce9b913a16ce5bb2f73fd986f4000c9dab84600a2d9a67cea94e984710",
+    "drive_amplitude_calibration.py": "558babaeb29f436e981c9b13064f5cacc7dacfbed9ecada679ce0a0069485d7a",
+    "drive_calibration_qpt_analysis.py": "d0f319c802ed655aeab13f73b96b354b2e031029979c49394f3221e4296a2135",
+    "pauli_channel_distance.py": "cc64b19fa7aa8740b93009bdea6f53d5ffed2abf2e743e603b240e932373288d"
+  }
+}

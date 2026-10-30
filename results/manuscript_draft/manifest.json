@@ -1,0 +1,12 @@
+{
+  "date": "2026-10-05",
+  "scope": "Post-processing of saved CPTP-projected matrices; no new dynamics, convergence study, QEC, or matched-prior-model benchmark.",
+  "convention": "canonical trace-one chi; Pauli order II,IX,...,ZZ; distances are half diamond norms",
+  "pattern_fraction": "Squared Frobenius projection weight in chi off-diagonal space, NOT a fraction of diamond distance or gate infidelity.",
+  "source_sha256": {
+    "results/pauli_twirl_channel_distance/channel_distances_paired.csv": "f5f053e7c2161e2c15a173fa48e4a4ad4761967ed92d51d449d172ef14e9446e",
+    "results/pauli_twirl_channel_distance/inputs/projected_chi_before_after.npz": "a9e035fb8174ce51d457276490a1d568106e04c4a106ef069401dfd5efa9fc30",
+    "output/manuscript_draft/build_evidence.py": "55a4d42e0b112783c9bdc41a07feae498b7cca8f5e7b2f2ffdba3a6f04640540",
+    "pauli_channel_distance.py": "cc64b19fa7aa8740b93009bdea6f53d5ffed2abf2e743e603b240e932373288d"
+  }
+}

@@ -1,0 +1,109 @@
+{
+  "settings": {
+    "K": 28.0,
+    "L": 25.0,
+    "eta": 0.18,
+    "gate_duration_seconds": 2.8e-05,
+    "phonon_dim": 8,
+    "sideband_cutoff": 3,
+    "solver": "paper_trotter",
+    "relative_tolerance": 1e-09,
+    "absolute_tolerance": 1e-11,
+    "trotter_step_scale": 1.0,
+    "maximum_step_divisor": 20.0
+  },
+  "nbar": 0.02,
+  "sources": {
+    "1068899.4744694775": {
+      "path": "results/kirchhoff_fidelity_channel_comparison/convergence/propagators/b136ce18deaa92caafd9.npz",
+      "sha256": "47a426165f7ded59cbf284cc0ce626d8eb86539e41c61c1b234cf19ef49aa6fb",
+      "source_kind": "benchmark_cache",
+      "parameters": {
+        "K": 28.0,
+        "L": 25.0,
+        "eta": 0.18,
+        "gate_duration_seconds": 2.8e-05,
+        "phonon_dim": 8,
+        "sideband_cutoff": 3,
+        "solver": "paper_trotter",
+        "relative_tolerance": 1e-09,
+        "absolute_tolerance": 1e-11,
+        "trotter_step_scale": 1.0,
+        "maximum_step_divisor": 20.0,
+        "omega_per_second": 1068899.4744694775,
+        "paper_module_sha256": "e88edcce9b913a16ce5bb2f73fd986f4000c9dab84600a2d9a67cea94e984710"
+      },
+      "solver_metadata": {
+        "number_of_steps": 6849,
+        "parameters": {
+          "K": 28.0,
+          "L": 25.0,
+          "absolute_tolerance": 1e-11,
+          "eta": 0.18,
+          "gate_duration_seconds": 2.8e-05,
+          "maximum_step_divisor": 20.0,
+          "omega_per_second": 1068899.4744694775,
+          "paper_module_sha256": "e88edcce9b913a16ce5bb2f73fd986f4000c9dab84600a2d9a67cea94e984710",
+          "phonon_dim": 8,
+          "relative_tolerance": 1e-09,
+          "sideband_cutoff": 3,
+          "solver": "paper_trotter",
+          "trotter_step_scale": 1.0
+        },
+        "solver": "paper_trotter_left_endpoint",
+        "step_scale": 1.0,
+        "unitarity_frobenius_error": 1.90359972729779e-13,
+        "wall_time_seconds": 1.3231848749999813
+      }
+    },
+    "1089192.4703937843": {
+      "path": "results/kirchhoff_fidelity_channel_comparison/convergence/propagators/089fadd92c8a24620609.npz",
+      "sha256": "d94e87bdf58c52c1d74610f8fb288005497ebf1790f4b780ca67f24055da976e",
+      "source_kind": "benchmark_cache",
+      "parameters": {
+        "K": 28.0,
+        "L": 25.0,
+        "eta": 0.18,
+        "gate_duration_seconds": 2.8e-05,
+        "phonon_dim": 8,
+        "sideband_cutoff": 3,
+        "solver": "paper_trotter",
+        "relative_tolerance": 1e-09,
+        "absolute_tolerance": 1e-11,
+        "trotter_step_scale": 1.0,
+        "maximum_step_divisor": 20.0,
+        "omega_per_second": 1089192.4703937843,
+        "paper_module_sha256": "e88edcce9b913a16ce5bb2f73fd986f4000c9dab84600a2d9a67cea94e984710"
+      },
+      "solver_metadata": {
+        "number_of_steps": 6849,
+        "parameters": {
+          "K": 28.0,
+          "L": 25.0,
+          "absolute_tolerance": 1e-11,
+          "eta": 0.18,
+          "gate_duration_seconds": 2.8e-05,
+          "maximum_step_divisor": 20.0,
+          "omega_per_second": 1089192.4703937843,
+          "paper_module_sha256": "e88edcce9b913a16ce5bb2f73fd986f4000c9dab84600a2d9a67cea94e984710",
+          "phonon_dim": 8,
+          "relative_tolerance": 1e-09,
+          "sideband_cutoff": 3,
+          "solver": "paper_trotter",
+          "trotter_step_scale": 1.0
+        },
+        "solver": "paper_trotter_left_endpoint",
+        "step_scale": 1.0,
+        "unitarity_frobenius_error": 1.6898142325572301e-13,
+        "wall_time_seconds": 1.2491728329999887
+      }
+    }
+  },
+  "module_hashes": {
+    "kirchhoff_channel_benchmark.py": "8fae370c6b832a26322dc9b8ecf90ceb6e755883087a596123a8879eb0411527",
+    "kirchhoff_paper_infidelity.py": "e88edcce9b913a16ce5bb2f73fd986f4000c9dab84600a2d9a67cea94e984710",
+    "drive_amplitude_calibration.py": "558babaeb29f436e981c9b13064f5cacc7dacfbed9ecada679ce0a0069485d7a",
+    "drive_calibration_qpt_analysis.py": "d0f319c802ed655aeab13f73b96b354b2e031029979c49394f3221e4296a2135",
+    "pauli_channel_distance.py": "cc64b19fa7aa8740b93009bdea6f53d5ffed2abf2e743e603b240e932373288d"
+  }
+}

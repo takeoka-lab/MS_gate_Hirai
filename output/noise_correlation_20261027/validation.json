@@ -1,0 +1,24 @@
+{
+  "pdf_pages": 28,
+  "figures": 26,
+  "png_count": 26,
+  "svg_count": 26,
+  "input_files_hash_verified": 36,
+  "all_pdf_pages_rendered_and_contact_sheets_reviewed": true,
+  "detail_pages_reviewed": [
+    1,
+    7,
+    22
+  ],
+  "pdf_sha256": "6d9dcc449343fcd82bbf0b6d7aacf71420e3ea89ede825f942eb302b9695b7e7",
+  "source_data_unchanged": true,
+  "checks": {
+    "max_Cij_formula_error": 9.893339529974308e-17,
+    "max_zero_axis_Cij": 1.734723475976807e-18,
+    "positive_active_Cij_count": 0,
+    "max_grid_vs_baseline_zero_difference": 0.0,
+    "max_new_vs_core_single_infidelity_difference": 4.2808974399957504e-08,
+    "max_full_taxonomy_reconstruction_fraction": 1.4534413620361634e-12,
+    "max_pairwise_reconstruction_abs_residual": 1.080117420018678e-07
+  }
+}

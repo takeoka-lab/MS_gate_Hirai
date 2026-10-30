@@ -1,0 +1,1235 @@
+                                                         PRXQUANTUM6,010328(2025)
+                            Correction Formulas for the Mølmer-Sørensen Gate Under Strong Driving
+                                         Susanna Kirchhoﬀ ,1,2,* Frank K. Wilhelm ,1,2 and Felix Motzoi 3,4
+                        1Peter Grünberg Institute for Quantum Computing Analytics (PGI-12), Forschungszentrum Jülich, Jülich 52425,
+                                                                           Germany
+                                        2Theoretical Physics, Universität des Saarlandes, Saarbrücken 66123, Germany
+                          3Peter Grünberg Institute for Quantum Control (PGI-8), Forschungszentrum Jülich, Jülich 52425, Germany
+                                      4Institute for Theoretical Physics, University of Cologne, Cologne 50937, Germany
+                             (Received 15 May 2024; revised 23 September 2024; accepted 8 January 2025; published 12 February 2025)
+                              The Mølmer-Sørensen gate is a widely used entangling gate for ion platforms with inherent robust-
+                            ness to trap heating. The gate performance is limited by coherent errors, arising from the Lamb-Dicke
+                            (LD) approximation and sideband errors. Here, we provide explicit analytical formulas for errors up to
+                            fourth order in the LD parameter, by using the Magnus expansion to match numerical precision, and over-
+                            come signiﬁcant orders-of-magnitude underestimation of errors by previous theory methods. We show
+                            that fourth-order Magnus expansion terms are unavoidable, being in fact leading order in LD, and are
+                            therefore critical to include for typical experimental ﬁdelity ranges. We show how these errors can be dra-
+                            matically reduced compared to previous theory by using analytical renormalization of the drive strength,
+                            bycalibration of the Lamb-Dicke parameter, and by the use of smooth pulse shaping.
+                            DOI:10.1103/PRXQuantum.6.010328
+                                 I. INTRODUCTION                                  at the cost of the collective ion motion being temporarily
+                 Aubiquitous aspect of quantum processor design is the            activated before returning to its initial state [24].
+              need to provide a strong contrast, or on-oﬀ ratio, between            In the wider context of trapped-ion quantum computing
+              entanglement coupling vs idling and local single-qubit              [25–27], the platform has blossomed to one of the lead-
+              gates. To this eﬀect, the standard approach is to introduce         ing candidates for housing quantum information, boasting
+              new coupling elements, whose auxiliary Hilbert space                long coherence times around 1s to 50s [28,29], and inﬁ-
+                                                                                                                                      -3
+              provides a means through which entanglement can tem-                delities for two-qubit gates on the order of 1×10 at a gate
+              porarily be mediated, for example, via intermediate cavity          duration of 1.6s to 300s [8–11].
+              bus [1–3], nonlinear resonators [4–6], motional trapping              Further advancements hinge on a proper theoretical
+              modes[7–13], intermediary spins [14,15], etc.                       understanding of the eﬀect of strong driving on the opera-
+                 To fully leverage these coupling elements, and avoid             tion with proper accounting of the excitation of the oscilla-
+              the onset of decoherence, it is desirable to turn on the            tor states, and potentially reduced gate durations. As with
+              eﬀective coupling between qubits as strongly as possi-              the oscillator-based couplings in other platforms, there
+              ble, for example, through the use of strong driving ﬁelds.          are limited toolboxes available for tracking the dynamical
+              The prototypical example of this is the so-called Mølmer-           eﬀects of strong driving, the two most common being the
+              Sørensen gate (MSG). This technique was ﬁrst introduced             Dyson and Magnus expansions. In the Mølmer-Sørensen
+              in Ref. [16] to be resilient against trap heating within the        gate, the standard argument, dating back 25 years to Ref.
+              Lamb-Dicke and weak driving perturbative approxima-                 [24], argues that, within the Lamb-Dicke approximation,
+              tions [17–23]. And yet, it is important to recognize that           an eﬀective Hamiltonian in the Magnus expansion leads to
+              wide adoption of the gate largely occurred after a further          only a single order being nonzero and accounting for the
+              advancement,wherebystrongdrivingcouldbereinstituted                 entanglement. The gate itself is second order in the Lamb-
+                                                                                  Dicke parameter η, while the error is fourth order in η,
+                                                                                  appearing in the same Magnus order, and so dictates the
+                 *Contact author: s.kirchhoﬀ@fz-juelich.de                        ultimate error scaling of the gate.
+              Published by the American Physical Society under the terms of         In this paper, we demonstrate that, in contrast, there
+              theCreativeCommonsAttribution4.0Internationallicense.Fur-           are multiple nonzero O(η2) terms in the eﬀective Hamil-
+              ther distribution of this work must maintain attribution to the     tonian that contribute even more signiﬁcantly to the gate
+              author(s) and the published article’s title, journal citation, and  error. These errors are higher order in the Rabi frequency,
+              DOI.                                                                but since this cannot be considered a small parameter
+              2691-3399/25/6(1)/010328(16)                                010328-1               Published by the American Physical Society
+                           KIRCHHOFF,WILHELM,andMOTZOI                                                                                                                                                         PRXQUANTUM6,010328(2025)
+                           (compared especially to the sideband detuning), these are                                                                                 TheDysonexpansion[36]gives the propagator as
+                           fundamental to the functioning of the gate. We show that,                                                                                                                                              ∞
+                           in general, neglecting these terms leads to large detectable                                                                                                               ˆ                         ˆ
+                                                                                                                                                                                                     U(T) = 1+                           P (T),(1)
+                           errors and deviations from experiment. These translate for                                                                                                                                                       k
+                           typical parameters to circa 10% Rabi frequency mismatch,                                                                                                                                              k=1
+                           and,withoutinsiturecalibration,10–100timeslargererror                                                                                whereeachtermoftheDysonsumcanbewrittenasatime-
+                           than theoretically predicted.                                                                                                        ordered integral
+                                Weprovideanalyticalexpressions for the leading orders                                                                                                                                         
+                                                                                                                                                                                                        k       T                      t
+                           of those terms and give a correction term for the drive                                                                                    ˆ                          i                                      k−1           ˆ                   ˆ
+                                                                                                                                                                     P (T) = −                                     dt ···                      dt H(t )···H(t ).
+                           strength  that can partially compensate for the error                                                                                       k                                             1                           k         1                   k
+                                                                                                                                                                                                              0                     0
+                           caused by those terms. Our model results in a bound on                                                                                                                                                                                                    (2)
+                           the gate inﬁdelity of about 10−3 for typical parameters,                                                                             This expansion is mostly used for systems with a small
+                           which matches well with experimental ﬁdelity measure-                                                                                perturbative interaction Hamiltonian.
+                           ment results [9,10,30–33]. We also motivate analyti-                                                                                      Anexpansion with somewhat better convergence prop-
+                           cally and show numerically how it is—depending on the                                                                                erties is the Magnus expansion [37]. It is exact for systems
+                           parameter regime—of advantage to use pulse shaping, to
+                           improve the gate ﬁdelity closer to 10−4. This can help                                                                               that are bosonic, and often converges quickly for fast oscil-
+                           to approach ﬁdelities needed for fault-tolerant quantum                                                                              lating systems, as is the case here. The Magnus propagator
+                           computing [34,35].                                                                                                                   [38]
+                                                                                                                                                                                                                                
+                                The remaining structure of the paper is as follows: In                                                                                                                                              ∞ ˆ
+                                                                                                                                                                                                                            −i             Z (T)
+                                                                                                                                                                                                        ˆ                           k=1 k
+                           Sec. II, we (a) review the Magnus and the Dyson meth-                                                                                                                       U(T) = e                                                                      (3)
+                           ods to calculate the propagator of the composite system;                                                                             is calculated with a time-independent dimensionless eﬀec-
+                           (b) discuss the eﬀect of strong driving on the convergence                                                                                                                  ∞ ˆ
+                           the Magnus expansion; and (c) deﬁne the system Hamilto-                                                                              tive Hamiltonian                            k=1 Zk(T), which gives after time T
+                           nian and its expansion into Taylor and Fourier coeﬃcients.                                                                           the same dynamics as the original Hamiltonian. The eﬀec-
+                           Next, in Sec. III, we explain a way to calculate arbitrary                                                                           tive Hamiltonian is the sum of the diﬀerent orders of the
+                           orders of the Magnus expansion for the given system,                                                                                 Magnusexpansion. The ﬁrst three orders are
+                           and investigate resonance conditions for turning on and                                                                                ˆ           1  T             ˆ
+                           oﬀ certain transitions. In Sec. IV, we provide analytical                                                                             Z1 =  0 dtH(t),
+                           expressions for the diﬀerent terms of the Magnus expan-                                                                                               i      T            t                                    
+                           sion, for the typical case of a rectangular drive amplitude,                                                                           ˆ                                                   ˆ            ˆ
+                           giving correction formulas accounting for higher Magnus                                                                               Z2 = 22 0 dt 0 dτ H(t),H(τ) ,
+                           order errors. We also evaluate numerically the importance                                                                              ˆ                  1  T                t            τ            	 ˆ                ˆ          ˆ              
+                           of diﬀerent system parameters on those errors. In Sec.                                                                                Z3 =− 3                            dt          dτ             dτ              H(t),H(τ) ,H(τ )
+                           V, we further provide analytical expressions and evaluate                                                                                              6          0             0             0
+                           terms numerically, this time for shaped drive amplitudes.                                                                                                ˆ            ˆ               ˆ         
+
+                           WeﬁnallysummarizeinSec.VI.                                                                                                                        + H(t), H(τ),H(τ )                                        .
+                                                                                                                                                                                                                                                                                     (4)
+                                                                                                                                                                There are also formulas for higher orders [39], which we
+                                                                                                                                                                do not explicitly write down here due to their complexity.
+                                                       II. MODELANDMETHODS                                                                                           Salzmann[40]givesinstead a formula, which expresses
+                                                                 A. Time propagation                                                                            the orders of the Magnus expansion in terms of diﬀer-
+                                                                                                                                                                ent orders of the Dyson expansion. Using his result, one
+                                We ﬁrst discuss the general methodology for obtain-                                                                                                                                 ˆ            ˆ
+                                                                                                                                                                can easily show that if iP = Z = 0, i.e., if the perturba-
+                           ing the time propagation of our driven system. We want                                                                                                                                      1           1
+                                                                                                                                                                tion is unbiased, the relations between Magnus and Dyson
+                           to ﬁrst emphasize that, for a system such as the Mølmer-                                                                             expansion are
+                           Sørensen gate, the drive dependence cannot, in general,
+                                                                                                                                                                                          ˆ            ˆ
+                           be described with perturbation theory, since it may be                                                                                                        Z2 = iP2,
+                           larger than other relevant energy scales. Therefore, where                                                                                                     ˆ            ˆ
+                           multiple small parameters may exist, these diﬀerent con-                                                                                                      Z3 = iP3,
+                           tributions should be properly accounted to avoid early                                                                                                         ˆ            ˆ              1 ˆ2                                                         (5)
+                           truncation.                                                                                                                                                   Z4 = i P4 − 2P2 ,
+                                To this end, we describe the two most common expan-                                                                                                                                   1 	                                
+
+                                                                                              ˆ
+                           sions to obtain the propagator U(T) of a quantum system                                                                                                        ˆ                 ˆ                  ˆ     ˆ          ˆ     ˆ
+                                                                                                                                                                                         Z =i P −                             P P +P P                            .
+                           that gives the time evolution between time 0 and time T.                                                                                                         5                 5        2          2 3              3 2
+                                                                                                                                                 010328-2
+                           CORRECTIONFORMULASFORTHE...                                                                                                                                                        PRXQUANTUM6,010328(2025)
+                           Clearly, Eq. (5) shows that the ﬁrst two nonzero orders of                                                                                Thesecondorder of the Magnus expansion is given by
+                           the Magnus expansion equal the ﬁrst nonzero orders of the                                                                                                                                                                          
+                           Dyson expansion, except for a phase. Starting at fourth                                                                                                                   i          T             t
+                                                                                                                                                                                      ˆ                                                    ˆ           ˆ
+                           order, the terms for Dyson and Magnus expansion diﬀer.                                                                                                    Z2 = 22 0 dt 0 dτ H(t),H(τ) ,(8)
+                           This connection between Magnus and Dyson expansion
+                           is quite powerful, because, unlike the terms of the Mag-                                                                            where the commutator can be broken down as
+                           nus expansion, the terms of the Dyson expansion do not                                                                                                                                                                                     
+                                                                                                                                                                   ˆ           ˆ                       ˆ            ˆ                       2     ˆ             ˆ
+                           involve nested commutators. In the following sections, we                                                                              H(t),H(τ) = H (t),H (τ) +λ H (t),H (τ)
+                                                                                                                                                                                                         0             0                             1            1
+                           calculate the Magnus expansion using Eq. (5), allowing                                                                                                                                                                                         
+                           us to eﬃciently and analytically track the role of diﬀer-                                                                                                                      ˆ            ˆ                           ˆ             ˆ
+                                                                                                                                                                                             +λ H (t),H (τ) +λ H (t),H (τ) +...
+                                                                                                                                                                                                            1             0                           0             1
+                           ent errors. Note that while the Dyson expansion gives                                                                                                                                                                                                     (9)
+                           an approximated propagator, the Magnus expansion gives
+                           an eﬀective time-independent Hamiltonian, which is then                                                                             The important point to note is that the ﬁrst line of Eq. (9)
+                           used to calculate the propagator.                                                                                                   corresponds to resonant driving while the second does not,
+                                                                                                                                                               since the zeroth and ﬁrst-order frequency oﬀsets are non-
+                                                                                                                                                                                                                                                                              2
+                                B. Perturbations to the driven harmonic oscillator                                                                             commensurate. In particular, in later sections the λ term
+                                                                                                                                                               will correspond to the MSG interaction.
+                                Tounderscoretheexistenceoferrormechanismsarising                                                                                     The third order of the Magnus expansion similarly
+                           from low perturbation yet higher-order scattering pro-                                                                              contains a sum of commutators as in Eq. (4),
+                           cesses under strong driving, we ﬁrst show how they                                                                                                                                                                                   
+                           emerge under a generic driven Hamiltonian.                                                                                                      ˆ           ˆ               ˆ                      ˆ             ˆ             ˆ       
+                                Weconsider a perturbative coupling between a coupler                                                                                     H(t),H(τ) ,H(τ ) + H(t), H(τ),H(τ )                                                                ,     (10)
+                           element (here harmonic oscillator) and another (compu-                                                                              but which are always nonresonant, since there is an odd
+                           tational) subsystem, and work in an appropriate rotating                                                                            number of factors. Unlike in the ﬁrst order, these are gen-
+                           frame or interaction picture. This encompasses the Hamil-                                                                           erally not calibrated to integrate to zero, but these errors
+                           tonian of the Mølmer-Sørensen gate, but also coupling                                                                               will still be relatively small.
+                           mechanismsforawidevarietyofotherfasttwo-qubitgates                                                                                                                                                                             ˆ
+                           [1–13] and readout [41–43] mechanisms.                                                                                                    Meanwhile, going to the fourth order Z4, the Magnus
+                                We start with generically expanding the interaction in                                                                         expansion will introduce commutators of the form
+                           orders of a small parameter λ,                                                                                                                              2  ˆ                  ˆ            ˆ               ˆ               
+                                                                                                                                                                                    λ            H (t),H (τ) ,H (τ ) ,H (τ ) ,                                                    (11)
+                                                                                                                                                                                                     0             1                0                  1
+                                                         ˆ           ˆ                    ˆ                         2
+                                                        H =H (t)+λH (t)+O(λ ),(6)
+                                                                       0                    1                                                                  and other permutations thereof, that is where we have an
+                                                                                                                                                               even number of H and H factors.
+                                                                                                                                                                                                      0               1
+                           which acts on the composite space H                                                      ⊗H .Now,                                         Wesee that we have a resonant coupling interaction of
+                                                                                                              HO              qubits                                                                                                                                                  ˆ
+                           we consider the eﬀect of diﬀerent resonance oﬀsets (ω )                                                                             the same perturbation order as the one arising from Z2.
+                                                                                                                                                   k           Becausewedriverelativelystrongly,thefactthattheinter-
+                           accompanying the diﬀerent perturbation orders of the                                                                                action is fourth order in  does not in general suppress the
+                                                          ˆ
+                           Hamiltonian (H ), or more precisely
+                                                            k                                                                                                  transition.
+                                                                                                                                                                     The general takeaways are twofold. The ﬁrst is that the
+                                                                                    k −iω t
+                                                   ˆ                                           k         ˆ                                                     perturbation order of the Hamiltonian need not be linked
+                                                  H (t) = (t)aˆ e                                ⊗O +H.c.,                                    (7)
+                                                      k                                                     k                                                  with increasing expansion orders when the driving itself
+                                                                                                                                                               is nonperturbative. This is especially true in many-level
+                           where  is the drive amplitude, which we cannot always                                                                              systems where spurious resonances may arise. The sec-
+                           assume is smaller than the resonance oﬀsets ω due to                                                                                ond takeaway is that the expansion is nonmonotonic, e.g.,
+                                                                                                                                    k
+                                                             ˆ
+                           strong driving, O are operators acting on the qubit sub-                                                                            with the error increasing for the ﬁrst four orders before
+                                                                k
+                                                         †
+                           space, and aˆ,aˆ are the annihilation and creation operators,                                                                       eventually reducing again.
+                           respectively. Note that we have ﬁxed the particular case                                                                                  Therefore, in this general case, it is insuﬃcient to termi-
+                           of a common drive amplitude and speciﬁc powers of the                                                                               nate the series at low order. Figure 1 shows the parameter
+                           harmonic oscillator operators, but this is simply done for                                                                          scaling of errors in the Magnus expansion for the MSG
+                           concreteness and readability.                                                                                                       Hamiltonian studied in this paper, where λ = η is the
+                                                                                                                                            ˆ
+                                In the ﬁrst-order Magnus expansion, we have Z1 =                                                                               Lamb-Dicke factor. Such higher-order processes must be
+                                        T          ˆ                                                                                                          carefully dealt with whenever coupler elements are driven
+                           (1/) 0 dtH(t)correspondingtooscillating (oﬀ-resonant)
+                           terms. Often these are enforced to integrate to zero, but not                                                                       strongly to accelerate entangling operations between sub-
+                           strictly needed for our purposes in this subsection.                                                                                systems.
+                                                                                                                                                 010328-3
+                      KIRCHHOFF,WILHELM,andMOTZOI                                                                                                                          PRXQUANTUM6,010328(2025)
+                      FIG. 1.          Energy-level diagram for the system in the interaction picture, with transitions connected to the |00 state being shown.
+                      The straight black lines depict the energy of the collective qubit state, and the dashed black lines depict coupled qubit and motional
+                                                                                            |            |     
+                      modestates. The solid pink arrow between 00 and 11 shows the transitions, which create the entangling gate. Those errors can be
+                      corrected by adjusting the drive amplitude. The dashed-dotted green arrows on the left of the solid arrows show transitions that create
+                      anentanglingoperationinthequbitsubspace,butadditionallycauseleakageintodiﬀerentmotional-modestates.Thetermproportional
+                           ˆ2                     |    
+                      to Jz (yellow, at 00 ) only adds a phase. The dashed orange lines on the right-hand side denote ﬁrst-sideband (m = 1) oﬀ-resonant
+                      error terms, and the dotted red lines on the left-hand side denote the second-sideband (m = 2) oﬀ-resonant error terms. Those terms
+                      can be minimized by time shaping the drive amplitude. The full terms are listed in Table I. The lines denoting the transitions are just a
+                      sketch to give an intuition on the impact of each term, so not all potential transitions are shown.
+                                               C. MSGsystemHamiltonian                                                                   The interaction between the systems is invoked by a
+                           Wemodelthetrapped-ion system as two qubits coupled                                                       classical light ﬁeld with drive envelope (t) and wave
+                      to a harmonic oscillator [44]. Despite the capability of the                                                  number k along the trap x axis [46]. The entangling oper-
+                      Mølmer-Sørensengatetooperatepairwiseonionchainsof                                                             ation of the Mølmer-Sørensen gate is generated by driving
+                      arbitrary length, we focus for the sake of simplicity in this                                                 two laser frequencies at the same time [24]. When each
+                                                                                                                                    laser is detuned by ±δ from the qubit frequency ω , the
+                      paper on two-qubit gates, without loss of generality. The                                                                                                                                                  q
+                      Hamiltonian of the uncoupled two-qubit system is H =                                                          Hamiltonian can be written as
+                                                                                                                      q
+                              ˆ
+                      ω J with qubit transition frequency ω and a collective                                                                                                          †
+                            q z                                                               q                                                         ˆ               ˆ
+                                                                                                                                                       H =ω J +νaˆ aˆ +2(t)
+                      spin operator deﬁned by                                                                                                                        q z
+                                                                                                                                                                                                                ˆ
+                                                                                                                                                                ×            cos kqˆ − (ω +μδ)t J ,                                 (13)
+                                                            1                                                                                                                                    q                  x
+                                                   ˆ
+                                                  J =            1⊗ˆσ +ˆσ ⊗1 ,                                        (12)                                          μ=±1
+                                                    i       2              i        i
+                      where σ (for i = x,y,z) are the Pauli operators.                                                                                                              †
+                                    i                                                                                               with qˆ =            /(2Mν) aˆ +ˆa , where M is the mass of the
+                           Along the z axis of the trap, the ions are conﬁned                                                       ion, and μ =±1 is the sign of the detuning.
+                      in a harmonic eﬀective potential. Their motion can be                                                              Moving to an interaction picture with respect to both
+                      described in terms of motional modes [45]. When there                                                         qubits and the motional mode and dropping terms that
+                      are two ions, the two available modes are the so-called                                                       rotate at twice the qubit frequency (rotating-wave approx-
+                      breathing mode and center-of-mass mode. In the follow-                                                        imation), the Hamiltonian can be written as
+                      ing, we take only one of the modes into account, which                                                                                                    	                                     
+
+                      is a valid assumption as long as the drive detuning is                                                                   ˆ                                   ˆ     ikqˆ(t)      ˆ     −ikqˆ(t)
+                                                                                                                                              H =(t)cos δt                      J e            +J e                    ,          (14)
+                      close to the frequency of the mode [24] (see Appendix                                                                                              (    )     +                  −
+                      C). In the Hamiltonian, the motional mode is modeled as                                                                    ˆ         	ˆ           ˆ 
+
+                                                                                                                                    where J = J ±iJ                            are the collective spin raising and
+                      a harmonic oscillator with frequency ν, and lowering and                                                                    ±            x         y
+                                                          †
+                      raising operator aˆ, aˆ , respectively.                                                                       lowering operators.
+                                                                                                                        010328-4
+                    CORRECTIONFORMULASFORTHE...                                                                                                             PRXQUANTUM6,010328(2025)
+                        In the following sections, we need to calculate inte-                                            double-excitation transitions. For this purpose, we asso-
+                    grals of products of the Hamiltonian at diﬀerent times.                                              ciate the resonance conditions with beat-note frequencies
+                    Thus, it is useful to expand the Hamiltonian as a power                                                                                          νT              δT
+                    series in the raising and lowering operators that act on                                                                     N(m,μ)=                   m+              μ,                   (20)
+                    the motional-mode subspaces. To achieve this, we ﬁrst                                                                                            2π             2π
+                    express the operator for the motional mode in terms of                                                                                                     
+                                                                                                                                                                      K               L
+                                                                                        †
+                    the creation and annihilation operators (aˆ , aˆ)askqˆ(t) =
+                            −iνt        † iνt                                                                          with dimensionless gate duration K and dimensionless
+                    η aeˆ          +ˆa e         ,  where η is the Lamb-Dicke factor,                                    laser detuning frequency L. As before, m is the sideband
+                    which describes the strength of the coupling between the                                             order and μ is the detuning sign. Only the zeroth harmonic
+                    electronic state and the motional mode of the ion. Then, we                                          of the pulse is included in this section, i.e., M = 0, for bet-
+                    use the Baker-Campbell-Hausdorﬀ (BCH) formula [47]to                                                 ter readability. The generalized versions of the formulas
+                    factorize the operator exponentials as                                                               are provided in Appendix A.
+                                         	 −iνt       † iνt
+            † iνt       −iνt   −η2                               In this notation, the Hamiltonian Eq. (17) takes the
+                                       iη aeˆ     +ˆa e             iηaˆ e     iηaeˆ         2
+                                     e                        =e             e           e      .          (15)          simpliﬁed form
+                    Next, we expand both exponentials in Eq. (15) via Tay-                                                                                    ∞
+                                                                                                                                         ˆ                     i2πN(m,μ)tˆ ˆ
+                    lor series and group terms together with an index m for                                                             H(t) =                             e T              JmAm.             (21)
+                    the sideband order (i.e., the number of phonons created or                                                                             m=−∞μ=±1
+                    annihilated). Meanwhile, we Fourier decompose the time-                                              While the Magnus expansion can be very cumbersome
+                    dependent parts in Eq. (14) and write the drive amplitude                                            beyond second order, we beneﬁt here from the simpliﬁca-
+                    over the time interval [0,T] as a Fourier series                                                     tion that Z = 0, which is required to remove single-qubit
+                                                                                                                                         1
+                                                                              i 2π Mt                                    driving, whose details are given below. In eﬀect, this
+                                                (t) =                cMe T          ,                    (16)          meansthat,usingEq.(5),calculationofthekth-orderMag-
+                                                                M∈Z                                                      nusexpansiontermscanbereducedinitstimedependence
+                                           ∗                                                                             to solving nested integrals of the form
+                    with c           =c , and where in principle we truncate the
+                               −M          M                                                                                                                               
+                    series at a frequency for bandwidth considerations. Insert-                                                                 T           t                    t              
+                                                                                                                                                             k                    2        i 2π    k   N t
+                    ing into Eq. (14), this leads to                                                                       I            =          dt          dt       ···         dt e T         j =1  j j ,  (22)
+                                                                                                                            N1,...,Nk         0       k   0       k−1          0       1
+                                            	2π                                         
+
+                         ˆ                                             i   T M+mν+μδ tˆ ˆ
+                        H(t) =                                 c e                          J A ,        (17)          where the exponent consists of the sum of the expo-
+                                                                   M                           m m
+                                           M∈Zm∈Zμ=±1                                                                    nents of Eq. (21) evaluated at diﬀerent times t                                         and
+                                                                                                                                                                                                             j
+                                                                                                                         for diﬀerent combinations of the beat-note frequencies
+                    where operations on the qubit subspace are described by                                              N ≡N(m ,μ ).Finding appropriate solutions to the con-
+                                                                                                                            j             j     j
+                    the collective spin operator,                                                                        ditions will allow us then to signiﬁcantly simplify the
+                                                                                                                        time-ordered operators in Eq. (2), rewritten here as
+                                     1 	                        
+          ˆ
+                            ˆ              ˆ              mˆ               Jx      if m even                                                                ⎛                                       ⎞
+                           J =            J +(−1) J                 =                              ,       (18)                                            k          ∞
+                             m       2      +                 −             ˆ                                                                     i    k            
+                                                                           iJ      if m odd
+                                                                              y                                               ˆ                               ⎝                        ˆ    ˆ         ⎠
+                                                                                                                             P (t) =          −                                        J A I              ,     (23)
+                                                                                                                                k                                                      mj    mj Nj
+                                                                                                                                                         j =1     mj=−∞μ =±1
+                    which acts on both qubits. The transition in the motional                                                                                                  j
+                    modeunder absorption or emission of m phonons is given                                               which factors out the time dependence.
+                    by the mth sideband transition operator                                                                  Weproceedtocalculate the leading orders of the nested
+                                                     ∞            2k+m 2k+m                                              integrals analytically and then verify their accuracy numer-
+                          ˆ           −1η2          η i                             † k+m         k                     ically. A main challenge, especially for fast oscillating
+                          Am =e 2                               (m+k)!k!(aˆ )                 (aˆ) .       (19)          numerics, is to ascertain whether for single coeﬃcients
+                                              k=max(0,−m)                                                                Nj the integrals are zero, and whether they combine to
+                    WenextproceedtocalculatetheMagnusexpansionforthe                                                     sum up to zero, each corresponding to diﬀerent resonance
+                    HamiltonianEq.(17),orderbyorder,sothatwecanseethe                                                    conditions.
+                    eﬀect of each term, and how some terms can be corrected.                                                 Fortheevaluation of the higher-order terms of the Mag-
+                                                                                                                         nus expansion in this paper, we thus used integration
+                                      III. RESONANCECONDITIONS                                                           by parts to simplify the integrals. The analytical forms
+                                                                                                                         and their numerical evaluation can then be calculated
+                        Our goal is to set conditions to suppress certain tran-                                          using the SymPy [48] and NumPy [49] python packages,
+                    sitions in Fig. 1, while enabling the required MSG qubit                                             respectively.
+                                                                                                              010328-5
+             KIRCHHOFF,WILHELM,andMOTZOI                                                             PRXQUANTUM6,010328(2025)
+                              A. First-order condition                          The expression for the second order of the Magnus
+                The resonance condition for the ﬁrst Magnus order             expansion, Eq. (26), can be further simpliﬁed if the single-
+                                                                 ˆ     ˆ      photontransitions, Eq. (24), are suppressed. Assuming that
+             results from the integral I    , which produces Z = iP
+                                          N1                      1     1     the detuning δ of the laser from the qubit frequency is of
+             given by                                                         the order of the trap frequency ν, which is required any-
+                                 ∞          i2πN(m,μ)                         way in order to excite a single motional mode only, then
+                       ˆ         e                 −1 ˆ ˆ                   the two-photon resonance condition can be rewritten as
+                       Z1 =                i (mν + μδ) JmAm.        (24)
+                               m=−∞μ=±1                                     N +N =0 ⇐⇒ (m =−m )∧(μ =−μ ). (28)
+                                           resonance condition                    1     2               1        2      1       2
+             This term describes the phonon-assisted ﬂipping of the           In Appendix C, we discuss this matter in more detail. The
+             qubits. For the entangling gate, we want to suppress single-     simpliﬁcation in Eq. (28) allows rewriting of Eq. (26) as
+             qubit ﬂips at the ﬁnal time T, so we tune the parameters                         	                   
+
+                        ˆ                                                                            2 (n)     2 (n)
+             such that Z1 = 0. This requires that the beat-note index                    ˆ          ˆ         ˆ         |  |
+                                                                                        Z2 =        J d    +J d      ⊗ n n ,          (29)
+             must be a nonzero integer                                                               x  x     y  y
+                                                                                                n
+                                                 ∗                            with the standard form factors [24] that are the sum over
+                                    N(m,μ)∈Z ,                       (25)     even m for d and over odd m for d ,
+                                                                                           x                      y
+             which implies that also K and L are integers. For constant
+             drive amplitude M = 0, fulﬁlling Eq. (25) can be ensured                     2T2     2     1
+                                                                                 d(n) =∓        e−η                           (−η2)|m|
+             with a laser detuning δ that is not a multiple of the trap           x,y      2π                       mK+μL
+             frequency ν.                                                                            meven,oddμ=±1
+                Note that due to strong driving (compared to the detun-                ×	L|m|         (η2)
+2 min(n,n−m)!,             (30)
+             ing), the motional mode will nonetheless be excited, and                        min(n,n−m)       max(n,n−m)!
+             only at the ﬁnal time does it revert to zero. If, on the other
+             hand, the laser detuning is on resonance with the motional-      where L(b) is the associated Laguerre polynomial [44].
+                                                                                      a
+             mode frequency, δ = ν, the sideband transition remains             NotethatEq.(29)isdiagonalinthemotional-modesub-
+             populated also at the ﬁnal time [44]. Small detuning of the      space. Therefore, as can be seen from Fig. 1, the terms
+                                                                                 ˆ(m=1)
+             laser frequency will violate Eq. (25) and thus lead to errors    in Z2     only perform ﬂips (simultaneously) on the two
+                ˆ                                                             qubits.
+             in Z1 [50], but is outside the scope of the current work.
+                                                                                However, these conditions alone do not ensure that the
+                             B. Second-order condition                        Hamiltonian generates the correct gate. As we discuss
+                In the second order, we plug the Dyson term, Eq. (23),        next in Sec. IV, recalibrating the weights of these and
+                                                                                                                                ˆ2      ˆ2
+                                                                              other terms aﬀects the rotation angle about the J    and J
+             into the Magnus expansion, Eq. (3), and obtain                   operators.                                         x      y
+                              ∞
+                ˆ     i  2      ˆ ˆ ˆ ˆ                                                         C. Higher orders
+               Z =                           J  J   A A I        ,  (26)
+                 2                             m m m m N ,N
+                      2                         1   2   1   2  1 2
+                           m1,m2=−∞μ ,μ =±1                                             ˆ
+                                      1 2                                       WhenZ1 =0, the third order of the Magnus expansion
+                                                                                                       ˆ     ˆ
+             with the resonance integral I      given by Eq. (22).            similarly simpliﬁes to Z3 = iP3. The calculation of this
+                                           N ,N
+                                            1 2                               term involves calculation of a triple integral. Assuming
+                We focus on the case where N ∈ Z,∀j. Then, the                                                                   ∗
+                                                   j                          that we suppress single-photon transitions, N ∈ Z ∀j, the
+             nonvanishing contributions to the integral are                                                                j
+                                                                              resonance integral of third order is
+                        ⎧T2                                                                           3                      
+                        ⎪           N =0,N =0                                                        T      δ          δ
+                        ⎪2           1        2                                                              N +N       N +N
+                        ⎪ 2                                                            I        =              1  2 +    2   3  .     (31)
+                        ⎪ iT                                                            N1,N2,N3
+                        ⎨           N =0,N 
+=0                                                     4π2N       N          N
+               I      = 2πN2         1        2                      (27)                                3      2          1
+                N ,N           2
+                 1  2   ⎪− iT       N 
+= 0,N = 0
+                        ⎪ 2πN        1        2
+                        ⎪       1                                             This integral is zero unless N + N = 0orN +N = 0,
+                        ⎪      2                                                                            1     2           2    3
+                        ⎩− iT       N 
+= 0,N 
+= 0,N +N = 0.                   which are the resonance conditions for the transitions.
+                             2πN2    1        2        1    2
+                                                                              Because of the complexity of Eq. (31), there is no com-
+                                                                                             ˆ                                       ˆ
+             Here, we have four resonance conditions. N = 0 are the           pact form for Z beyond Eq. (23), as there was for Z in
+                                                            j                                 3                                       2
+                                                                                                              ˆ       ˆ
+             resonance conditions for the unwanted single-photon tran-        Eq. (29). The same applies for Z4 and Z5, but we will pro-
+                                                                                                                         ˆ      ˆ
+             sitions. The fourth condition, where N 
+= 0andN +                videtheleadinganalyticalerrortermsforZ andZ ,forthe
+                                                        j             1                                                   3      4
+             N =0,is the resonance condition for a two-photon tran-           typical case of a rectangular pulse next, in Sec. IVA.We
+               2
+             sition. This is what creates the desired Mølmer-Sørensen         then evaluate numerically the signiﬁcance of those terms
+             gate entanglement.                                               in Sec. IVB.
+                                                                       010328-6
+              CORRECTIONFORMULASFORTHE...                                                               PRXQUANTUM6,010328(2025)
+              IV. ERRORTERMSFORRECTANGULARDRIVE                                  (29)simplify,suchthatd(0) = 0andthesecondorderMag-
+                                                                                                           x
+                                        PULSES                                                ˆ      (0) ˆ2       2 2 2          2     2 ˆ2
+                                                                                 nus term is Z2 = d    J =− T η K/π/(K −L )J .
+                                                                                                     y  y                                 y
+                In this section, we present the leading-order terms of the         Theoptimalparametersthatfulﬁllaπ/2rotationaround
+                                                                                 ˆ2
+              Magnus expansion and Lamb-Dicke parameter η for the                Jy  can straightforwardly be solved (cf. Appendix B),
+              Mølmer-Sørensen gate driven with rectangular pulses. We            leaving us with
+              examinetheimpactandcorrection possibilities in terms of                                          
+              the average ﬁdelity.                                                                          π    (K2 −L2)
+                                                                                                   LD = Tη        √        ,              (32)
+                               A. Analytical expressions                                                             2K
+                Theanalytical expressions for the error terms are calcu-         where we assume that the motional mode is initially in the
+              lated by solving the time-ordered Dyson integrals Eq. (23)         vacuumstate n¯ = 0.
+              for small sideband numbers m. Moreover, when neglect-                TakingthenextorderoftheLamb-Dickeexpansioninto
+              ing terms of the Magnus expansion that are oﬀ-diagonal             account gives the Lamb-Dicke error term
+              in the motional-mode subspace, we can also derive analyt-
+              ical expressions for the ﬁdelity, as explained in detail in             (m=1)    K2T2η4(2n+1)
+                                                                                     ˆ                            ˆ2    ˆ2      2 4
+              Appendix B.                                                            Z      =                      J =J O( η ),           (33)
+                                                                                      2            π K2−L2           y     y
+                WhenconsideringonlytermsintheHamiltonian,which
+                                    ˆ2
+              are proportional to Jy , a simple expression for the aver-
+              age ﬁdelity can be obtained, see Eq. (B7). By employing            which corresponds to the second row in Table I. Tak-
+              the Bell ﬁdelity, a simple expression can be derived for           ing also the next sideband order into account, with |m|=
+                                                       ˆ2       ˆ                2inEq.(30), gives the sideband error term (third row
+              the case where terms proportional to Jx and Jz are taken
+              into account as well, see Eq. (B3). Both expressions yield         in Table I)
+              simple equations that can be solved for  to determine the
+              value that optimizes the ﬁdelity.                                      (m=2)       K2T2η4(2n+1)
+                                                                                    ˆ                              ˆ2    ˆ2      2 4
+                                                                                    Z      =−                       J =J O( η ). (34)
+                                                                                     2             π 4K2−L2           x     x
+                                                                   ˆ
+                     1. Errors and optimal drive amplitude at Z2
+                Totheﬁrstnonzeroorderofη,takingk = 0andtheﬁrst                   Botherrors have already been studied in the original work,
+              sideband order |m|=1inEq.(19), the form factors in Eq.             Ref. [24], and can be minimized by further adjusting the
+              TABLEI. Errortermsforrectangularpulses.Thesecondcolumnshowstheoperatorpartoftheterm.Thethirdtoﬁfthcolumnsshow
+              the coeﬃcient of the operator. The fourth and ﬁfth columns are the same as the third, except that  =    [Eq. (32)], and  = 
+                                √                                                                                    LD                       4
+              [Eq. (41) with s =  2KLη(1−η2)],respectively.
+              Error               Operator                      Term                   Termat                           Term at 
+                                                                                                 LD                                4
+                                                                                                                     √     	  √2 2 2
+
+                                      ˆ2                        K2T2η2                       π                       2KπLη s−  s −(K −L )
+              Gate                    Jy                     −π(K2−L2)                     −2                     −         (K2−L2)
+                                                                                                                 √     3     	  √2 2 2
+
+                                                                                                                  2KπLη 2n+1 s− s −(K −L )
+               (m=1)                                           2 2 4                       2                            (    )
+              ˆ                       ˆ2                    K T η (2n+1)                πη (1+2n)
+              Z                       Jy                          2  2                                                       2  2
+               2                                              π(K −L )                       2                             (K −L )
+                                                                                         2	 2  2
+                 √     3     	  √2 2 2
+
+              ˆ(m=2)                  ˆ2                     K2T2η4(2n+1)             πη K −L (2n+1)              2KπLη (2n+1) s− s −(K −L )
+              Z                       Jx                   −       2  2             −         2  2             −               2  2
+               2                                               π 4K −L                    2 4K −L                            4K −L
+                                                                (      )                   (      )
+                                                                                                                   7   5 3  7 	 √          
+3
+                                                                                                                  4   4 2  2       2  2  2 2
+              ˆ(m=1)              ˆ       †                    2K23T3η5                  2      K                2 πK L η    s−  −K +L +s
+              Z                   Jy(aˆ +ˆa )               −          2             −πη        2  2            −             2  2 2
+               3                                               2   2  2                      2 K −L                         (K −L )
+                                                              π (K −L )                       (     )
+                              	       
+                                                                            3   5 3  5 	 √          
+3
+                                                                                                                  4   4 2  2     2   2   2 2
+              ˆ(m=2)        ˆ       ˆ2    2    †2             K23T3η4             πη          K                  2 πK L η    s−  s −(K −L )
+              Z             Jx 1−Jy (aˆ −ˆa )              2   2  2   2  2                 2  2    2  2         −          2   2  2  2
+               3                                          π 4K −L    K −L           2   2 K −L   4K −L                   (4K −L )(K −L )
+                                                            (      )(     )              (     )(      )
+                                                                                          	 2   2
+                     2 	  √2 2 2
+2
+              ˆ(m=1)              ˆ       †                    K4T4η3                   π K −L                     2πL η s−  s −(K −L )
+              Z                  Jxy(aˆ +ˆa )              3  2   2   2  2                   2   2                        2  2  2   4
+               4                                          π K −4L    K −L               4Kη K −4L                       (K −L )(K −4L )
+                                                            (      )(     )                (      )
+                                                                                           	     
+                 	           √           
+
+                                                                                             2  2 2                  2  2   2     2   2  2
+              ˆ(m=1)                  ˆ2                   − K4T4η2                 − π K −L                     π K −L −2s +2s s −(K −L )
+              Z                       Jz                       3 2  2   2                  2 2  2   2                        2   2
+               4                                             4π L K −4L                16KL η K −4L                       2 K −4L
+                                                                  (      )                    (      )                     (      )
+                                                                                          	 2   2
+                         	  √2 2 2
+
+              ˆ(m=1)                  ˆ2                       K4T4η2                   π K −L                      π   πs s−  s −(K −L )
+              Z                       Jy                       3 2 2  2                       2 2                 − +            2  2
+               4                                            4π L K −L                     16KL η                     2         K −L
+                                                                 (     )                                                      (      )
+                                                                         010328-7
+             KIRCHHOFF,WILHELM,andMOTZOI                                                          PRXQUANTUM6,010328(2025)
+             drive amplitude                                                entangling gate. The leading terms of the ﬁrst sideband
+                                                                                         ˆ(m=1)   ˆ(m=1)    ˆ(m=1)
+                                     2    2     2     2                    order terms Z2     +Z3       +Z4       are proportional to
+                       π           (K −L )(4K −L )                          ˆ2
+                                                                            J . Inserting the resulting prefactor
+                 =                                          ,   (35)      y
+                  2    Tη 2K η2(2L2−5K2)+(4K2−L2)
+                                                                                             Kη2(η2 −1)                  Kη2
+                                                                              d(n) =−2T2               +4T4                   
+             which can be found by inserting the form factors in Eq.           y             π K2−L2              4π3L2 K2 −L2
+             (29) for n = 0 into the condition for the optimal ﬁdelity                                                            (39)
+             (see Appendix B for more details).
+               However, these errors are only optimal in the approxi-       into the condition for the Bell ﬁdelity Eq. (B3) or for
+             mation of zero motional-mode population n¯ = 0, and dis-       the average ﬁdelity Eq. (B7) and setting F = 1 yields a
+             counting the next orders of the Lamb-Dicke and Magnus          quadratic equation in 2,
+             expansion. We now discuss these latter corrections.
+                                                ˆ                                K2T2η24π2L2η2 −4π2L2 +2T2              π
+                                   2. Errors at Z3                             −               3 2 2      2            = 2,     (40)
+               Nowlet us take a look at the higher orders of the Mag-                       4π L K −L
+             nus expansion. In this subsection and the following, we        whosesolution is the corrected optimal drive amplitude
+             discuss the error operators and the order of the terms in                             	                     
+
+             andη,whilefullexpressionsareshowninTableIforbetter                             √ 2          2        2    2
+             readability.                                                            2 =     2π L s− s −(K −L ) ,                (41)
+                                           ˆ                                           4                √ 2
+               Theﬁrst-sideband term of Z3 (fourth row in Table I)for                                     KTη
+             a rectangular pulse takes the form                                      √
+                                                                            with s =   2KLη(1−η2).
+                           ˆ(m=1)    ˆ        †      3 5                                         1
+                           Z3     =Jy(aˆ +ˆa )O( η ),             (36)       Since 4 is O(η−2), in contrast to LD and 2, which
+             which gives O(η2) at  = LD. This term creates a              are O(η−1), the Lamb-Dicke orders of the terms of the
+             phonon-assisted single-qubit ﬂip. The second-sideband          Magnus expansion change when driving at 4 instead of
+                      ˆ                                                     2 or LD, which is reﬂected in the last two columns of
+             term for Z3 (ﬁfth row in Table I)isoforder                     Table I.
+                  ˆ(m=2)    ˆ 	     ˆ2
+ 2       † 2     3 4
+                 Z3     =Jx 1−Jy aˆ −(aˆ ) O( η ),                (37)                    B. Numerical comparison
+             whichgivesO(η)at =  .Thistermcausessqueezing                   In the previous section, the analytical expressions for
+                                         LD                                 the leading error terms in the Magnus expansion were pre-
+             [12], and population leakage into the motional mode. The       sented, summarized in Table I. This section focuses on
+             energy-level diagram in Fig. 1 depicts how the processes       numerically analyzing the impact of these error terms on
+                ˆ
+             in Z3 cause population leakage in both the motional mode       the average ﬁdelity [Eq. (B6)] of the Mølmer-Sørensen
+             and qubit subspaces.                                           gate. We compare the inﬁdelities 1 − F     calculated with
+                                                                                                                    av
+                                                              ˆ             diﬀerent propagators. The ﬁdelity representing the eﬀect of
+                    3. Errors and optimal drive amplitude at Z4             the nth order of the Magnus expansion is calculated with
+               The fourth order of the Magnus expansion consists in                                               
+             the sum of three entangling operations                                                           n
+                                                                                            ˆ              i ˆ
+                                                                                            U :=exp −            Z   .            (42)
+                            (m=1)                                                           n                  k
+                           ˆ         ˆ        †       4 3                                                    k=2
+                          Z4     =Jxy aˆ +ˆa     O( η )
+                                       ˆ2     4 2
+                                    +JzO( η )                                              ˆ
+                                                                            The ﬁrst order Z1 is always suppressed. The numerical
+                                        2     4 2                                                              ˆ
+                                       ˆ                                    expression for the Magnus terms Zn are calculated using
+                                    +JyO( η ),                    (38)     the formulas shown in the previous sections.
+             where                                                            The operators are implemented in matrix form, with
+                           ˆ      1                                       the operators acting on the motional-mode subspace being
+                          J    = σˆ ⊗ˆσ +ˆσ ⊗ˆσ .
+                            αβ    2   α    β     β     α                    truncated at N    =8. The resonance integrals are cal-
+             The full expressions are listed in rows 6–8 of Table I.As                     dim
+                                                   ˆ  ˆ        †          culated recursively using computer tools as described in
+             sketched in Fig. 1, the ﬁrst term in Z4, Jxy aˆ +ˆa  ,cre-     Sec. III.
+             ates entanglement, but also causes population leakage in         In the previous section, the analysis of the Magnus
+                                                   ˆ2
+             the motional mode.Thesecondterm,J ,onlyaddsaphase              expansion orders was limited to the second to fourth order.
+                                                   z
+                                                  ˆ2
+             to the target state. The third term, J , contributes to the    To ensure the adequacy of this restriction, we calculated
+                                                  y
+                                                                     010328-8
+              CORRECTIONFORMULASFORTHE...                                                                  PRXQUANTUM6,010328(2025)
+              theinﬁdelityincludingtheﬁfth-orderMagnustermaswell,
+                               ˆ
+              represented as U . However, since the results show that the
+                                5                                                          −1
+                                       ˆ                                                 10
+              curves obtained with U nearly completely overlap with
+                                         5
+                                       ˆ
+              those calculated with U , we have decided to not include                 y
+                                        4
+              them in the ﬁgures in order to avoid visual clutter.                         −2
+                                                                                         10
+                 To evaluate the accuracy of a truncated propagator                    inﬁdelit
+              in representing the actual system evolution, we estimate                     −3
+                                                                                         10          U
+                                                              ˆ                                       num
+              the propagator for inﬁnite Magnus orders U . This esti-
+                                                                ∞                                    U
+              mation is accomplished through numerical calculation of                                 2
+                                                                                       Predicted     U
+                                                                                                      3
+              the propagator using the Trotter expansion [51,52] which                     −4        U
+                                                                                         10           4
+              decomposes the propagator into products of exponential                                 Ω2
+              operators, each corresponding to a small time step. We                                 Ω4
+                                                                                           −5
+              deﬁne the numerical propagator as                                          10        1.00       1.05        1.10       1.15
+                                                                                                            Drive amplitude Ω (MHz)
+                                           Nt
+                                 ˆ        −iH(nt)t
+                                U      :=     e           .              (43)     FIG. 2.   Predicted average inﬁdelity as a function of the drive
+                                  num
+                                                                                                                 ˆ
+                                          n=0                                      amplitude  calculated with Unum and diﬀerent Magnus expan-
+                                                                                               ˆ   ˆ   ˆ
+                                                                                   sion orders U ,U ,U in Eq. (42). The parameters are η = 0.18,
+                                                                                                2   3   4
+              To ensure that the time steps are suﬃciently small, they             K−L=T(ν−δ)/2π =3,K =28,ν/(2π)=1MHz,andn¯ =
+                                                                                   2×10−2.Thetheoretical prediction of  [Eq. (35)] is depicted
+              are set to t = 1/(10f      ) where f      =max{M +mK+                                                        2
+                                       max          max                            withthedashedorangeverticalline.Thetheoreticalpredictionof
+              L}(2π/T) is the largest frequency appearing in the Hamil-            the minimum  [Eq. (40)] is shown with the solid purple verti-
+              tonian, Eq. (21). As the Magnus expansion terms for                                  4
+                                                                                                               ˆ
+                                                                                   cal line. The Magnus orders Z are calculated taking into account
+              the numerical calculations are truncated after the third                                          k
+              sideband order, we set m = 3 here.                                   the ﬁrst three sideband orders |mi|≤3.
+                 Figures. 2–4 were created using the following typical
+              parameters [9,35,53,54]: the Lamb-Dicke parameter is set             general observation, in Fig. 3, it can be seen that there
+              to η = 0.18. The average trap population is chosen as                                                                    ˆ
+                                                                                   is a strong agreement between the curve for U and the
+                                                                                                                                        4
+                           −2                                                                  ˆ
+              n¯ = 2 × 10    . For rectangular pulses, the dimensionless           curve for U      . The dependence of the inﬁdelity on the
+                                                                                                num
+              gate duration is K = 28, which corresponds to a gate dura-           initial average motional-mode population is plotted in Fig.
+                                                                                                                                                ˆ
+              tion of 28s for a trap frequency of ν/(2π)= 1MHz. The                3(a). At low temperatures, the curves calculated with U
+                                                                                                                                                  2
+                                                                                        ˆ
+              dimensionless laser detuning diﬀerence from the trap fre-            and U predict lower inﬁdelity than those calculated with
+                                                                                          3
+                                                                                   ˆ        ˆ
+              quency K −L is set to 3, corresponding to a detuning                 U and U       , highlighting their lack of predictive power.
+                                                                                     4        num
+              of (ν −δ)/(2π)= 107KHz, illustrating that the small-                 However, at higher temperature, all predicted inﬁdelities
+              est detuning of K −L = 1 may not always be optimal.                  increase monotonically and nearly converge. The inﬁ-
+              Because the diﬀerence in ﬁdelity for diﬀerent values of              delity is almost linear in the motional-mode population
+              K−Lis not signiﬁcant and its behavior depends on the                 n¯, as expected from the terms, which are linear in n in
+              choice of other parameters, this paper does not delve into           Table I.
+              the speciﬁcs of how the choice of K − L aﬀects the ﬁdelity.             Figure 3(b) illustrates the predicted inﬁdelity as a func-
+                                                                            ˆ
+                 InFig.2,thepredictedinﬁdelitiesforthepropagatorsU                 tion of the dimensionless gate time K = (νT/2π), indicat-
+                                                                             n
+                   ˆ
+              andU       are displayed as a function of the drive amplitude        ing a threshold around K = 100 below which the predicted
+                     num
+              .Theminimaofthepredictedinﬁdelitiescalculated with                  inﬁdelity increases signiﬁcantly as K decreases. For gate
+               ˆ       ˆ                                                                                                                    ˆ
+              U and U , respectively, are approximately located at the             timeslongerthanK ≈ 100,thecurvesrepresentingU and
+                2        3                                                                                                                   3
+                                                                                   ˆ
+              drive amplitude  , whose value was calculated using Eq.             U converge,whereasforgatetimesshorterthanK ≈ 100,
+                                  2                                                  4
+                                     ˆ        ˆ
+              (35). The curves for U and U         are nearly indistinguish-       the predicted inﬁdelities diverge, as expected when the
+                                       4       num
+              able at oﬀ resonance and are closely aligned around their            coherent errors increase and the ratio of  to the other
+              minimum,whichisapproximately at the expected optimal                 frequencies in the system is increased. In particular, the
+                                                                                                                            ˆ       ˆ
+              Rabi frequency  [Eq. (40)]. The predicted inﬁdelity of              predicted inﬁdelities calculated with U and U          increase
+                                  4                                                                                          4        num
+               ˆ                                                            ˆ
+              U at  is approximately equal to the inﬁdelities of U                signiﬁcantly as K decreases. Meanwhile, the inﬁdelities
+                3      2                                                     4
+                   ˆ
+              and U      at  . For the sake of consistency, in Figs. 3 and        calculated with the lower orders of the Magnus expansion
+                     num      4
+                               ˆ      ˆ                                            ˆ        ˆ
+              4 we compare U to U           with the drive amplitude set to        U andU remainnearlyhorizontal,indicatinganinability
+                                 n     num                                           2       3
+              =2,butit is worth noting that the results are similar              to capture the full dynamics at short times, but the curve
+                                                                                                     ˆ
+              for  =  .                                                          calculated with U lies an order of magnitude below the
+                          4                                                                            2
+                 In the following, we provide a comparison between                 inﬁdelity calculated with U .
+                                                                                                                 3
+              the inﬁdelity calculated using diﬀerent propagators as a                Figure 3(c) depicts the predicted inﬁdelity as a function
+              function of various parameters, as shown in Fig. 3.Asa               of the Lamb-Dicke parameter η. The curve calculated
+                                                                           010328-9
+                 KIRCHHOFF,WILHELM,andMOTZOI                                                                                   PRXQUANTUM6,010328(2025)
+                   (a)                                                  (b)                                                (c)
+                                     U
+                      y               num
+                                     U
+                                      2
+                                     U
+                          −2          3
+                       10            U
+                                      4
+                      inﬁdelit
+                          −4
+                       10
+                      Predicted
+                          −6
+                       10       −3          −2          −1          0               100            200            300         −2                   −1                     0
+                             10          10          10           10                                                       10                   10                     10
+                                                                                                                  νT
+                                                                ¯       Dimensionless gate durationK =               /2π
+                                   Initial trap population n                                                                          Lamb-Dicke factor η
+                 FIG. 3.     Predicted average inﬁdelity as a function of the population of the motional mode n¯ (a), the dimensionless gate duration K
+                 (b), and the coupling strength η (c), respectively. The parameters are (if they are not varied): η = 0.18, K − L = T(ν − δ)/2π = 3,
+                 K =28,ν/(2π)=1MHz,n¯ =2×10−2,and= [Eq.(35)].U andU                                          are the predicted inﬁdelities calculated with Eqs. (42)
+                                                                                2                n        num
+                 and (43), respectively.
+                        ˆ                                                                         it has become clear that the second order of the Mag-
+                 with U lies approximately an order of magnitude lower
+                          2                                                                                            ˆ
+                                                             ˆ                           ˆ        nus expansion, Z2, is not the only term that signiﬁcantly
+                 than the curve calculated with U . The curves for U
+                                                               3                           4      impacts the gate ﬁdelity. In fact, terms up to and including
+                        ˆ                                              ˆ
+                 and U          do approach the curve for U                 around η =
+                         num                                             3                                              ˆ
+                 0.3 but this is in the higher error regime; on the other                         the fourth-order Z4 contribute signiﬁcantly to the ﬁdelity.
+                 hand, they diverge signiﬁcantly at smaller values of η,                          Although higher orders in the Magnus expansion may,
+                 once again disagreeing strongly with the standard pre-                           in principle, be relevant as well, Sec. IVB demonstrates
+                                                                              ˆ          ˆ        that they are typically not necessary for commonly used
+                 dictions. Notably, the curves calculated with U and U
+                                                                                2          3      parameters.
+                 increase monotonically with η, while the curves calcu-                              In a model that accounts only for the second order of
+                               ˆ         ˆ
+                 lated with U and U             have a minimum around η = 0.2.
+                                 4         num                                                    the Magnus expansion, one might be tempted to choose a
+                 This indicates that making the Lamb-Dicke parameter as                           small value for the Lamb-Dicke parameter η to minimize
+                 small as possible does not improve the inﬁdelity of the                          errors related to the Lamb-Dicke expansion. However, as
+                 Mølmer-Sørensen gate. Instead, there is an optimal value                         demonstrated in Table I, reducing η decreases the error in
+                 for the Lamb-Dicke parameter for the Mølmer-Sørensen                             ˆ          ˆ                                                     ˆ
+                 gate.                                                                            Z2 and Z3, but also increases the error term in Z4. This
+                                                                                                  indicates the existence of a sweet spot for η, as shown
+                                                                                                                                                   ˆ
+                                                                                                  in Fig. 3(c). The fourth-order term Z4 leads, due to the
+                                             C. Discussion                                                                                  ˆ2
+                                                                                                  additional term proportional to J , to a shift in the opti-
+                                                                                                                                             y
+                    In Fig. 1, the terms of Sec. IV are visually repre-                           mal drive amplitude without signiﬁcantly impacting the
+                                                                                                                               ˆ
+                 sented. Through our analysis in the previous sections,                           ﬁdelity compared to Z3. Meanwhile, the contribution of
+                    (a)                                                (b)                                                (c)
+                      y   −1
+                        10
+                      inﬁdelit
+                          −3                                Unum rect
+                        10                                  U    sin2
+                                                             num
+                                                                 2
+                                                            U2 sin
+                                                                 2
+                                                            U3 sin
+                      Predicted                                  2
+                          −5                                U4 sin
+                        10       0.10      0.15      0.20     0.25                  100           200            300
+                                                                                                                          0.00       0.25       0.50       0.75       1.00
+                                                                                                                  νT
+                                 Drive amplitude Ω (MHz)               Dimemsionless gate duration K =               /2π              Lamb-Dicke factor η
+                                                                                                     2
+                 FIG. 4.     Predicted average inﬁdelity of the Mølmer-Sørensen gate sin pulses and for comparison the numerical predicted inﬁdelity
+                 for a rectangular pulse as a function of drive amplitude , dimensionless gate duration K, and Lamb-Dicke factor η, respectively. The
+                                                                                                                                                                    −2
+                 parameters are (if they are not varied): η = 0.18, K − L = T(ν − δ)/2π = 3, K = 28, ν/(2π)= 0.1MHz, and n¯ = 2 × 10 2 .The
+                 data for (b) and (c) is calculated using  =               [Eq. (35)] for the rectangular pulse shape and  = 0.173 MHz for the sin -pulse
+                                                                        2,rect
+                 shape.
+                                                                                        010328-10
+             CORRECTIONFORMULASFORTHE...                                                            PRXQUANTUM6,010328(2025)
+              ˆ                ˆ                                              optimal drive amplitude
+             Z3, compared to Z2, increases the inﬁdelity, as illustrated
+             in Table I and Fig. 2.                                                                           π     q
+                The temperature dependence of the error terms, as pre-                                = √             y .           (46)
+                                                                                                      2
+                                                                                                 LD,sin   ηT 2K p
+             sentedinTableI,revealsthatcertaintermsareproportional                                                     y
+             to n¯, consistent with the trend observed in Fig. 3(a).          Thethird order of the Magnus expansion is of the form
+                                                             ˆ
+                According to Ref. [24], one can neglect Z3, because
+                          ˆ           2                      ˆ         2
+             the error in Z2 is O(nη ), while the error in Z3 is O(η ).                            K23T3η5 p              
+             Theyarguethat deviations of the Lamb-Dicke approxima-                        ˆ                     3 ˆ        †
+                                                                                          Z   2 =                Jy aˆ +ˆa   ,       (47)
+                                                                                           3,sin       π2      q
+             tion are typically caused by large values of n rather than                                         3
+                         ˆ                              ˆ
+             η, making Z3 insigniﬁcant compared to Z2. Nevertheless,          where p and q are again polynomials in K and L.
+             this perspective fails to consider that error terms related              3      3
+             to higher sideband orders could have lower orders in the           One can show that the resulting error terms at the opti-
+             Lamb-Dicke expansion, as seen in the case of the second          mal drive amplitude are smaller than the error terms for a
+                                ˆ                                             rectangular pulse, which have the same form, but diﬀerent
+             sidebandorderofZ3 [Eq.(37)].Moreover,duetoimproved               prefactors. This is, because the prefactor (p /q ) is smaller
+             cooling methods [53] since then, it is increasingly crucial                        2                         3  3
+             to have expressions that remain valid at low temperatures.       in the case of a sin pulse than the respective one for a rect-
+                                                                              angular pulse given in Table I, for most realistic choices of
+                               V. PULSESHAPING                                K and L.
+                Sofar,wehavescrutinizedtheproblemforarectangular                              B. Numerical comparison
+             drive amplitude. However, the analysis in Sec. III is valid        We now compare the average inﬁdelity, 1−F, using
+             for arbitrary ﬁnite window, smooth pulse shapes, with            a rectangular pulse (t) =  to the inﬁdelity using a
+             small modiﬁcations as given in Appendix A. Amplitude                2                     2
+                                                                              sin  pulse (t) = sin tπ/T . Explicitly, we compare
+                                                                                                        (     )
+             modulation experiments on the Mølmer-Sørensen gate               ˆ                       ˆ                2
+                                                                              U for n = 2,...,4,toU         using a sin pulse, while also
+             have already been performed [35,55], but to the authors’           n                       num
+                                                                                             ˆ
+                                                                              comparing to U       using a rectangular pulse. The prop-
+             knowledge, no theoretical investigation has been realized                         num
+                                                                                       ˆ   ˆ
+                                                                              agators U , U      are calculated with Eqs. (42) and (43),
+             so far. A straightforward candidate for a smooth pulse is a                n   num
+             Gaussian pulse, but since it is not ﬁnite in time, we fall       respectively.
+                                                                                Comparing the predicted inﬁdelities calculated with
+             back on a similar, and well-behaved pulse shape of the           ˆ                                                   2
+                                                                              U     as a function of  for a rectangular and a sin pulse,
+             form                                                               num
+                                                                              one can see in Fig. 4(a) that the optimal (highest reached)
+                                              2 	π 
+                          drive amplitude diﬀers for diﬀerent pulse shapes, but that
+                                (t) = sin      Tt .                (44)     the minimal predicted inﬁdelity for a sin2 pulse is smaller
+                                                                              than for a rectangular pulse. Because the optimal drive
+                     2                                                        amplitudes diﬀer, in Figs. 4(b) and 4(c) the ﬁdelities are
+             The sin pulse shape has also a narrower bandwidth (i.e.,
+             smaller maximal value of M), when compared to a trun-            plotted at their respective minimal drive amplitude  .
+                                                                                                                                    2
+             cated Gaussian pulse. This is potentially preferable since         In Fig. 4(b), the inﬁdelity is shown as a function of
+             fewer unwanted transitions may be driven, and in gen-            the dimensionless gate duration K. In the low inﬁdelity
+             eral more compatible with keeping track of all the reso-         regime, the shaped pulses outperform the square pulses
+             nanceconditions,discussedinSec.III.Sincetheanalytical            considerably, with both the full numerics and the fourth
+             results for a sin2 pulse are lengthy, we only sketch some        Magnus order closely agreeing. The graph also shows
+             terms in this section and give further details in Appendices     that inclusion of orders higher than three in the Magnus
+                                                                                                        ˆ
+             AandD.                                                           expansion (described by U ) results in an increase of the
+                                                                                                          4
+                                                                              predicted inﬁdelity as the value of K decreases, but only
+                              A. Analytic expressions                         belowacertainthresholdthatisdependentonη.Atdimen-
+                The second order of the Magnus expansion for a sin2           sionless gate times longer than K ≈ 50, the calculation
+                                                                              using a sin2 pulse predicts a lower inﬁdelity, but at gate
+             pulse is of the form                                             times shorter than K ≈ 50, the rectangular pulse yields
+                                2 2 2                                        a lower inﬁdelity. One can see that for the sin2 pulse,
+                  ˆ         K T η      py                2 ˆ2
+                  Z    2 =                  1−(2n+1)η J                       except for short gate times, there is a close agreement
+                   2,sin        π       qy                     y                                                  ˆ             ˆ
+                                                                              between the curve calculated with U and with U , which
+                                                                                                                   2            3
+                                            p                                 impliesthatpulseshapingcanprobablycompensateforthe
+                                             x            2ˆ2
+                                         +      2n+1 η J        ,    (45)
+                                               (       )    x                                       ˆ
+                                            q                                 oﬀ-diagonal errors in Z3, unlike in Fig. 3(b).
+                                             x                                  FortheLamb-Dickeparameterη,weseeonceagainthat
+             where p     and q    are polynomials in K and L, deﬁned          thecontributionsofthehigherordersintheMagnusexpan-
+                      x,y      x,y
+             in Appendix D. From this expression, one can derive an           sion lead correctly to the existence of an optimal value
+                                                                      010328-11
+             KIRCHHOFF,WILHELM,andMOTZOI                                                         PRXQUANTUM6,010328(2025)
+                                              ˆ       ˆ                     ˆ
+             for η, while instead the terms Z2 and Z3 decrease with        Z2, leading to a signiﬁcant shift in the optimal drive ampli-
+             decreasing η. The data in Fig. 4(c) is not detailed enough    tude. Due to being of diﬀerent order in , a sweet spot for
+             to tell which pulse shape in general leads to a smaller mini- the Lamb-Dicke coeﬃcient η also emerges.
+             malpredictedinﬁdelity.ForLamb-Dickeparameterslarger              We give predictive expressions for the optimal drive
+             than the minimal value, the sin2 pulse yields a much lower    amplitude(uptoexperimentalcalibration), and show qual-
+             inﬁdelity, but for small η, the rectangular pulse is slightly itatively that an optimal η may be found, e.g., through
+             better. The behavior of the inﬁdelity as a function of η is   numerical calibration. Due to the contribution of the third
+                                                  2                                                         ˆ
+             similar for rectangular pulses and sin pulses.                order in the Magnus expansion Z3, the Mølmer-Sørensen
+                                                                           gate ﬁdelity is inherently limited, but with analytical
+                                                                           expressions for leading terms of the ﬁrst four Magnus
+                                   C. Discussion                           terms, this opens potential avenues to suppress certain
+               Figure 4 illustrates the potential for using shaped pulses  terms. For example, we show that an amplitude with enve-
+             to further reduce the error in the Mølmer-Sørensen gate. At   lope sin2(tπ/T) decreases the contribution of the third
+             aquantitative level, we see that while in the previous plots’ order of the Magnus expansion. The presented framework
+                                                              −3           also opens new paths for application of optimal control
+             parameter searches limited inﬁdelities to the 10    range,
+             therearepromisingparameterregimeswithsin2 pulsesthat          methods on the Mølmer-Sørensen gate, such as the use
+             lead to errors below 10−4. This can be explained mathe-       of DRAG pulses [56]. It also makes it straightforward to
+             matically, through the Magnus expansion, as arising out       investigate the eﬀect of multichromatic beams.
+             of generally smaller prefactors in front of the same error
+             operator terms.                                                              ACKNOWLEDGMENTS
+               At a qualitative level, the behavior of the inﬁdelity for      This work was supported by the Helmholtz Validation
+             varying parameters for a sin2 pulse is similar to the behav-  Fund Project No. HVF-00096 and under Horizon Europe
+             ior of the inﬁdelity for a rectangular pulse. Moreover, for   Programmes HORIZON-CL4-2021-DIGITALEMERGIN
+             certain parameter regimes, the rectangular pulses actually    G-02-10 via the Projects No. 101080085 (QCFD) and
+             outperform the sin2 strategy. This is consistent both with    No. HORIZON-CL4-2022-QUANTUM-02-SGA via the
+             conventional wisdom on pulse shaping and the nuances          Project No. 101113690 (PASQuanS2.1).
+             of the Mølmer-Sørensen gate. Indeed, square pulses are
+             knowntoallowspectralholeburningthroughtheircharac-               APPENDIXA:GENERALEXPRESSIONSFOR
+             teristic sinc spectrum, while smooth pulses oﬀer the pos-       THERESONANCEINTEGRALWITHSHAPED
+             sibility of reducing bandwidth overall and thereby avoid                              PULSES
+             entire ranges of oﬀ-resonant errors. In the case of the
+             Mølmer-Sørensen gate, the spectral conditions on beat-                              1. First order
+             note indices not only reduce errors at low Magnus orders,        Thegeneral expression for the ﬁrst order of the Magnus
+             but in certain cases also eliminate certain other terms, and  expansion Eq. (24) is
+             so for a fortuitous choice of parameters it may indeed oﬀer
+             the best strategy. Smooth shaping allows nonetheless gen-                                   	2π         
+
+                                                                                         ∞               i T M+mν+μδ T
+             erally a safer option, and indeed seem to perform optimally       ˆ          e                           −1 ˆ ˆ
+                                                                              Z =                  c                     J A .
+             in the best case. Lastly, the latter can be combined more          1                    M i 2πM +mν+μδ m m
+             easily with other control theoretic methods to potentially               M,m=−∞μ=±1        T               
+             reduce errors even further.                                                                  resonance condition
+                                                                                                                                 (A1)
+                                 VI. SUMMARY                               Using the beat-note index
+               Weshowedthatcalculating the Magnus expansion only                     N(M,m,μ):=M + νT m+ δT μ                    (A2)
+                                      ˆ
+             up to the second order Z2 is not suﬃcient to adequately                                       2π        2π
+             describe the Mølmer-Sørensen gate.                                                                 
+               While the Lamb-Dicke expansion is indeed a valid                                             K         L
+                                                                    ˆ
+             approximation for the ﬁrst nonvanishing Magnus order Z2,      the Hamiltonian can be written more compactly as
+             weshowthat higher orders of the Magnus expansion, and
+                       ˆ       ˆ
+             explicitly Z3 and Z4, cannot be neglected in general. The                                    i 2π (M + Km + Lμ)t
+                                             ˆ                                             ∞               T            
+             contribution of the third-order Z3 increases signiﬁcantly       ˆ                                    N         ˆ ˆ
+                                                         4                   H(t) =                 c e                     J A .
+             the inﬁdelity, being of the same order O(η ) in η as the                                  M                       m m
+                                         ˆ                                              M,m=−∞μ=±1
+             Lamb-Dicke error terms in Z2. Moreover, the fourth order
+             ˆ                                2                                                                                  (A3)
+             Z4 is even of the same order O(η ) in η as the gate term in
+                                                                    010328-12
+             CORRECTIONFORMULASFORTHE...                                                        PRXQUANTUM6,010328(2025)
+                                 2. Second order                           −(π/2), is obtained if
+               ThesecondorderoftheMagnusexpansionEq.(26)with                               	                  
+
+             the resonance integral Eq. (27) and the beat-note indices                        Pnsin d(n) −d(n)   =1(B4)
+                                                                                                      x      y
+                                                                                           n
+                              N =M +mK+μL                         (A4)
+                               j      j    j       j                       is fulﬁlled. This equation can be solved numerically, but to
+             can be simpliﬁed further if the two-photon resonance          get an analytical solution, further approximations must be
+                                                                           made. Assuming P decays quickly with n then one can,
+             condition                                                                        n
+                                                                                                                       n        n+1
+                                                                           e.g., assume a thermal distribution P =¯n /(n¯ + 1)      ,
+                                                                                                                 n
+                M +m K+μ L+M +m K+μ L=0                                    withsmallaveragephononnumbern¯  1.Then,theterms
+                  1     1      1       2     2      2                      for n > 0 can be neglected, and the condition for optimal
+                 ⇐⇒ (M =−M )∧(m =−m )∧(μ =−μ )                                                	           
+
+                          1        2      1       2      1       2         ﬁdelity becomes sin d(0) − d(0)  =1,andthus
+                                                                  (A5)                           x     y
+             is satisﬁed (see Appendix C).                                                     d(0) − d(0) = π .(B5)
+               Thegeneral form of the form factors Eq. (30) is                                  x      y     2
+                      2T2     2     |cM|2                               This equation is valid for the leading terms of the eﬀective
+             d(n) =∓        e−η                              (−η2)|m|      Hamiltonian for the Mølmer-Sørensen gate. However, the
+              x,y      2π                    M+mK+μL
+                                meven,odd Mμ                               Bell-state ﬁdelity requires ﬁxing speciﬁc initial and target
+                                 ×	L|m|        (η2)
+2 min(n,n−m)!.         states.
+                                      min(n,n−m)      max(n,n−m)!            Another measure that allows quantiﬁcation of the
+                                                                           ﬁdelity in quantum computing is the average (gate-
+                    APPENDIXB:CHOICEOFFIDELITY                             overlap) ﬁdelity
+                                                                                       !                                   !
+               TheBell-state ﬁdelity, for an initial state ρ and a target                       ∞                       
+                        !     "                          0                           1 !                                  !
+                        !                                                              !                   ˆ    ˆ †        !
+             qubit state ψ     ,                                                                        |            | 
+                                                                              F = Tr                P n U(T)U          n    ,(B6)
+                          target                                                av     !  qubits      n          target    !
+                        #      !                 †     !      "                      4 !         n=0                       !
+                               !         ˆ      ˆ      !
+                F = ψ           Tr     {U(T)ρ U (T)} ψ            (B1)
+                  Bell     target motion       0          target                                 2
+                                                                                ˆ               ˆ
+                                                                           with U     =exp(iϕJ ), ϕ = (π/2). It yields nearly the
+                                                                                  target         y
+             is often used in experiments [10,11,24,30,53,57,58]and        same results as the Bell ﬁdelity if the trace over the
+             therefore allows for straightforward comparison. The main     motional modes is weighted by the Boltzmann distri-
+             advantage of the metric is that it is a good measure of                     n         n+1
+             (maximally) achievable entanglement, while at the same        bution, Pn =¯n /(n¯ + 1)    ensuring that performance is
+                                                                           measured accordingly for more likely initial states.
+             time ignoring certain relative phases that can otherwise        The average ﬁdelity is a more standard measure for
+             be corrected, e.g., with single-qubit gates. Also, the Bell-  quantum information settings [34], because it measures
+             state ﬁdelity allows for straightforward calculation of the   how close a gate is to the target gate, which is useful for
+             ﬁdelity for Hamiltonians of the form                          implementation of quantum algorithms.
+                           	 
+                                             In order to calculate LD and 4, the average ﬁdelity
+                                        (n) ˆ2   |  |                    can be used directly.
+                                       d J    ⊗ n n .(B2)
+                                        j  j                                 Comparison of the target propagator and the eﬀective
+                             n j=x,y,z
+                                                                           HamiltonianEq.(B2)showsthattheaverageﬁdelityneeds
+                    ˆ2       ˆ2                                            small dx and dz and additionally
+             Since J    and J    are qubit entangling operators, this
+                     x        y
+             is an entangling operation, which does not aﬀect the                                         π
+             state of the motional mode. It yields for an initial qubit                           dy =− .(B7)
+                  |      |                                    |                                        2
+             state ψ   = 00 , an entangled qubit target state ψ     =
+                √ 0                                               t
+                     |      iφ | 
+             (1/ 2) 00 +e 11 , and an initial motional-mode                                               ˆ2
+                  ∞       |  |                                          To calculate the impact of the Jx term, the Bell ﬁdelity is
+             state      P n n,whereP istheinitial probability for
+                    n=0 n                 n                                quite handy, since Eq. (B3) is a concise expression con-
+                                             | 
+             the motional mode to be in state n , the Bell-state ﬁdelity   taining both d and d . The resulting  yields a small
+                         $                                   %                           x       y                  2
+                        1                      	          
+               correction to LD.
+               F = 1− P sin(φ)sin d(n)−d(n)                    .(B3)         Although the Bell-state ﬁdelity requires speciﬁcation of
+                 Bell   2            n            x      y                 the involved states and the average ﬁdelity requires a spe-
+                                 n                                         ciﬁc target gate, the results are nonetheless quite similar:
+             Hence the optimal ﬁdelity F       =1 for a target state       for the parameters used in Fig. 3 at  =  , the Bell-
+                       √                    Bell                                                                        2
+             |              |      |                                                                 ˆ                −3
+             ψ =(1/ 2)(00 −i 11 ), with rotation angle φ =                 state inﬁdelity is 1 − F   (U    ) = 1.3 × 10    and the
+               t                                                                                   Bell  num
+                                                                   010328-13
+              KIRCHHOFF,WILHELM,andMOTZOI                                                                PRXQUANTUM6,010328(2025)
+                       0                                                             3. Nor does 1 + (m +m )  1.
+                     10                                                                                   1      2
+                                   Unum Bell        Unum Av         U4 Av            4. 1 +(m +m )/2  1 can be fulﬁlled for m +
+                                   U Bell           U Av            Ω                           1     2                                     1
+                                    2                2               2                  m =−1 and yields the resonance condition
+                     −1                                                                   2
+                   10              U Bell           U Av            Ω
+                  y                 3                3               4                  K =2L.
+                                   U4 Bell
+                     −2
+                   10                                                            Thus, as long as K −L  K and speciﬁcally K 
+= 2L,
+                  inﬁdelit                                                       condition Eq. (28) is valid.
+                     −3                                                             One can make similar assumptions for the other orders
+                   10                                                            of the Magnus expansion. So, for simplicity, to calculate
+                  Predicted                                                      the terms in Table I, we excluded at each kth order of
+                     −4
+                   10                                                            the Magnus expansion terms where jK = lL if one of the
+                     −5                                                          following conditions on (j − l)/l = (K − L)/K is true:
+                   10       1.06      1.08      1.10      1.12      1.14
+                                      Drive amplitude Ω (MHz)                        1. (j − l)/l ≤ 0, which is false, because by construc-
+                                                                                        tion K > 0andK −L > 0.
+                                                                                     2. (j − l)/l ≥ (1/km      ), where m         is the maxi-
+              FIG. 5.   Comparison of the results for average and Bell-state                                max              max
+              inﬁdelity, using the same parameters as in Fig. 3.                        mumvalue of m, which is included in the calcula-
+                                                                                        tion of the Magnus expansion (for our calculations
+                                                                                        m     =3).
+                                                                                          max
+                                            ˆ                   −3
+              average inﬁdelity 1 − F (U         ) = 0.67 ×10 .At =
+                                        av   num                                 Inmostcaseswhere(K −L)/K  1,thesecondcondition
+                                                  ˆ                  −4
+               the inﬁdelities are 1 − F        (U    ) = 4.3 × 10      and
+                4                             Bell  num                          is wrong as well. For small K and larger K − L (e.g., K =
+              1−        ˆ                  −4
+                   F (U      ) = 2.4 × 10      for the Bell-state inﬁdelity
+                     av  num                                                     28 and K −L = 3), one has to make sure that there is no
+              andtheaverageinﬁdelity, respectively. A comparison over            j ≤ km      and |l|≤k such that jK = lL (which is ﬁne for
+              the range of amplitudes is shown in Fig. 5.                                max
+                 Beyondthisdiscussion,theerrorbudgettermspresented               K =28andK−L=3).
+              in Table I provide the precise Hamiltonian description and
+              do not hinge on a particular ﬁdelity metric. As such, they
+              are relevant to any particular cost function that is used.               APPENDIXD:FULLEXPRESSIONSFOR
+                                                                                   MAGNUSEXPANSIONOFTHESHAPEDPULSE
+              APPENDIXC:CONDITIONSONTHEVARIABLES                                    ThefullexpressionsfortheMagnusexpansionforasin2
+                         FORTHEANALYTICALTERMS                                   pulsearethefollowing:forthesecondorderoftheMagnus
+                 The terms in Table I assume that the detuning avoids            expansion, Eq. (45), the coeﬃcients are
+              certain sideband ranges, which is justiﬁed as follows. In
+                                                      ˆ
+              order to simplify the expression for Z2,Eq.(26), we have                   p         2     2 2         2      2
+              assumedinEq.(28) that                                                       y = 3(K −L ) −4(5K +3L −8),                      (D1)
+                N +N =0 ⇐⇒ (m +m =0)∧(μ +μ =0).
+                  1     2                1      2            1     2                                                               
+                                                                        (C1)        q =8 K2−L2           K−L2−4 K+L2−4 (D2)
+                                                                                     y                  (       )        (       )
+              To drive a single motional mode, the laser detuning must           for the ﬁrst sideband, and
+              be close to the motional-mode frequency K − L  K.If
+              μ +μ 
+=0, then the resonance condition N +N = 0
+                1     2                                          1     2                                                                
+              can be rewritten as                                                   px = 8 6K4 −3K2L2 −10K2 +4 +3 L4−4L2 ,
+                                  m +m          K−L                                                                                        (D3)
+                             1+ 1          2 =          1.             (C2)
+                                  μ +μ            K
+                                    1      2
+              Checking the condition for the allowed values of μ + μ                           2     2           2                2    
+                                                                     1      2       q =8 4K −L             2K −L −4 2K+L −4
+              yields                                                                 x                    (        )        (         )
+                                                                                                                                           (D4)
+                  1. 1 −(m +m )/2  1forν +ν =−2. This can
+                             1     2                1    2
+                     only be fulﬁlled for m +m = 1 and yields the                for the second sideband.
+                                               1     2
+                     resonance condition K = 2L.                                    The optimal drive amplitude (taking only the leading
+                  2. 1 −(m +m ) 1doesnot yield a result for inte-               Lamb-Dicke order and the ﬁrst sideband into account) is
+                             1     2
+                     ger m ,m .                                                  shown in Eq. (46). The coeﬃcients for the third order of
+                           1   2
+                                                                         010328-14
+              CORRECTIONFORMULASFORTHE...                                                                 PRXQUANTUM6,010328(2025)
+              the Magnus expansion, Eq. (47),are                                        Lucas, Robust and fast microwave-driven quantum logic
+                                                                                      for trapped-ion qubits, Phys.Rev.A110, L010601 (2024).
+                       2       2           2     2 2          2      2            [14] J. Fei, D. Zhou, Y.-P. Shim, S. Oh, X. Hu, and M. Friesen,
+              p = K +3L −4 (3(K −L ) −4(5K +3L −8)),
+               3
+                                                                        (D5)            Mediated gates between spin qubits, Phys.Rev.A86,
+                                                                                        062328(2012).
+                                                                                  [15] J. Casanova, Z.-Y. Wang, and M. B. Plenio, Arbitrary
+                                                                   
+                 q =2 K2−L2 2 K−L 2−4 2 K+L 2−4 2.                                      nuclear-spin gates in diamond mediated by a nitrogen-
+                  3                   (       )          (       )                      vacancy-center electron spin, Phys.Rev.A96, 032314
+                                                                        (D6)            (2017).
+                                                                                  [16] A. Sørensen and K. Mølmer, Quantum computation with
+                                                                                        ions in thermal motion, Phys. Rev. Lett. 82, 1971 (1999).
+                                                                                  [17] J. Lishman and F. Mintert, Trapped-ion entangling gates
+               [1] H. Paik, A. Mezzacapo, M. Sandberg, D. T. McClure, B.                robust against qubit frequency errors, Phys. Rev. Res. 2,
+                   Abdo, A. D. Córcoles, O. Dial, D. F. Bogorin, B. L. T.               033117(2020).
+                   Plourde, M. Steﬀen, A. W. Cross, J. M. Gambetta, and J. M.     [18] I. Arrazola, J. Casanova, J. S. Pedernales, Z.-Y. Wang, E.
+                   Chow, Experimental demonstration of a resonator-induced              Solano, and M. B. Plenio, Pulsed dynamical decoupling for
+                   phase gate in a multiqubit circuit-QED system, Phys. Rev.            fast and robust two-qubit gates on trapped ions, Phys. Rev.
+                   Lett. 117, 250502 (2016).                                            A97,052312(2018).
+               [2] K. Heya and N. Kanazawa, Cross-cross resonance gate,           [19] A. Bermudez, P. O. Schmidt, M. B. Plenio, and A. Retzker,
+                   PRXQuantum2,040336(2021).                                            Robust trapped-ion quantum logic gates by continuous
+               [3] B. Li, T. Calarco, and F. Motzoi, Experimental error sup-            dynamicaldecoupling,Phys.Rev.A85,040302(R)(2012).
+                   pression in cross-resonance gates via multi-derivative pulse   [20] I. Cohen,S.Weidt,W.K.Hensinger,andA.Retzker,Multi-
+                   shaping, npj Quantum Inf. 10, 1 (2024).                              qubit gate with trapped ions for microwave and laser-based
+               [4] R. Barends et al., Diabatic gates for frequency-tunable              implementation, New J. Phys. 17, 043008 (2015).
+                   superconducting qubits, Phys. Rev. Lett. 123, 210501           [21] Z. Jia, S. Huang, M. Kang, K. Sun, R. F. Spivey, J. Kim,
+                   (2019).                                                              and K. R. Brown, Angle-robust two-qubit gates in a linear
+               [5] M. Reagor et al., Demonstration of universal paramet-                ion crystal, Phys. Rev. A 107, 032617 (2023).
+                   ric entangling gates on a multi-qubit lattice, Sci. Adv. 4,    [22] C. H. Valahu, I. Apostolatos, S. Weidt, and W. K.
+                   eaao3603 (2018).                                                     Hensinger, Quantum control methods for robust entangle-
+               [6] V. Negîrneac, H. Ali, N. Muthusubramanian, F. Battis-                ment of trapped ions, J. Phys. B: At., Mol. Opt. Phys. 55,
+                   tel, R. Sagastizabal, M. S. Moreira, J. F. Marques, W. J.            204003(2022).
+                   Vlothuizen, M. Beekman, C. Zachariadis, N. Haider, A.          [23] M.Kang,Q.Liang,B.Zhang,S.Huang,Y.Wang,C.Fang,
+                   Bruno,andL.DiCarlo,High-ﬁdelitycontrolled-Z gatewith                 J. Kim, and K. R. Brown, Batch optimization of frequency-
+                   maximal intermediate leakage operating at the speed limit            modulated pulses for robust two-qubit gates in ion chains,
+                   in a superconducting quantum processor, Phys.Rev.Lett.               Phys. Rev. Appl. 16, 024039 (2021).
+                   126, 220502 (2021).                                            [24] A. Sørensen and K. Mølmer, Entanglement and quantum
+               [7] F. Schmidt-Kaler, H. Häﬀner, M. Riebe, S. Gulde, G. P. T.            computation with ions in thermal motion, Phys.Rev.A62,
+                   Lancaster,T.Deuschle,C.Becher,C.F.Roos,J.Eschner,                    022311(2000).
+                   and R. Blatt, Realization of the Cirac–Zoller controlled-      [25] P. Schindler, D. Nigg, T. Monz, J. T. Barreiro, E. Martinez,
+                   NOTquantumgate,Nature422,408(2003).                                  S. X. Wang, S. Quint, M. F. Brandl, V. Nebendahl, C. F.
+               [8] J. Benhelm, G. Kirchmair, C. F. Roos, and R. Blatt,                  Roos, M. Chwalla, M. Hennrich, and R. Blatt, A quantum
+                   Towards fault-tolerant quantum computing with trapped                information processor with trapped ions, New J. Phys. 15,
+                   ions, Nat. Phys. 4, 463 (2008).                                      123012(2013).
+               [9] V. M. Schäfer, C. J. Ballance, K. Thirumalai, L. J. Stephen-   [26] H. Häﬀner, C. F. Roos, and R. Blatt, Quantum computing
+                   son, T. G. Ballance, A. M. Steane, and D. M. Lucas, Fast             with trapped ions, Phys. Rep. 469, 155 (2008).
+                   quantum logic gates with trapped-ion qubits, Nature 555,       [27] K. R. Brown, J. Kim, and C. Monroe, Co-designing a
+                   75(2018).                                                            scalable quantum computer with trapped atomic ions, npj
+              [10] K. K. Mehta, C. Zhang, S. Miller, and J. P. Home, in                 QuantumInf. 2, 1 (2016).
+                   Advances in Photonics of Quantum Computing, Memory,            [28] H. Kaufmann, T. Ruster, C. T. Schmiegelow, M. A. Luda,
+                   and Communication XII (SPIE, San Francisco, California,              V. Kaushal, J. Schulz, D. von Lindenfels, F. Schmidt-
+                   United States, 2019), Vol. 10933, p. 24.                             Kaler,andU.G.Poschinger,Scalablecreationoflong-lived
+              [11] C. R. Clark, H. N. Tinkey, B. C. Sawyer, A. M. Meier, K.             multipartite entanglement, Phys. Rev. Lett. 119, 150503
+                   A. Burkhardt, C. M. Seck, C. M. Shappert, N. D. Guise,               (2017).
+                   C. E. Volin, S. D. Fallek, H. T. Hayden, W. G. Rellergert,     [29] T. P. Harty, M. A. Sepiol, D. T. C. Allcock, C. J. Ballance,
+                   and K. R. Brown, High-ﬁdelity bell-state preparation with            J. E. Tarlton, and D. M. Lucas, High-ﬁdelity trapped-ion
+                   40Ca+ optical qubits, Phys.Rev.Lett.127, 130505 (2021).              quantum logic using near-ﬁeld microwaves, Phys. Rev.
+              [12] O. Katz, M. Cetina, and C. Monroe, n-body interactions               Lett. 117, 140501 (2016).
+                   between trapped ion qubits via spin-dependent squeezing,       [30] C. J. Ballance, T. P. Harty, N. M. Linke, M. A. Sepiol,
+                   Phys. Rev. Lett. 129, 063603 (2022).                                 and D. M. Lucas, High-ﬁdelity quantum logic gates using
+              [13] M. A. Weber, M. F. Gely, R. K. Hanley, T. P. Harty, A.               trapped-ion hyperﬁne qubits, Phys. Rev. Lett. 117, 060504
+                   D. Leu, C. M. Löschnauer, D. P. Nadlinger, and D. M.                 (2016).
+                                                                          010328-15
+             KIRCHHOFF,WILHELM,andMOTZOI                                                           PRXQUANTUM6,010328(2025)
+             [31] L. Gerster, F. Martínez-García, P. Hrmo, M. W. van              Dispersive qubit readout with intrinsic resonator reset,
+                  Mourik, B. Wilhelm, D. Vodola, M. Müller, R. Blatt, P.          arXiv:2406.04891.
+                  Schindler, and T. Monz, Experimental Bayesian calibra-     [44] D. Wineland, C. Monroe, W. Itano, D. Leibfried, B. King,
+                  tion of trapped-ion entangling Operations, PRX Quantum          andD.Meekhof,Experimentalissuesincoherentquantum-
+                  3, 020350 (2022).                                               state manipulation of trapped atomic ions, J. Res. Natl. Inst.
+             [32] S. A. Moses et al., A race-track trapped-ion quantum            Stand. Technol. 103, 259 (1998).
+                  processor, Phys. Rev. X 13, 041052 (2023).                 [45] D.F.James,QuantumComputationandQuantumInforma-
+                                ˘ ˘
+             [33] S. Saner, O. Bazavan, M. Minder, P. Drmota, D. J. Webb,         tion Theory: Reprint Volume with Introductory Notes for
+                  G. Araneda, R. Srinivas, D. M. Lucas, and C. J. Ballance,       ISI TMRNetworkSchool,12–23July1999,VillaGualino,
+                  Breaking the entangling gate speed limit for trapped-ion        Torino, Italy, Vol. 66, p. 345 (2000).
+                  qubits using a phase-stable standing wave, Phys.Rev.Lett.  [46] D. Leibfried, R. Blatt, C. Monroe, and D. Wineland, Quan-
+                  131, 220601 (2023).                                             tum dynamics of single trapped ions, Rev. Mod. Phys. 75,
+             [34] A. Bermudez, X. Xu, R. Nigmatullin, J. O’Gorman, V.             281(2003).
+                  Negnevitsky, P. Schindler, T. Monz, U. G. Poschinger,      [47] B. C. Hall, in Graduate Texts in Mathematics (Springer
+                  C. Hempel, J. Home, F. Schmidt-Kaler, M. Bier-                  NewYork,Cham,2015),Vol.222.
+                  cuk, R. Blatt, S. Benjamin, and M. Müller, Assess-         [48] A. Meurer et al., SymPy: Symbolic computing in Python,
+                  ing the progress of trapped-ion processors towards fault-       PeerJ Comput. Sci. 3, e103 (2017).
+                  tolerant quantum computation, Phys. Rev. X 7, 041061       [49] C.R.Harrisetal.,ArrayprogrammingwithNumPy,Nature
+                  (2017).                                                         585, 357 (2020).
+             [35] G. Zarantonello, H. Hahn, J. Morgner, M. Schulte, A.       [50] F. Martínez-García, L. Gerster, D. Vodola, P. Hrmo, T.
+                  Bautista-Salvador, R. Werner, K. Hammerer, and C.               Monz, P. Schindler, and M. Müller, Analytical and exper-
+                  Ospelkaus, Robust and resource-eﬃcient microwave near-          imental study of center-line miscalibrations in Mølmer-
+                  ﬁeld entangling 9Be+ gate, Phys.Rev.Lett.123, 260503            Sørensen gates, Phys. Rev. A 105, 032437 (2022).
+                  (2019).                                                    [51] M. Suzuki, General theory of higher-order decomposition
+             [36] J. J. Sakurai and S. F. Tuan, Modern Quantum Mechanics          of exponential operators and symplectic integrators, Phys.
+                  (Addison-Wesley Pub. Co, Reading, Mass, 1994), Rev. Ed.         Lett. A 165, 387 (1992).
+             [37] W. Magnus, On the exponential solution of diﬀerential      [52] H. F. Trotter, On the product of semi-groups of operators,
+                  equations for a linear operator, Commun. Pure Appl. Math.       Proc. Am. Math. Soc. 10, 545 (1959).
+                  7, 649 (1954).                                             [53] K. K. Mehta, C. Zhang, M. Malinowski, T.-L. Nguyen,
+             [38] W. S. Warren, Eﬀects of arbitrary laser or NMR pulse            M. Stadler, and J. P. Home, Integrated optical multi-ion
+                  shapes on population inversion and coherence, J. Chem.          quantumlogic, Nature 586, 533 (2020).
+                  Phys. 81, 5437 (1984).                                     [54] J. D. Wong-Campos, S. A. Moses, K. G. Johnson, and
+             [39] S. Blanes, F. Casas, J. A. Oteo, and J. Ros, The Magnus         C. Monroe, Demonstration of two-atom entanglement with
+                  expansionandsomeofitsapplications,Phys.Rep.470,151              ultrafast optical pulses, Phys. Rev. Lett. 119, 230501
+                  (2009).                                                         (2017).
+             [40] W. R. Salzman, An alternative to the Magnus expansion in   [55] A. M. Steane, G. Imreh, J. P. Home, and D. Leibfried,
+                  time-dependentperturbation theory, J. Chem. Phys. 82, 822       Pulsed force sequences for fast phase-insensitive quantum
+                  (1985).                                                         gates in trapped ions, New J. Phys. 16, 053049 (2014).
+             [41] M. Boissonneault, J. M. Gambetta, and A. Blais, Improved   [56] L. S. Theis, F. Motzoi, S. Machnes, and F. K. Wilhelm,
+                  superconducting qubit readout by qubit-induced nonlinear-       Counteracting systems of diabaticities using DRAG con-
+                  ities, Phys.Rev.Lett.105, 100504 (2010).                        trols: The status after 10 years, EPL 123, 60001 (2018).
+             [42] M.D.Reed,L.DiCarlo,B.R.Johnson,L.Sun,D.I.Schus-            [57] H. N. Tinkey, A. M. Meier, C. R. Clark, C. M. Seck, and
+                  ter, L. Frunzio, and R. J. Schoelkopf, High-ﬁdelity read-       K. R. Brown, Quantum process tomography of a Mølmer-
+                  out in circuit quantum electrodynamics using the Jaynes-        Sørensen gate via a global beam, Quantum Sci. Technol. 6,
+                  Cummings nonlinearity, Phys. Rev. Lett. 105, 173601             034013(2021).
+                  (2010).                                                    [58] J. P. Gaebler, T. R. Tan, Y. Lin, Y. Wan, R. Bowler, A. C.
+             [43] M. Jerger, F. Motzoi, Y. Gao, C. Dickel, L. Buchmann,           Keith, S. Glancy, K. Coakley, E. Knill, D. Leibfried, and D.
+                  A. Bengtsson, G. Tancredi, C. W. Warren, J. Bylan-              J. Wineland, High-ﬁdelity universal gate set for 9Be+ ion
+                  der, D. DiVincenzo, R. Barends, and P. A. Bushev,               qubits, Phys.Rev.Lett.117, 060505 (2016).
+                                                                     010328-16

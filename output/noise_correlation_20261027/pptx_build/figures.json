@@ -1,0 +1,356 @@
+[
+  {
+    "number": 1,
+    "slug": "overview",
+    "title": "Five inputs: the current error budget",
+    "subtitle": "100 us gate | eta=0.1 | finite-LD corrected model | markers are saved calculations",
+    "caption": "初期平均フォノン数は初期状態のパラメータで、他の4項は散逸レート。右上は他の散逸をゼロにした単独増分。左下はその増分から nbar=0.01 の値を引いた温度との混合応答。右下の分母は全ノイズによる増分 I_all-I_0。主要な温度依存は無散逸の基準誤差と運動位相緩和に現れる。線は保存点を結ぶ表示であり、追加計算や補間精度の保証ではない。",
+    "sources": [
+      "results/noise_rate_nbar_sweep/all_noise_zero_vs_nominal.csv",
+      "results/noise_rate_nbar_sweep/four_noise_reconstruction/four_noise_single_components.csv",
+      "results/noise_rate_nbar_sweep/four_noise_reconstruction/four_noise_reconstruction.csv"
+    ],
+    "section": "概要",
+    "png": "figures/01_overview.png",
+    "svg": "figures/01_overview.svg"
+  },
+  {
+    "number": 2,
+    "slug": "isolated_rate_axes",
+    "title": "Isolated source response versus rate",
+    "subtitle": "Other three rates = 0 | 25 saved points per source",
+    "caption": "全ペア格子に共通の単独軸から重複なく抽出した100点。運動位相緩和だけが強い温度依存を持つ。レートの物理単位は各パネルの基準値で換算する。",
+    "sources": [
+      "results/noise_rate_nbar_sweep/all_pairwise_5x5_grids/all_pairwise_grid_qpt_summary.csv",
+      "results/noise_rate_nbar_sweep/all_noise_zero_vs_nominal.csv"
+    ],
+    "section": "単独ノイズと温度",
+    "png": "figures/02_isolated_rate_axes.png",
+    "svg": "figures/02_isolated_rate_axes.svg"
+  },
+  {
+    "number": 3,
+    "slug": "nominal_background_sweep",
+    "title": "Rate sweeps with the other noises present",
+    "subtitle": "Other three rates = nominal | this is a different background from the isolated-source plots",
+    "caption": "既存ノートブックの100点。各パネルで指定レートだけを変え、他の3レートは基準値に固定。m=0 でも他の散逸と有限LD補正が残るので、単独寄与や無散逸とは異なる。",
+    "sources": [
+      "results/noise_rate_nbar_sweep/summary.csv"
+    ],
+    "section": "単独ノイズと温度",
+    "png": "figures/03_nominal_background_sweep.png",
+    "svg": "figures/03_nominal_background_sweep.svg"
+  },
+  {
+    "number": 4,
+    "slug": "pairwise_summary",
+    "title": "All six pairs: signed nonadditivity",
+    "subtitle": "C = I_ij - I_i - I_j + I_0 | H: heating, M: motional dephasing, S: spin, P: scattering",
+    "caption": "他の2散逸をゼロにしたペア比較。負のCは単独増分の和より小さいことを表す。統計的に相関した環境浴の証拠やPearson相関係数ではない。下段はペアによる誤差増分で割った値。微小な混合差分の確定桁数には直接の収束確認が必要。",
+    "sources": [
+      "results/noise_rate_nbar_sweep/all_pairwise_5x5_grids/all_pairwise_grid_interactions.csv"
+    ],
+    "section": "全6ペア",
+    "png": "figures/04_pairwise_summary.png",
+    "svg": "figures/04_pairwise_summary.svg"
+  },
+  {
+    "number": 5,
+    "slug": "motional_heating__motional_dephasing",
+    "title": "Pair grid: Heating x Motional dephasing",
+    "subtitle": "Top: total infidelity | Bottom: signed interaction | all 125 saved points | equal cell spacing denotes sampled levels",
+    "caption": "運動加熱×運動位相緩和の全125点。上段は総infidelity、下段は混合差分C。温度間の比較ができるよう、各段で同じ色範囲を使用。レート倍率0、0.5、1、2、4は不等間隔の数値だが、表形式としてセルを等間隔に表示。値は表示桁で丸め、元の精度はCSVに保持。",
+    "sources": [
+      "results/noise_rate_nbar_sweep/all_pairwise_5x5_grids/all_pairwise_grid_interactions.csv"
+    ],
+    "section": "全6ペア",
+    "png": "figures/05_motional_heating__motional_dephasing.png",
+    "svg": "figures/05_motional_heating__motional_dephasing.svg"
+  },
+  {
+    "number": 6,
+    "slug": "motional_heating__spin_dephasing",
+    "title": "Pair grid: Heating x Spin dephasing",
+    "subtitle": "Top: total infidelity | Bottom: signed interaction | all 125 saved points | equal cell spacing denotes sampled levels",
+    "caption": "運動加熱×スピン位相緩和の全125点。上段は総infidelity、下段は混合差分C。温度間の比較ができるよう、各段で同じ色範囲を使用。レート倍率0、0.5、1、2、4は不等間隔の数値だが、表形式としてセルを等間隔に表示。値は表示桁で丸め、元の精度はCSVに保持。",
+    "sources": [
+      "results/noise_rate_nbar_sweep/all_pairwise_5x5_grids/all_pairwise_grid_interactions.csv"
+    ],
+    "section": "全6ペア",
+    "png": "figures/06_motional_heating__spin_dephasing.png",
+    "svg": "figures/06_motional_heating__spin_dephasing.svg"
+  },
+  {
+    "number": 7,
+    "slug": "motional_heating__photon_scattering",
+    "title": "Pair grid: Heating x Photon scattering",
+    "subtitle": "Top: total infidelity | Bottom: signed interaction | all 125 saved points | equal cell spacing denotes sampled levels",
+    "caption": "運動加熱×光散乱の全125点。上段は総infidelity、下段は混合差分C。温度間の比較ができるよう、各段で同じ色範囲を使用。レート倍率0、0.5、1、2、4は不等間隔の数値だが、表形式としてセルを等間隔に表示。値は表示桁で丸め、元の精度はCSVに保持。",
+    "sources": [
+      "results/noise_rate_nbar_sweep/all_pairwise_5x5_grids/all_pairwise_grid_interactions.csv"
+    ],
+    "section": "全6ペア",
+    "png": "figures/07_motional_heating__photon_scattering.png",
+    "svg": "figures/07_motional_heating__photon_scattering.svg"
+  },
+  {
+    "number": 8,
+    "slug": "motional_dephasing__spin_dephasing",
+    "title": "Pair grid: Motional dephasing x Spin dephasing",
+    "subtitle": "Top: total infidelity | Bottom: signed interaction | all 125 saved points | equal cell spacing denotes sampled levels",
+    "caption": "運動位相緩和×スピン位相緩和の全125点。上段は総infidelity、下段は混合差分C。温度間の比較ができるよう、各段で同じ色範囲を使用。レート倍率0、0.5、1、2、4は不等間隔の数値だが、表形式としてセルを等間隔に表示。値は表示桁で丸め、元の精度はCSVに保持。",
+    "sources": [
+      "results/noise_rate_nbar_sweep/all_pairwise_5x5_grids/all_pairwise_grid_interactions.csv"
+    ],
+    "section": "全6ペア",
+    "png": "figures/08_motional_dephasing__spin_dephasing.png",
+    "svg": "figures/08_motional_dephasing__spin_dephasing.svg"
+  },
+  {
+    "number": 9,
+    "slug": "motional_dephasing__photon_scattering",
+    "title": "Pair grid: Motional dephasing x Photon scattering",
+    "subtitle": "Top: total infidelity | Bottom: signed interaction | all 125 saved points | equal cell spacing denotes sampled levels",
+    "caption": "運動位相緩和×光散乱の全125点。上段は総infidelity、下段は混合差分C。温度間の比較ができるよう、各段で同じ色範囲を使用。レート倍率0、0.5、1、2、4は不等間隔の数値だが、表形式としてセルを等間隔に表示。値は表示桁で丸め、元の精度はCSVに保持。",
+    "sources": [
+      "results/noise_rate_nbar_sweep/all_pairwise_5x5_grids/all_pairwise_grid_interactions.csv"
+    ],
+    "section": "全6ペア",
+    "png": "figures/09_motional_dephasing__photon_scattering.png",
+    "svg": "figures/09_motional_dephasing__photon_scattering.svg"
+  },
+  {
+    "number": 10,
+    "slug": "spin_dephasing__photon_scattering",
+    "title": "Pair grid: Spin dephasing x Photon scattering",
+    "subtitle": "Top: total infidelity | Bottom: signed interaction | all 125 saved points | equal cell spacing denotes sampled levels",
+    "caption": "スピン位相緩和×光散乱の全125点。上段は総infidelity、下段は混合差分C。温度間の比較ができるよう、各段で同じ色範囲を使用。レート倍率0、0.5、1、2、4は不等間隔の数値だが、表形式としてセルを等間隔に表示。値は表示桁で丸め、元の精度はCSVに保持。",
+    "sources": [
+      "results/noise_rate_nbar_sweep/all_pairwise_5x5_grids/all_pairwise_grid_interactions.csv"
+    ],
+    "section": "全6ペア",
+    "png": "figures/10_spin_dephasing__photon_scattering.png",
+    "svg": "figures/10_spin_dephasing__photon_scattering.svg"
+  },
+  {
+    "number": 11,
+    "slug": "four_noise_reconstruction",
+    "title": "Reconstructing the four-noise calculation",
+    "subtitle": "I_pred = I_0 + sum(Delta I_i) + sum(C_ij) | all rates nominal",
+    "caption": "単独寄与の和と6ペア補正から、4散逸を同時に入れた計算を再構成。中央は大きく拡大した差であり、ペア補正後の約1e-7の一致を数値精度の証明とは扱わない。",
+    "sources": [
+      "results/noise_rate_nbar_sweep/four_noise_reconstruction/four_noise_reconstruction.csv",
+      "results/noise_rate_nbar_sweep/four_noise_reconstruction/four_noise_pair_components.csv"
+    ],
+    "section": "4ノイズ同時作用",
+    "png": "figures/11_four_noise_reconstruction.png",
+    "svg": "figures/11_four_noise_reconstruction.svg"
+  },
+  {
+    "number": 12,
+    "slug": "four_rate_validation",
+    "title": "Four-rate validation away from the nominal point",
+    "subtitle": "60 saved validations = 12 rate vectors x 5 temperatures | residual = actual - prediction",
+    "caption": "4レート同時変更の60検証点。単独加算、ペア曲面、ペア双線形モデルを比較。基準点の再構成と異なり、任意レート側ではペア補正後にも残差がある。ここでの相対RMSEはノイズ増分を基準とする。",
+    "sources": [
+      "results/noise_rate_nbar_sweep/four_noise_rate_validation/model_predictions.csv",
+      "results/noise_rate_nbar_sweep/four_noise_rate_validation/model_comparison_metrics.csv"
+    ],
+    "section": "4ノイズ同時作用",
+    "png": "figures/12_four_rate_validation.png",
+    "svg": "figures/12_four_rate_validation.svg"
+  },
+  {
+    "number": 13,
+    "slug": "high_nbar",
+    "title": "High-temperature extension and extrapolation limits",
+    "subtitle": "Saved validation extends to nbar=20; complete six-pair grids extend only to nbar=4",
+    "caption": "高温域にも無散逸16点と4ノイズ同時作用84点がある。低温データからの外挿は、保存された1%判定でnbar=4が最後の合格点、5が最初の不合格点。これはそのモデル・離散検証条件の適用限界であり、物理的な相転移や普遍的な臨界温度ではない。",
+    "sources": [
+      "results/noise_rate_nbar_sweep/four_noise_nbar_critical_search/high_nbar_model_predictions.csv",
+      "results/noise_rate_nbar_sweep/four_noise_nbar_critical_search/nbar_critical_curve.csv",
+      "results/noise_rate_nbar_sweep/four_noise_nbar_critical_search/all_noise_zero/validation_qpt_summary.csv"
+    ],
+    "section": "4ノイズ同時作用",
+    "png": "figures/13_high_nbar.png",
+    "svg": "figures/13_high_nbar.svg"
+  },
+  {
+    "number": 14,
+    "slug": "thermal_mechanism",
+    "title": "Initial phonon number: three resolved error components",
+    "subtitle": "All four explicit dissipators off | effective generator K_0 = log(R_0)",
+    "caption": "初期熱分布だけの効果を、平均XX角のずれ、XX角のばらつき、残留運動による集団X成分に分ける。Fock分解予測とQPTの直接比較。無散逸でも有限LD補正により誤差が残る。この図のS_XXと集団XのC_IX,XIは別成分。",
+    "sources": [
+      "results/noise_error_structure/noise_free_fock_generator_comparison.csv"
+    ],
+    "section": "誤差生成子の相関",
+    "png": "figures/14_thermal_mechanism.png",
+    "svg": "figures/14_thermal_mechanism.svg"
+  },
+  {
+    "number": 15,
+    "slug": "hsca_sectors",
+    "title": "Generator structure for all five inputs",
+    "subtitle": "Complete 240-coefficient H/S/C/A decomposition | source responses are signed generator differences",
+    "caption": "各散逸の基準レートでの応答をΔK_i=K_i-K_0として分解。初期熱状態のパネルのみK_0そのもの。縦軸は各セクターが作る行列のFrobeniusノルムで、確率や加算的誤差予算ではない。H/S/C/Aの係数全6000行を元CSVから参照できる。",
+    "sources": [
+      "results/noise_error_structure/full_taxonomy_coefficients.csv",
+      "results/noise_error_structure/full_taxonomy_overall_summary.csv"
+    ],
+    "section": "誤差生成子の相関",
+    "png": "figures/15_hsca_sectors.png",
+    "svg": "figures/15_hsca_sectors.svg"
+  },
+  {
+    "number": 16,
+    "slug": "modes_none",
+    "title": "Correlation modes: Initial thermal state / no explicit noise",
+    "subtitle": "No explicit noise: K_0 | isolated source: Delta K_i at its nominal rate | coefficient signs are retained",
+    "caption": "初期平均フォノン数（明示的な散逸なし）の主要成分。上段は温度全域の最大絶対値で選んだS/C各6モード、左下はH_XX、右下はnbar=4における15×15全S/C行列。右下の色範囲はこの入力内で設定しているため、他ページとの強度比較にはカラーバーを使う。ΔKの負係数は符号付き差分であり、単独の物理的崩壊率とは限らない。",
+    "sources": [
+      "results/noise_error_structure/full_taxonomy_coefficients.csv"
+    ],
+    "section": "誤差生成子の相関",
+    "png": "figures/16_modes_none.png",
+    "svg": "figures/16_modes_none.svg"
+  },
+  {
+    "number": 17,
+    "slug": "modes_motional_heating",
+    "title": "Correlation modes: Heating",
+    "subtitle": "No explicit noise: K_0 | isolated source: Delta K_i at its nominal rate | coefficient signs are retained",
+    "caption": "運動加熱の主要成分。上段は温度全域の最大絶対値で選んだS/C各6モード、左下はH_XX、右下はnbar=4における15×15全S/C行列。右下の色範囲はこの入力内で設定しているため、他ページとの強度比較にはカラーバーを使う。ΔKの負係数は符号付き差分であり、単独の物理的崩壊率とは限らない。",
+    "sources": [
+      "results/noise_error_structure/full_taxonomy_coefficients.csv"
+    ],
+    "section": "誤差生成子の相関",
+    "png": "figures/17_modes_motional_heating.png",
+    "svg": "figures/17_modes_motional_heating.svg"
+  },
+  {
+    "number": 18,
+    "slug": "modes_motional_dephasing",
+    "title": "Correlation modes: Motional dephasing",
+    "subtitle": "No explicit noise: K_0 | isolated source: Delta K_i at its nominal rate | coefficient signs are retained",
+    "caption": "運動位相緩和の主要成分。上段は温度全域の最大絶対値で選んだS/C各6モード、左下はH_XX、右下はnbar=4における15×15全S/C行列。右下の色範囲はこの入力内で設定しているため、他ページとの強度比較にはカラーバーを使う。ΔKの負係数は符号付き差分であり、単独の物理的崩壊率とは限らない。",
+    "sources": [
+      "results/noise_error_structure/full_taxonomy_coefficients.csv"
+    ],
+    "section": "誤差生成子の相関",
+    "png": "figures/18_modes_motional_dephasing.png",
+    "svg": "figures/18_modes_motional_dephasing.svg"
+  },
+  {
+    "number": 19,
+    "slug": "modes_spin_dephasing",
+    "title": "Correlation modes: Spin dephasing",
+    "subtitle": "No explicit noise: K_0 | isolated source: Delta K_i at its nominal rate | coefficient signs are retained",
+    "caption": "スピン位相緩和の主要成分。上段は温度全域の最大絶対値で選んだS/C各6モード、左下はH_XX、右下はnbar=4における15×15全S/C行列。右下の色範囲はこの入力内で設定しているため、他ページとの強度比較にはカラーバーを使う。ΔKの負係数は符号付き差分であり、単独の物理的崩壊率とは限らない。 スピン位相緩和・光散乱のH_XXは約1e-8 rad/gateの微小量で、この図だけで非ゼロの物理応答を確定しない。",
+    "sources": [
+      "results/noise_error_structure/full_taxonomy_coefficients.csv"
+    ],
+    "section": "誤差生成子の相関",
+    "png": "figures/19_modes_spin_dephasing.png",
+    "svg": "figures/19_modes_spin_dephasing.svg"
+  },
+  {
+    "number": 20,
+    "slug": "modes_photon_scattering",
+    "title": "Correlation modes: Photon scattering",
+    "subtitle": "No explicit noise: K_0 | isolated source: Delta K_i at its nominal rate | coefficient signs are retained",
+    "caption": "光散乱の主要成分。上段は温度全域の最大絶対値で選んだS/C各6モード、左下はH_XX、右下はnbar=4における15×15全S/C行列。右下の色範囲はこの入力内で設定しているため、他ページとの強度比較にはカラーバーを使う。ΔKの負係数は符号付き差分であり、単独の物理的崩壊率とは限らない。 スピン位相緩和・光散乱のH_XXは約1e-8 rad/gateの微小量で、この図だけで非ゼロの物理応答を確定しない。",
+    "sources": [
+      "results/noise_error_structure/full_taxonomy_coefficients.csv"
+    ],
+    "section": "誤差生成子の相関",
+    "png": "figures/20_modes_photon_scattering.png",
+    "svg": "figures/20_modes_photon_scattering.svg"
+  },
+  {
+    "number": 21,
+    "slug": "rate_structure",
+    "title": "Does the correlation structure survive rate changes?",
+    "subtitle": "Saved range: 0.5-4 x nominal | shape stability and strength linearity are separate questions",
+    "caption": "主要な確率的モードの向きはレートを変えてもほぼ保存される。運動ノイズではC_IX,XIと局所X係数の平均の比がほぼ1で、集団X構造を保つ。一方、運動位相緩和の高温・高レートではS_XXが線形外挿から増え、集団X係数はやや減る。左上はゼロを表示できるsymlog軸。",
+    "sources": [
+      "results/rate_hsca_structure/rate_structure_metrics.csv",
+      "results/rate_hsca_structure/rate_matrix_linearity.csv"
+    ],
+    "section": "レート依存と検証",
+    "png": "figures/21_rate_structure.png",
+    "svg": "figures/21_rate_structure.svg"
+  },
+  {
+    "number": 22,
+    "slug": "pair_generator",
+    "title": "Pairwise response inside the diagonal-Pauli fit",
+    "subtitle": "Left: nbar=4, m_x=m_y | Right: m_x=m_y=4 | top four modes selected at nbar=4",
+    "caption": "生成子を保存した上位3ペアについて、対角Pauli散逸フィット係数の混合差分を表示。これは完全H/S/C/A混合生成子の全成分ではなく、対角Pauli部分へのフィット内の結果。全6ペアの完全な生成子解析が完了したことを意味しない。",
+    "sources": [
+      "results/error_generator_rate_nbar/top3_pairwise_generator/pairwise_generator_interactions.csv",
+      "results/error_generator_rate_nbar/top3_pairwise_generator/config.json"
+    ],
+    "section": "レート依存と検証",
+    "png": "figures/22_pair_generator.png",
+    "svg": "figures/22_pair_generator.svg"
+  },
+  {
+    "number": 23,
+    "slug": "small_rate_stability",
+    "title": "Small-rate mixed derivatives: numerical stability check",
+    "subtitle": "H: heating, M: motional dephasing, S: spin, P: scattering | flat curves would support a stable limit",
+    "caption": "ゼロレート近傍の混合係数を差分幅ごとに比較。差分をepsilonの2乗で割るため、元の数値誤差が増幅される。曲線が水平に収束していない条件があり、外挿値の符号や桁数を確定した物理量として扱わない。",
+    "sources": [
+      "results/noise_rate_nbar_sweep/pairwise_perturbative_kappa/perturbative_kappa_raw.csv",
+      "results/noise_rate_nbar_sweep/pairwise_perturbative_kappa/perturbative_kappa_extrapolated.csv"
+    ],
+    "section": "レート依存と検証",
+    "png": "figures/23_small_rate_stability.png",
+    "svg": "figures/23_small_rate_stability.svg"
+  },
+  {
+    "number": 24,
+    "slug": "numerical_checks",
+    "title": "Model order and numerical checks",
+    "subtitle": "Finite-LD corrected is not exact all-orders | LD1 cutoff residual is not a physical thermal floor",
+    "caption": "LD1の無散逸残差は基底次元を増やすと減少する。nbar=0.01の保存値1e-16は下限処理によるため、中央の対数比較には含めない。右は別保存系列の単独ノイズ計算との実測差で、元系列を混合して上書きしない。主たる有限LDの温度依存はこの差より大きいが、微小なペア差分の収束を保証する図ではない。",
+    "sources": [
+      "results/noise_rate_nbar_sweep/noise_free_diagnostics/full_vs_lamb_dicke/full_vs_lamb_dicke_summary.csv",
+      "results/noise_rate_nbar_sweep_ld1/evaluation/cutoff_audit/exact_cutoff_comparison.csv",
+      "results/single_mode_ms_gate_infidelity/single_noise/ld2/summary.csv",
+      "results/noise_rate_nbar_sweep/four_noise_reconstruction/four_noise_single_components.csv"
+    ],
+    "section": "レート依存と検証",
+    "png": "figures/24_numerical_checks.png",
+    "svg": "figures/24_numerical_checks.svg"
+  },
+  {
+    "number": 25,
+    "slug": "polynomial_validation",
+    "title": "Motional-dephasing nonlinear response: model checks",
+    "subtitle": "Saved polynomial fits and near-zero derivative estimates answer different questions",
+    "caption": "運動位相緩和の高次レートモデルの保存検証。左は有限範囲の多項式フィットの独立検証、右はゼロ近傍Taylor係数を推定した最小ステンシルの外側での検証。良好な有限範囲フィットだけで高階微分の収束を主張しない。",
+    "sources": [
+      "results/motional_dephasing_polynomial/polynomial_matrix_validation_metrics.csv",
+      "results/motional_dephasing_polynomial/dyson_frechet_taylor/taylor_truncation_summary.csv"
+    ],
+    "section": "レート依存と検証",
+    "png": "figures/25_polynomial_validation.png",
+    "svg": "figures/25_polynomial_validation.svg"
+  },
+  {
+    "number": 26,
+    "slug": "single_source_model_order",
+    "title": "Single-source calculations: comparison of model order",
+    "subtitle": "Separate saved single-noise runs | one nominal dissipator at a time | total error includes each model's intrinsic baseline",
+    "caption": "別保存系列にあるLD1と有限LD補正モデルの単独ノイズ計算、計40点。表示は単独ノイズを入れた総誤差I_iで、無散逸基準を引いた増分ではない。したがって有限LDモデルの全パネルに共通する温度増加を、その散逸だけの効果と解釈しない。単独増分の比較は図1・2を参照。",
+    "sources": [
+      "results/single_mode_ms_gate_infidelity/single_noise/ld1/summary.csv",
+      "results/single_mode_ms_gate_infidelity/single_noise/ld2/summary.csv"
+    ],
+    "section": "レート依存と検証",
+    "png": "figures/26_single_source_model_order.png",
+    "svg": "figures/26_single_source_model_order.svg"
+  }
+]

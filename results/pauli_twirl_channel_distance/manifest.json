@@ -1,0 +1,72 @@
+{
+  "created_utc": "2026-09-30T04:39:52.405099+00:00",
+  "analysis": "Saved MS channels vs their Pauli twirls; before/after amplitude calibration",
+  "python": "3.9.6 (default, May 22 2026, 11:13:45) \n[Clang 21.0.0 (clang-2100.1.1.101)]",
+  "python_executable": "/Library/Developer/CommandLineTools/usr/bin/python3",
+  "platform": "macOS-26.7-arm64-arm-64bit",
+  "packages": {
+    "numpy": "1.26.4",
+    "scipy": "1.13.0",
+    "pandas": "2.2.2",
+    "matplotlib": "3.8.4",
+    "qutip": "5.0.4",
+    "cvxpy": "1.6.5",
+    "scs": "3.3.1",
+    "clarabel": "0.11.1"
+  },
+  "settings": {
+    "n_bar_values": [
+      0.01,
+      1.0,
+      2.0,
+      3.0,
+      4.0
+    ],
+    "run_sdp": true,
+    "solver": "SCS",
+    "solver_tolerance": 1e-08,
+    "gap_atol": 1e-08,
+    "gap_rtol": 1e-05,
+    "cp_tol": 1e-09,
+    "tp_tol": 1e-08
+  },
+  "conventions": {
+    "dimension": 4,
+    "chi_trace": 1,
+    "pauli_labels": [
+      "II",
+      "IX",
+      "IY",
+      "IZ",
+      "XI",
+      "XX",
+      "XY",
+      "XZ",
+      "YI",
+      "YX",
+      "YY",
+      "YZ",
+      "ZI",
+      "ZX",
+      "ZY",
+      "ZZ"
+    ],
+    "stored_chi": "QuTiP trace-one; convert canonical chi = D chi_saved D",
+    "choi_order": "input tensor output; unnormalized trace d",
+    "distance_prefactor": 0.5,
+    "error_channel": "N_post = S_noisy @ inverse(S_ideal)"
+  },
+  "source_hashes": {
+    "results/pauli_twirl_channel_distance/inputs/projected_chi_before_after.npz": "a9e035fb8174ce51d457276490a1d568106e04c4a106ef069401dfd5efa9fc30",
+    "results/pauli_twirl_channel_distance/inputs/post_gate_noise_chi_before_after.npz": "f97a8747ec3b23d16c458c802a766e5e5361b0c79d3680989889b2522cb444ac",
+    "results/pauli_twirl_channel_distance/inputs/channel_comparison_long.csv": "c7d2192f3efaaf1726c626e34eb13bd8dc044b9bc207c85e5f3925a5fc7d01da",
+    "results/pauli_twirl_channel_distance/inputs/preparation_manifest.json": "af846111519927f3f4e9c171d2f68272b7eabc351586d383bc030ebe9fd9201c",
+    "prepare_pauli_distance_inputs.py": "64643620efa134667ff22871c8e3940564a45bea0eca9dd47fe31902a9bb018b",
+    "pauli_channel_distance.py": "cc64b19fa7aa8740b93009bdea6f53d5ffed2abf2e743e603b240e932373288d",
+    "requirements-pauli-distance.txt": "7bd8084f8e0c6dd06c2dda599b5b146b11d19ffe5f675cdf19f456c427f7d9b6"
+  },
+  "all_sdp_accepted": true,
+  "max_sdp_gap": 1.047134519371884e-08,
+  "all_improvements_from_separated_bounds": true,
+  "scope": "No new master-equation propagation, cutoff convergence, physical-model validation or QEC simulation."
+}

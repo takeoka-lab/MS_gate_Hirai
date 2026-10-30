@@ -1,0 +1,3 @@
+# SDP dependency for pauli_twirl_channel_distance.ipynb (tested with Python 3.9).
+# NumPy, SciPy, pandas, Matplotlib, QuTiP and ipykernel are project dependencies.
+cvxpy==1.6.5

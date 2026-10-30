@@ -1,0 +1,32 @@
+{
+  "python": "3.9.6 (default, May 22 2026, 11:13:45) \n[Clang 21.0.0 (clang-2100.1.1.101)]",
+  "executable": "/Users/hirainoa/Desktop/\u91cf\u5b50/project/Moon_shot__\u9ad8\u6a4bPJ/MS_gate_Hirai/.venv/channel-distance/bin/python",
+  "platform": "macOS-26.7-arm64-arm-64bit",
+  "packages": {
+    "numpy": "1.26.4",
+    "scipy": "1.13.0",
+    "pandas": "2.2.2",
+    "matplotlib": "3.8.4",
+    "qutip": "5.0.4",
+    "cvxpy": "1.6.5",
+    "scs": "3.3.1",
+    "nbformat": "5.10.4",
+    "nbclient": "0.10.0"
+  },
+  "settings": {
+    "K": 28.0,
+    "L": 25.0,
+    "eta": 0.18,
+    "gate_duration_seconds": 2.8e-05,
+    "phonon_dim": 8,
+    "sideband_cutoff": 3,
+    "solver": "adaptive_dop853",
+    "relative_tolerance": 1e-09,
+    "absolute_tolerance": 1e-11,
+    "trotter_step_scale": 1.0,
+    "maximum_step_divisor": 20.0
+  },
+  "n_bar": 0.02,
+  "run_sdp": true,
+  "run_convergence": true
+}

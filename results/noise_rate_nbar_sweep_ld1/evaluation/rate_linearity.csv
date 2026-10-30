@@ -1,0 +1,17 @@
+source,multiplier,max_absolute_deviation_from_nominal_scaling_percent
+motional_heating,0.5,0.035971299715908955
+motional_heating,1.0,0.0
+motional_heating,2.0,0.06721466231661699
+motional_heating,4.0,0.19423998236709483
+motional_dephasing,0.5,0.5716353549743314
+motional_dephasing,1.0,0.0
+motional_dephasing,2.0,1.115269198352209
+motional_dephasing,4.0,3.246242684480216
+spin_dephasing,0.5,0.02826945087184285
+spin_dephasing,1.0,0.0
+spin_dephasing,2.0,0.032532397404172464
+spin_dephasing,4.0,0.07265450067142076
+photon_scattering,0.5,0.02683740685631708
+photon_scattering,1.0,0.0
+photon_scattering,2.0,0.04443884277416377
+photon_scattering,4.0,0.12699111827398912

@@ -1,0 +1,170 @@
+{
+  "date": "2026-10-27",
+  "method": "saved data only; no QPT rerun; no source data overwritten",
+  "nbar_values": [
+    0.01,
+    1.0,
+    2.0,
+    3.0,
+    4.0
+  ],
+  "rate_multipliers": [
+    0.0,
+    0.5,
+    1.0,
+    2.0,
+    4.0
+  ],
+  "nominal_rates_s^-1": {
+    "motional_heating": 10.0,
+    "motional_dephasing": 18.0,
+    "spin_dephasing": 3.3333333333333335,
+    "photon_scattering": 4.0
+  },
+  "sources": {
+    "results/noise_rate_nbar_sweep/config.json": {
+      "sha256": "22252a9c054fabe0b1de90f4dc6a6fe317a0615b78b5b15df7e7a7e37aa4fd15"
+    },
+    "results/noise_rate_nbar_sweep/all_pairwise_5x5_grids/motional_heating__motional_dephasing/config.json": {
+      "sha256": "36cff84ac082cbd7ef70d734ca0dbb86cc4f865d2bc37bf16b7118a093142339"
+    },
+    "results/noise_rate_nbar_sweep/all_pairwise_5x5_grids/motional_heating__spin_dephasing/config.json": {
+      "sha256": "c9a650f6d42fb3ea182b888989430e671ae9b0283ad3b892c77e3cf3b3fd19a0"
+    },
+    "results/noise_rate_nbar_sweep/all_pairwise_5x5_grids/motional_heating__photon_scattering/config.json": {
+      "sha256": "20df202b4766e69ab0d15b3d6e7204279f321435d96b96ea4d89b743d6dbf97b"
+    },
+    "results/noise_rate_nbar_sweep/all_pairwise_5x5_grids/motional_dephasing__spin_dephasing/config.json": {
+      "sha256": "4d5a0da4875e171eb38b8b538ca39bd601c28ef32dfa8858e009432b6a908a54"
+    },
+    "results/noise_rate_nbar_sweep/all_pairwise_5x5_grids/motional_dephasing__photon_scattering/config.json": {
+      "sha256": "a912d80cba45c0430bf1139657999f7097e453e4484fcd20d1bef9d91875933a"
+    },
+    "results/noise_rate_nbar_sweep/all_pairwise_5x5_grids/spin_dephasing__photon_scattering/config.json": {
+      "sha256": "7350f07b86a1d05542cf2c625cb986e75b1b7bbb676f8127152f5c5f89000b01"
+    },
+    "results/noise_rate_nbar_sweep/all_noise_zero_vs_nominal.csv": {
+      "rows": 5,
+      "sha256": "4d7bbec17656ca48db06cd20046befb876acefc6912c1445da29f76ca1cd65a6"
+    },
+    "results/noise_rate_nbar_sweep/four_noise_reconstruction/four_noise_single_components.csv": {
+      "rows": 20,
+      "sha256": "ea5f7acf6e5418fcaa015a22a7f56d490d48a70f285ec2a19fe28b76bb747f17"
+    },
+    "results/noise_rate_nbar_sweep/four_noise_reconstruction/four_noise_reconstruction.csv": {
+      "rows": 5,
+      "sha256": "3c8535d11f9c73ba6233ffa7cfb5f7253b7b33835c99518b5bee7eae519e0fe3"
+    },
+    "results/noise_rate_nbar_sweep/all_pairwise_5x5_grids/all_pairwise_grid_interactions.csv": {
+      "rows": 750,
+      "sha256": "8f58cffd5cee7406543213bb51aef129bc8bcced51623408cee6915b9eb82c4e"
+    },
+    "results/noise_rate_nbar_sweep/all_pairwise_5x5_grids/all_pairwise_grid_qpt_summary.csv": {
+      "rows": 565,
+      "sha256": "42fff415c6fecafd5c950e05fe43a2e499f8c2d59dd1d22c9601fa5f2bad84b8"
+    },
+    "results/noise_rate_nbar_sweep/summary.csv": {
+      "rows": 100,
+      "sha256": "bdd64f56e2248ab813cb7b61eee2c350740392c88f8ad7fee02761a450767aa9"
+    },
+    "results/noise_rate_nbar_sweep/four_noise_reconstruction/four_noise_pair_components.csv": {
+      "rows": 30,
+      "sha256": "6884a70f84b819033d6ebc2d320b4b3b6386e33c41f9a5bce7c2f9234b90fcd8"
+    },
+    "results/noise_rate_nbar_sweep/four_noise_rate_validation/model_predictions.csv": {
+      "rows": 60,
+      "sha256": "6e264cac3bcdea7d93eff576cc07a124ae5c101b90a15b3b3c6a804f6366ca32"
+    },
+    "results/noise_rate_nbar_sweep/four_noise_rate_validation/model_comparison_metrics.csv": {
+      "rows": 18,
+      "sha256": "62aa11fa3b90297e5bad66ca6bd764170c560074349710c33dddb90a391a77b1"
+    },
+    "results/noise_rate_nbar_sweep/four_noise_nbar_critical_search/high_nbar_model_predictions.csv": {
+      "rows": 84,
+      "sha256": "5d16174034a66e9910b0d514a396382498d24b7a3a6c5694419a0ac8a8b82f25"
+    },
+    "results/noise_rate_nbar_sweep/four_noise_nbar_critical_search/nbar_critical_curve.csv": {
+      "rows": 12,
+      "sha256": "3694b1015d1a020c98f5f781fdf0d375fdf3adc9d0b5da3ef9b99a430a669186"
+    },
+    "results/noise_rate_nbar_sweep/four_noise_nbar_critical_search/all_noise_zero/validation_qpt_summary.csv": {
+      "rows": 16,
+      "sha256": "f532ebf85f4424abc8d0b8aa6a409f278cf97469dedc9fc3cf23d1286f7e4cec"
+    },
+    "results/noise_error_structure/noise_free_fock_generator_comparison.csv": {
+      "rows": 5,
+      "sha256": "aaadf8cc516f5af63b5dc96754e617504b4812e98caae80041ac61e9e5c12f31"
+    },
+    "results/noise_error_structure/full_taxonomy_coefficients.csv": {
+      "rows": 6000,
+      "sha256": "f2bcf96193b40140ac0a0b0c98a91d04bd067b086b77e66724715e9c340ccb0e"
+    },
+    "results/noise_error_structure/full_taxonomy_overall_summary.csv": {
+      "rows": 25,
+      "sha256": "97545176400bece4e455e7c6cbc03c108952b34a6d5c93215ab963bcc9469ff1"
+    },
+    "results/rate_hsca_structure/rate_structure_metrics.csv": {
+      "rows": 100,
+      "sha256": "5b030dbfe595b67c52bf940a550e8cbd3a00646fd4a9c362b2422bf50fcad584"
+    },
+    "results/rate_hsca_structure/rate_matrix_linearity.csv": {
+      "rows": 120,
+      "sha256": "d05008c2e535e180a32d4794226ef4544cfc83598d81ccb62a35d60c9e309227"
+    },
+    "results/error_generator_rate_nbar/top3_pairwise_generator/config.json": {
+      "sha256": "53f4b14e9b7a62c41ea8065bf681b3915ddfd3a66b3d2da6137ccd3170fd22c2"
+    },
+    "results/error_generator_rate_nbar/top3_pairwise_generator/pairwise_generator_interactions.csv": {
+      "rows": 5625,
+      "sha256": "b6248db567334559735c1f1f9a4b56933591d1809c1372fc1db206c042e128d5"
+    },
+    "results/noise_rate_nbar_sweep/pairwise_perturbative_kappa/perturbative_kappa_raw.csv": {
+      "rows": 90,
+      "sha256": "c628f6f6a488c47952f0b54b48e3906eeb361c01ad49d28ffa6b90cb5ffef8e8"
+    },
+    "results/noise_rate_nbar_sweep/pairwise_perturbative_kappa/perturbative_kappa_extrapolated.csv": {
+      "rows": 30,
+      "sha256": "7fc851c5362d7333edac69e7053f4457ebaa6f3f59abbc30d3f8db8684d4ba73"
+    },
+    "results/noise_rate_nbar_sweep/noise_free_diagnostics/full_vs_lamb_dicke/full_vs_lamb_dicke_summary.csv": {
+      "rows": 5,
+      "sha256": "73276f932833c625ef702c07ded58146b67d58ef5ec12020c778788aee04663a"
+    },
+    "results/noise_rate_nbar_sweep_ld1/evaluation/cutoff_audit/exact_cutoff_comparison.csv": {
+      "rows": 15,
+      "sha256": "9c66b67c84a1ee112a48d8a4fef2c001bf7dd315e44b84dc2e5b424128991e7f"
+    },
+    "results/single_mode_ms_gate_infidelity/single_noise/ld2/summary.csv": {
+      "rows": 20,
+      "sha256": "09ddb1620d99f40fca86b723e3c49669eb6c299de7259a8157009e950c893877"
+    },
+    "results/motional_dephasing_polynomial/polynomial_matrix_validation_metrics.csv": {
+      "rows": 30,
+      "sha256": "e40294eaf4af8da76f1eb1524d9bf47b7abadaff82cd28e77c9064330cf36aa0"
+    },
+    "results/motional_dephasing_polynomial/dyson_frechet_taylor/taylor_truncation_summary.csv": {
+      "rows": 45,
+      "sha256": "80d23582b09b9acb4acde98d728823343099912e0d2167bb8f7d640d3b33574a"
+    },
+    "results/single_mode_ms_gate_infidelity/single_noise/ld1/summary.csv": {
+      "rows": 20,
+      "sha256": "7bca4f986d6363d539f47bbd63db3c8c2104d21587ce475c8aa3fe0ec56ed65b"
+    },
+    "results/single_mode_ms_gate_infidelity/single_noise/ld1/config.json": {
+      "sha256": "19395e5d9ab5c3a4bd36027ab7b048e7c7e4a1d8874d1ba19bb5b5030828bbb9"
+    },
+    "results/single_mode_ms_gate_infidelity/single_noise/ld2/config.json": {
+      "sha256": "05f5fcbc4e9c0688ec0e78ea64305d823edbe0e2bb7ba86afdf31bf58e4f6c43"
+    }
+  },
+  "checks": {
+    "max_Cij_formula_error": 9.893339529974308e-17,
+    "max_zero_axis_Cij": 1.734723475976807e-18,
+    "positive_active_Cij_count": 0,
+    "max_grid_vs_baseline_zero_difference": 0.0,
+    "max_new_vs_core_single_infidelity_difference": 4.2808974399957504e-08,
+    "max_full_taxonomy_reconstruction_fraction": 1.4534413620361634e-12,
+    "max_pairwise_reconstruction_abs_residual": 1.080117420018678e-07
+  },
+  "figure_count": 26
+}
