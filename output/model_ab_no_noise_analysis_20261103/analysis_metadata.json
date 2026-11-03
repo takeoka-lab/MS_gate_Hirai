@@ -1,0 +1,32 @@
+{
+  "source_results": "results/ld_second_order_rwa_vs_corrected_sideband/b9551654dce042c7",
+  "source_config_sha256": "b9551654dce042c77a8c00b0ebeb934c5358df9ded5b304ff18261b21f1cc2f9",
+  "method": "exact conditional rotating-frame spectral propagation for rectangular constant-phase driving",
+  "base_parameters": {
+    "A": 0.125,
+    "T2_star": 0.3,
+    "delta": 0.5,
+    "dephasing_rate_phys": 18.0,
+    "eta": 0.1,
+    "heating_rate_phys": 10.0,
+    "laser_detuning_fluctuation": 0.0,
+    "laser_intensity_fluctuation": 0.0,
+    "laser_noise_samples": 1,
+    "laser_noise_seed": 1234,
+    "laser_rotation_angle_fluctuation": 0.0,
+    "raman_rate_phys": 1.0,
+    "rayleigh_rate_phys": 3.0,
+    "rho0": 0.0,
+    "solver_max_step": null,
+    "t_gate_phys": 0.0001,
+    "time_points": 500
+  },
+  "cutoff_comparison": [
+    100,
+    140
+  ],
+  "unitary_correction": "best fitted XX rotation of the fixed-amplitude channel; not drive recalibration",
+  "amplitude_calibration": "separate per-temperature optimization of the scalar drive; no dissipators",
+  "max_cutoff_difference": 2.421957079334902e-09,
+  "full_default_master_equation_sweep_rerun": false
+}
