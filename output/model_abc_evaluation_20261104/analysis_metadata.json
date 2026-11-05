@@ -1,0 +1,12 @@
+{
+  "source": "/Users/hirainoa/Desktop/\u91cf\u5b50/project/Moon_shot__\u9ad8\u6a4bPJ/MS_gate_Hirai/results/ld_second_order_rwa_vs_corrected_sideband/with_model_c/6c0f70983e00c9e5",
+  "config_sha256": "6c0f70983e00c9e503e5e79f790ce8ae2405d8b95733ff6516228e3dc4498d5d",
+  "saved_channels": 90,
+  "amplitude_calibrated": false,
+  "independent_check": "closed-loop A/B spectral propagation; original cutoff vs 100 vs 140",
+  "no_new_model_c_propagation": true,
+  "no_saved_results_modified": true,
+  "max_saved_chi_reconstruction_error": 3.536122027061744e-16,
+  "numpy_version": "1.26.4",
+  "output_unitary_correction_is_not_amplitude_calibration": true
+}
