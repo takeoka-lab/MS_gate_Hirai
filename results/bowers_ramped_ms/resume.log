@@ -1,0 +1,257 @@
+100 µs: XX angle=0.785398, |alpha(T)|=0.0319, max |dΔ/dt|/Δ²=0.213
+bowers_ramped_ms_gate.ipynb:cell3:50: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+225.8 µs: XX angle=0.785398, |alpha(T)|=0.0319, max |dΔ/dt|/Δ²=0.213
+Completed conditions:   0%|          | 0/30 [00:00<?, ?condition/s]Completed conditions:   0%|          | 0/30 [00:00<?, ?condition/s, T100_n0.01_rect_nominal]Completed conditions:   3%|▎         | 1/30 [00:00<00:21,  1.33condition/s, T100_n0.01_rect_nominal]Completed conditions:   3%|▎         | 1/30 [00:00<00:21,  1.33condition/s, T100_n0.01_rect_calibrated]Completed conditions:   7%|▋         | 2/30 [00:00<00:21,  1.33condition/s, T100_n0.01_ramp_calibrated]Completed conditions:  10%|█         | 3/30 [00:00<00:20,  1.33condition/s, T100_n1_rect_nominal]      Completed conditions:  13%|█▎        | 4/30 [00:00<00:19,  1.33condition/s, T100_n1_rect_calibrated]Completed conditions:  17%|█▋        | 5/30 [00:00<00:18,  1.33condition/s, T100_n1_ramp_calibrated]Completed conditions:  20%|██        | 6/30 [00:00<00:18,  1.33condition/s, T100_n2_rect_nominal]   Completed conditions:  23%|██▎       | 7/30 [00:00<00:17,  1.33condition/s, T100_n2_rect_calibrated]Completed conditions:  27%|██▋       | 8/30 [00:00<00:16,  1.33condition/s, T100_n2_ramp_calibrated]Completed conditions:  30%|███       | 9/30 [00:00<00:15,  1.33condition/s, T100_n3_rect_nominal]   Completed conditions:  33%|███▎      | 10/30 [00:00<00:15,  1.33condition/s, T100_n3_rect_calibrated]Completed conditions:  33%|███▎      | 10/30 [00:00<00:15,  1.33condition/s, T100_n3_rect_calibrated  evaluation 2]
+MS gate simulation (16 evolutions / n_bar):   0%|          | 0/16 [00:00<?, ?evolution/s][A
+MS gate simulation (16 evolutions / n_bar):   0%|          | 0/16 [00:00<?, ?evolution/s, n_bar=3, phonon_dim=52, sample=0/1][A
+MS gate simulation (16 evolutions / n_bar):   0%|          | 0/16 [00:00<?, ?evolution/s, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):   6%|▋         | 1/16 [01:30<22:34, 90.32s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  12%|█▎        | 2/16 [02:57<20:38, 88.46s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  19%|█▉        | 3/16 [04:40<20:34, 94.99s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  25%|██▌       | 4/16 [06:11<18:42, 93.57s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  31%|███▏      | 5/16 [07:31<16:14, 88.60s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  38%|███▊      | 6/16 [08:50<14:13, 85.35s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  44%|████▍     | 7/16 [10:10<12:33, 83.68s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  50%|█████     | 8/16 [11:29<10:55, 82.00s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  56%|█████▋    | 9/16 [12:47<09:25, 80.80s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  62%|██████▎   | 10/16 [14:05<07:59, 79.95s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  69%|██████▉   | 11/16 [15:20<06:31, 78.38s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  75%|███████▌  | 12/16 [16:38<05:13, 78.34s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  81%|████████▏ | 13/16 [17:56<03:55, 78.34s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  88%|████████▊ | 14/16 [19:14<02:36, 78.29s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  94%|█████████▍| 15/16 [20:32<01:18, 78.22s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar): 100%|██████████| 16/16 [21:53<00:00, 78.78s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar): 100%|██████████| 16/16 [21:53<00:00, 78.78s/evolution, n_bar=3, phonon_dim=52, sample=1/1][AMS gate simulation (16 evolutions / n_bar): 100%|██████████| 16/16 [21:53<00:00, 82.07s/evolution, n_bar=3, phonon_dim=52, sample=1/1]
+Completed conditions:  37%|███▋      | 11/30 [21:53<38:52, 122.78s/condition, T100_n3_rect_calibrated  evaluation 2]Completed conditions:  37%|███▋      | 11/30 [21:53<38:52, 122.78s/condition, T100_n3_ramp_calibrated]              Completed conditions:  37%|███▋      | 11/30 [21:53<38:52, 122.78s/condition, T100_n3_ramp_calibrated  evaluation 1]
+MS gate simulation (16 evolutions / n_bar):   0%|          | 0/16 [00:00<?, ?evolution/s][A
+MS gate simulation (16 evolutions / n_bar):   0%|          | 0/16 [00:00<?, ?evolution/s, n_bar=3, phonon_dim=52, sample=0/1][A
+MS gate simulation (16 evolutions / n_bar):   0%|          | 0/16 [00:00<?, ?evolution/s, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):   6%|▋         | 1/16 [02:10<32:31, 130.13s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  12%|█▎        | 2/16 [04:26<31:15, 133.97s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/multiprocessing/resource_tracker.py:216: UserWarning: resource_tracker: There appear to be 1 leaked semaphore objects to clean up at shutdown
+  warnings.warn('resource_tracker: There appear to be %d '
+100 µs: XX angle=0.785398, |alpha(T)|=0.0319, max |dΔ/dt|/Δ²=0.213
+bowers_ramped_ms_gate.ipynb:cell3:50: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+Completed conditions:   0%|          | 0/15 [00:00<?, ?condition/s]Completed conditions:   0%|          | 0/15 [00:00<?, ?condition/s, T100_n0.01_rect_nominal]Completed conditions:   7%|▋         | 1/15 [00:00<00:13,  1.06condition/s, T100_n0.01_rect_nominal]Completed conditions:   7%|▋         | 1/15 [00:00<00:13,  1.06condition/s, T100_n0.01_rect_calibrated]Completed conditions:  13%|█▎        | 2/15 [00:00<00:12,  1.06condition/s, T100_n0.01_ramp_calibrated]Completed conditions:  20%|██        | 3/15 [00:00<00:11,  1.06condition/s, T100_n1_rect_nominal]      Completed conditions:  27%|██▋       | 4/15 [00:00<00:10,  1.06condition/s, T100_n1_rect_calibrated]Completed conditions:  33%|███▎      | 5/15 [00:01<00:09,  1.06condition/s, T100_n1_ramp_calibrated]Completed conditions:  40%|████      | 6/15 [00:01<00:08,  1.06condition/s, T100_n2_rect_nominal]   Completed conditions:  47%|████▋     | 7/15 [00:01<00:00,  8.83condition/s, T100_n2_rect_nominal]Completed conditions:  47%|████▋     | 7/15 [00:01<00:00,  8.83condition/s, T100_n2_rect_calibrated]Completed conditions:  53%|█████▎    | 8/15 [00:01<00:00,  8.83condition/s, T100_n2_ramp_calibrated]Completed conditions:  60%|██████    | 9/15 [00:01<00:00,  8.83condition/s, T100_n3_rect_nominal]   Completed conditions:  67%|██████▋   | 10/15 [00:01<00:00,  8.83condition/s, T100_n3_rect_calibrated]Completed conditions:  73%|███████▎  | 11/15 [00:01<00:00,  8.83condition/s, T100_n3_ramp_calibrated]Completed conditions:  73%|███████▎  | 11/15 [00:01<00:00,  8.83condition/s, T100_n3_ramp_calibrated  evaluation 1]
+MS gate simulation (16 evolutions / n_bar):   0%|          | 0/16 [00:00<?, ?evolution/s][A
+MS gate simulation (16 evolutions / n_bar):   0%|          | 0/16 [00:00<?, ?evolution/s, n_bar=3, phonon_dim=52, sample=0/1][A
+MS gate simulation (16 evolutions / n_bar):   0%|          | 0/16 [00:00<?, ?evolution/s, n_bar=3, phonon_dim=52, sample=1/1][ACompleted conditions:  73%|███████▎  | 11/15 [00:20<00:00,  8.83condition/s, T100_n3_ramp_calibrated  evaluation 1]
+MS gate simulation (16 evolutions / n_bar):   6%|▋         | 1/16 [02:39<39:48, 159.26s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  12%|█▎        | 2/16 [04:53<33:42, 144.46s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  19%|█▉        | 3/16 [07:11<30:41, 141.62s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  25%|██▌       | 4/16 [09:33<28:18, 141.54s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  31%|███▏      | 5/16 [11:50<25:41, 140.17s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  38%|███▊      | 6/16 [14:03<22:58, 137.81s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  44%|████▍     | 7/16 [16:18<20:29, 136.62s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  50%|█████     | 8/16 [18:39<18:24, 138.10s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  56%|█████▋    | 9/16 [20:52<15:55, 136.50s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  62%|██████▎   | 10/16 [23:07<13:36, 136.02s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  69%|██████▉   | 11/16 [25:08<10:57, 131.46s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  75%|███████▌  | 12/16 [27:23<08:49, 132.44s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  81%|████████▏ | 13/16 [29:48<06:49, 136.46s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  88%|████████▊ | 14/16 [32:13<04:37, 138.83s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  94%|█████████▍| 15/16 [34:29<02:18, 138.15s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar): 100%|██████████| 16/16 [36:46<00:00, 137.67s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar): 100%|██████████| 16/16 [36:46<00:00, 137.67s/evolution, n_bar=3, phonon_dim=52, sample=1/1][AMS gate simulation (16 evolutions / n_bar): 100%|██████████| 16/16 [36:46<00:00, 137.89s/evolution, n_bar=3, phonon_dim=52, sample=1/1]
+Completed conditions:  73%|███████▎  | 11/15 [36:47<00:00,  8.83condition/s, T100_n3_ramp_calibrated  evaluation 2]
+MS gate simulation (16 evolutions / n_bar):   0%|          | 0/16 [00:00<?, ?evolution/s][A
+MS gate simulation (16 evolutions / n_bar):   0%|          | 0/16 [00:00<?, ?evolution/s, n_bar=3, phonon_dim=52, sample=0/1][A
+MS gate simulation (16 evolutions / n_bar):   0%|          | 0/16 [00:00<?, ?evolution/s, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):   6%|▋         | 1/16 [02:27<36:49, 147.28s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  12%|█▎        | 2/16 [04:46<33:17, 142.69s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  19%|█▉        | 3/16 [07:12<31:11, 143.95s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  25%|██▌       | 4/16 [09:32<28:28, 142.39s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  31%|███▏      | 5/16 [11:59<26:26, 144.20s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  38%|███▊      | 6/16 [14:19<23:48, 142.88s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  44%|████▍     | 7/16 [16:44<21:30, 143.36s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  50%|█████     | 8/16 [19:11<19:15, 144.45s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  56%|█████▋    | 9/16 [21:37<16:55, 145.01s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  62%|██████▎   | 10/16 [24:03<14:31, 145.24s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  69%|██████▉   | 11/16 [25:53<11:13, 134.63s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  75%|███████▌  | 12/16 [28:20<09:13, 138.42s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  81%|████████▏ | 13/16 [30:43<06:59, 139.68s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  88%|████████▊ | 14/16 [33:10<04:43, 141.89s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  94%|█████████▍| 15/16 [35:36<02:23, 143.14s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar): 100%|██████████| 16/16 [37:56<00:00, 142.14s/evolution, n_bar=3, phonon_dim=52, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar): 100%|██████████| 16/16 [37:56<00:00, 142.14s/evolution, n_bar=3, phonon_dim=52, sample=1/1][AMS gate simulation (16 evolutions / n_bar): 100%|██████████| 16/16 [37:56<00:00, 142.26s/evolution, n_bar=3, phonon_dim=52, sample=1/1]
+Completed conditions:  80%|████████  | 12/15 [1:14:43<23:07, 462.66s/condition, T100_n3_ramp_calibrated  evaluation 2]Completed conditions:  80%|████████  | 12/15 [1:14:43<23:07, 462.66s/condition, T100_n4_rect_nominal]                 Completed conditions:  80%|████████  | 12/15 [1:14:43<23:07, 462.66s/condition, T100_n4_rect_nominal  evaluation 1]
+MS gate simulation (16 evolutions / n_bar):   0%|          | 0/16 [00:00<?, ?evolution/s][A
+MS gate simulation (16 evolutions / n_bar):   0%|          | 0/16 [00:00<?, ?evolution/s, n_bar=4, phonon_dim=68, sample=0/1][A
+MS gate simulation (16 evolutions / n_bar):   0%|          | 0/16 [00:00<?, ?evolution/s, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):   6%|▋         | 1/16 [02:18<34:43, 138.88s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  12%|█▎        | 2/16 [04:34<31:56, 136.86s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  19%|█▉        | 3/16 [06:48<29:24, 135.70s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  25%|██▌       | 4/16 [09:04<27:11, 135.94s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  31%|███▏      | 5/16 [11:21<24:57, 136.11s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  38%|███▊      | 6/16 [13:37<22:40, 136.02s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  44%|████▍     | 7/16 [15:52<20:20, 135.65s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  50%|█████     | 8/16 [18:09<18:08, 136.12s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  56%|█████▋    | 9/16 [20:24<15:50, 135.83s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  62%|██████▎   | 10/16 [22:39<13:32, 135.46s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  69%|██████▉   | 11/16 [24:44<11:01, 132.39s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  75%|███████▌  | 12/16 [27:01<08:55, 133.85s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  81%|████████▏ | 13/16 [29:17<06:42, 134.32s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  88%|████████▊ | 14/16 [31:31<04:28, 134.49s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  94%|█████████▍| 15/16 [33:46<02:14, 134.49s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar): 100%|██████████| 16/16 [36:02<00:00, 134.94s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar): 100%|██████████| 16/16 [36:02<00:00, 134.94s/evolution, n_bar=4, phonon_dim=68, sample=1/1][AMS gate simulation (16 evolutions / n_bar): 100%|██████████| 16/16 [36:02<00:00, 135.15s/evolution, n_bar=4, phonon_dim=68, sample=1/1]
+Completed conditions:  87%|████████▋ | 13/15 [1:50:46<22:42, 681.06s/condition, T100_n4_rect_nominal  evaluation 1]Completed conditions:  87%|████████▋ | 13/15 [1:50:46<22:42, 681.06s/condition, T100_n4_rect_calibrated]           Completed conditions:  87%|████████▋ | 13/15 [1:50:46<22:42, 681.06s/condition, T100_n4_rect_calibrated  evaluation 2]
+MS gate simulation (16 evolutions / n_bar):   0%|          | 0/16 [00:00<?, ?evolution/s][A
+MS gate simulation (16 evolutions / n_bar):   0%|          | 0/16 [00:00<?, ?evolution/s, n_bar=4, phonon_dim=68, sample=0/1][A
+MS gate simulation (16 evolutions / n_bar):   0%|          | 0/16 [00:00<?, ?evolution/s, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):   6%|▋         | 1/16 [02:16<34:02, 136.18s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  12%|█▎        | 2/16 [04:31<31:40, 135.72s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  19%|█▉        | 3/16 [06:46<29:19, 135.34s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  25%|██▌       | 4/16 [09:01<27:00, 135.05s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  31%|███▏      | 5/16 [11:16<24:47, 135.21s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  38%|███▊      | 6/16 [13:38<22:54, 137.47s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  44%|████▍     | 7/16 [15:54<20:33, 137.06s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  50%|█████     | 8/16 [18:09<18:11, 136.42s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  56%|█████▋    | 9/16 [20:24<15:51, 135.86s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  62%|██████▎   | 10/16 [22:41<13:37, 136.31s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  69%|██████▉   | 11/16 [24:47<11:04, 133.00s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  75%|███████▌  | 12/16 [27:04<08:56, 134.20s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  81%|████████▏ | 13/16 [29:20<06:44, 134.96s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  88%|████████▊ | 14/16 [31:40<04:33, 136.54s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  94%|█████████▍| 15/16 [33:54<02:15, 135.76s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar): 100%|██████████| 16/16 [36:11<00:00, 136.13s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar): 100%|██████████| 16/16 [36:11<00:00, 136.13s/evolution, n_bar=4, phonon_dim=68, sample=1/1][AMS gate simulation (16 evolutions / n_bar): 100%|██████████| 16/16 [36:11<00:00, 135.74s/evolution, n_bar=4, phonon_dim=68, sample=1/1]
+Completed conditions:  93%|█████████▎| 14/15 [2:26:58<15:12, 912.28s/condition, T100_n4_rect_calibrated  evaluation 2]Completed conditions:  93%|█████████▎| 14/15 [2:26:58<15:12, 912.28s/condition, T100_n4_ramp_calibrated]              Completed conditions:  93%|█████████▎| 14/15 [2:26:58<15:12, 912.28s/condition, T100_n4_ramp_calibrated  evaluation 1]
+MS gate simulation (16 evolutions / n_bar):   0%|          | 0/16 [00:00<?, ?evolution/s][A
+MS gate simulation (16 evolutions / n_bar):   0%|          | 0/16 [00:00<?, ?evolution/s, n_bar=4, phonon_dim=68, sample=0/1][A
+MS gate simulation (16 evolutions / n_bar):   0%|          | 0/16 [00:00<?, ?evolution/s, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):   6%|▋         | 1/16 [04:11<1:02:51, 251.43s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  12%|█▎        | 2/16 [08:09<56:47, 243.39s/evolution, n_bar=4, phonon_dim=68, sample=1/1]  [A
+MS gate simulation (16 evolutions / n_bar):  19%|█▉        | 3/16 [12:07<52:13, 241.04s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  25%|██▌       | 4/16 [16:13<48:36, 243.05s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  31%|███▏      | 5/16 [20:23<44:59, 245.40s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  38%|███▊      | 6/16 [24:17<40:16, 241.70s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  44%|████▍     | 7/16 [28:08<35:43, 238.20s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  50%|█████     | 8/16 [32:04<31:40, 237.50s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  56%|█████▋    | 9/16 [35:57<27:31, 235.90s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  62%|██████▎   | 10/16 [39:51<23:33, 235.61s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  69%|██████▉   | 11/16 [43:09<18:39, 223.96s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  75%|███████▌  | 12/16 [47:06<15:11, 227.84s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  81%|████████▏ | 13/16 [51:04<11:33, 231.07s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  88%|████████▊ | 14/16 [55:06<07:48, 234.28s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  94%|█████████▍| 15/16 [59:00<03:54, 234.29s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar): 100%|██████████| 16/16 [1:03:04<00:00, 237.02s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar): 100%|██████████| 16/16 [1:03:04<00:00, 237.02s/evolution, n_bar=4, phonon_dim=68, sample=1/1][AMS gate simulation (16 evolutions / n_bar): 100%|██████████| 16/16 [1:03:04<00:00, 236.51s/evolution, n_bar=4, phonon_dim=68, sample=1/1]
+Completed conditions:  93%|█████████▎| 14/15 [3:30:02<15:12, 912.28s/condition, T100_n4_ramp_calibrated  evaluation 2]
+MS gate simulation (16 evolutions / n_bar):   0%|          | 0/16 [00:00<?, ?evolution/s][A
+MS gate simulation (16 evolutions / n_bar):   0%|          | 0/16 [00:00<?, ?evolution/s, n_bar=4, phonon_dim=68, sample=0/1][A
+MS gate simulation (16 evolutions / n_bar):   0%|          | 0/16 [00:00<?, ?evolution/s, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):   6%|▋         | 1/16 [03:56<59:10, 236.69s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  12%|█▎        | 2/16 [07:56<55:36, 238.34s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  19%|█▉        | 3/16 [12:03<52:28, 242.21s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  25%|██▌       | 4/16 [16:05<48:29, 242.50s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A
+MS gate simulation (16 evolutions / n_bar):  31%|███▏      | 5/16 [20:05<44:14, 241.31s/evolution, n_bar=4, phonon_dim=68, sample=1/1][A/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/multiprocessing/resource_tracker.py:216: UserWarning: resource_tracker: There appear to be 1 leaked semaphore objects to clean up at shutdown
+  warnings.warn('resource_tracker: There appear to be %d '
+100 µs: XX angle=0.785398, |alpha(T)|=0.0319, max |dΔ/dt|/Δ²=0.213
+bowers_ramped_ms_gate.ipynb:cell3:50: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+Completed conditions:   0%|          | 0/15 [00:00<?, ?condition/s]Completed conditions:   0%|          | 0/15 [00:00<?, ?condition/s, T100_n0.01_rect_nominal]Completed conditions:   7%|▋         | 1/15 [00:00<00:12,  1.16condition/s, T100_n0.01_rect_nominal]Completed conditions:   7%|▋         | 1/15 [00:00<00:12,  1.16condition/s, T100_n0.01_rect_calibrated]Completed conditions:  13%|█▎        | 2/15 [00:00<00:11,  1.16condition/s, T100_n0.01_ramp_calibrated]Completed conditions:  20%|██        | 3/15 [00:00<00:10,  1.16condition/s, T100_n1_rect_nominal]      Completed conditions:  27%|██▋       | 4/15 [00:00<00:09,  1.16condition/s, T100_n1_rect_calibrated]Completed conditions:  33%|███▎      | 5/15 [00:00<00:08,  1.16condition/s, T100_n1_ramp_calibrated]Completed conditions:  40%|████      | 6/15 [00:00<00:07,  1.16condition/s, T100_n2_rect_nominal]   Completed conditions:  47%|████▋     | 7/15 [00:00<00:06,  1.16condition/s, T100_n2_rect_calibrated]Completed conditions:  53%|█████▎    | 8/15 [00:00<00:06,  1.16condition/s, T100_n2_ramp_calibrated]Completed conditions:  60%|██████    | 9/15 [00:00<00:05,  1.16condition/s, T100_n3_rect_nominal]   Completed conditions:  67%|██████▋   | 10/15 [00:00<00:04,  1.16condition/s, T100_n3_rect_calibrated]Completed conditions:  73%|███████▎  | 11/15 [00:00<00:03,  1.16condition/s, T100_n3_ramp_calibrated]Completed conditions:  80%|████████  | 12/15 [00:00<00:02,  1.16condition/s, T100_n4_rect_nominal]   Completed conditions:  87%|████████▋ | 13/15 [00:00<00:00, 17.98condition/s, T100_n4_rect_nominal]Completed conditions:  87%|████████▋ | 13/15 [00:00<00:00, 17.98condition/s, T100_n4_rect_calibrated]Completed conditions:  93%|█████████▎| 14/15 [00:00<00:00, 17.98condition/s, T100_n4_ramp_calibrated]Completed conditions:  93%|█████████▎| 14/15 [00:00<00:00, 17.98condition/s, T100_n4_ramp_calibrated  evaluation 1]
+MS gate simulation (16 evolutions / n_bar):   0%|          | 0/16 [00:00<?, ?evolution/s][A
+MS gate simulation (16 evolutions / n_bar):   0%|          | 0/16 [00:00<?, ?evolution/s, workers=4][A
+MS gate simulation (16 evolutions / n_bar):   0%|          | 0/16 [00:00<?, ?evolution/s, executor=process, workers=4][ACompleted conditions:  93%|█████████▎| 14/15 [00:20<00:00, 17.98condition/s, T100_n4_ramp_calibrated  evaluation 1]
+MS gate simulation (16 evolutions / n_bar):   6%|▋         | 1/16 [05:06<1:16:38, 306.55s/evolution, executor=process, workers=4][A
+MS gate simulation (16 evolutions / n_bar):   6%|▋         | 1/16 [05:06<1:16:38, 306.55s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  12%|█▎        | 2/16 [05:08<29:47, 127.65s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4]  [A
+MS gate simulation (16 evolutions / n_bar):  12%|█▎        | 2/16 [05:08<29:47, 127.65s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  19%|█▉        | 3/16 [05:16<15:47, 72.91s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4] [A
+MS gate simulation (16 evolutions / n_bar):  19%|█▉        | 3/16 [05:16<15:47, 72.91s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  25%|██▌       | 4/16 [05:24<09:24, 47.05s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  25%|██▌       | 4/16 [05:24<09:24, 47.05s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  31%|███▏      | 5/16 [09:56<23:30, 128.19s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  31%|███▏      | 5/16 [09:56<23:30, 128.19s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  38%|███▊      | 6/16 [10:07<14:42, 88.29s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4] [A
+MS gate simulation (16 evolutions / n_bar):  38%|███▊      | 6/16 [10:07<14:42, 88.29s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  44%|████▍     | 7/16 [10:14<09:15, 61.76s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  44%|████▍     | 7/16 [10:14<09:15, 61.76s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  50%|█████     | 8/16 [10:17<05:46, 43.28s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  50%|█████     | 8/16 [10:17<05:46, 43.28s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  56%|█████▋    | 9/16 [13:49<11:11, 95.97s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  56%|█████▋    | 9/16 [13:49<11:11, 95.97s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  62%|██████▎   | 10/16 [14:17<07:29, 74.95s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  62%|██████▎   | 10/16 [14:17<07:29, 74.95s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  69%|██████▉   | 11/16 [14:25<04:31, 54.39s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  69%|██████▉   | 11/16 [14:25<04:31, 54.39s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  75%|███████▌  | 12/16 [14:35<02:43, 40.96s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  75%|███████▌  | 12/16 [14:35<02:43, 40.96s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  81%|████████▏ | 13/16 [18:22<04:51, 97.21s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  81%|████████▏ | 13/16 [18:22<04:51, 97.21s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  88%|████████▊ | 14/16 [18:49<02:32, 76.18s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  88%|████████▊ | 14/16 [18:49<02:32, 76.18s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  94%|█████████▍| 15/16 [18:50<00:53, 53.47s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  94%|█████████▍| 15/16 [18:50<00:53, 53.47s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar): 100%|██████████| 16/16 [19:08<00:00, 42.76s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar): 100%|██████████| 16/16 [19:08<00:00, 42.76s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][AMS gate simulation (16 evolutions / n_bar): 100%|██████████| 16/16 [19:08<00:00, 71.79s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4]
+Completed conditions:  93%|█████████▎| 14/15 [19:09<00:00, 17.98condition/s, T100_n4_ramp_calibrated  evaluation 2]
+MS gate simulation (16 evolutions / n_bar):   0%|          | 0/16 [00:00<?, ?evolution/s][A
+MS gate simulation (16 evolutions / n_bar):   0%|          | 0/16 [00:00<?, ?evolution/s, workers=4][A
+MS gate simulation (16 evolutions / n_bar):   0%|          | 0/16 [00:00<?, ?evolution/s, executor=process, workers=4][A
+MS gate simulation (16 evolutions / n_bar):   6%|▋         | 1/16 [04:36<1:09:10, 276.70s/evolution, executor=process, workers=4][A
+MS gate simulation (16 evolutions / n_bar):   6%|▋         | 1/16 [04:36<1:09:10, 276.70s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  12%|█▎        | 2/16 [04:40<27:08, 116.33s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4]  [A
+MS gate simulation (16 evolutions / n_bar):  12%|█▎        | 2/16 [04:40<27:08, 116.33s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  19%|█▉        | 3/16 [04:41<13:48, 63.73s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4] [A
+MS gate simulation (16 evolutions / n_bar):  19%|█▉        | 3/16 [04:41<13:48, 63.73s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  25%|██▌       | 4/16 [04:51<08:28, 42.39s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  25%|██▌       | 4/16 [04:51<08:28, 42.39s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  31%|███▏      | 5/16 [08:55<21:06, 115.09s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  31%|███▏      | 5/16 [08:55<21:06, 115.09s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  38%|███▊      | 6/16 [09:01<13:00, 78.02s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4] [A
+MS gate simulation (16 evolutions / n_bar):  38%|███▊      | 6/16 [09:01<13:00, 78.02s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  44%|████▍     | 7/16 [09:06<08:06, 54.08s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  44%|████▍     | 7/16 [09:06<08:06, 54.08s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  50%|█████     | 8/16 [09:16<05:20, 40.11s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  50%|█████     | 8/16 [09:16<05:20, 40.11s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  56%|█████▋    | 9/16 [13:40<12:50, 110.14s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  56%|█████▋    | 9/16 [13:40<12:50, 110.14s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  62%|██████▎   | 10/16 [14:13<08:36, 86.13s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  62%|██████▎   | 10/16 [14:13<08:36, 86.13s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  69%|██████▉   | 11/16 [14:21<05:11, 62.37s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  69%|██████▉   | 11/16 [14:21<05:11, 62.37s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  75%|███████▌  | 12/16 [14:31<03:05, 46.33s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  75%|███████▌  | 12/16 [14:31<03:05, 46.33s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  81%|████████▏ | 13/16 [18:37<05:21, 107.00s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  81%|████████▏ | 13/16 [18:37<05:21, 107.00s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  88%|████████▊ | 14/16 [19:09<02:48, 84.19s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4] [A
+MS gate simulation (16 evolutions / n_bar):  88%|████████▊ | 14/16 [19:09<02:48, 84.19s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  94%|█████████▍| 15/16 [19:15<01:00, 60.67s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar):  94%|█████████▍| 15/16 [19:15<01:00, 60.67s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar): 100%|██████████| 16/16 [19:22<00:00, 44.54s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][A
+MS gate simulation (16 evolutions / n_bar): 100%|██████████| 16/16 [19:22<00:00, 44.54s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4][AMS gate simulation (16 evolutions / n_bar): 100%|██████████| 16/16 [19:22<00:00, 72.67s/evolution, executor=process, n_bar=4, phonon_dim=68, sample=1/1, workers=4]
+Completed conditions: 100%|██████████| 15/15 [38:32<00:00, 212.30s/condition, T100_n4_ramp_calibrated  evaluation 2]Completed conditions: 100%|██████████| 15/15 [38:32<00:00, 154.16s/condition, T100_n4_ramp_calibrated  evaluation 2]
+bowers_ramped_ms_gate.ipynb:cell7:8: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+100 µs, nbar=4: signed changes and signed ramp residuals
+condition  rect_calibrated  ramp_calibrated    change
+term                                                 
+S:XI              0.002820         0.008966  0.006147
+C:IX,XI           0.002795         0.008941  0.006147
+S:IX              0.002820         0.008966  0.006146
+H:XX              0.000434        -0.000151 -0.000586
+S:XX              0.005191         0.004939 -0.000252
+condition  ramp_calibrated
+term                      
+S:XI              0.008966
+S:IX              0.008966
+C:IX,XI           0.008941
+S:XX              0.004939
+S:XY              0.000208
+bowers_ramped_ms_gate.ipynb:cell7:24: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+condition            rect_calibrated  ramp_calibrated  reduction_percent
+T_us  n_bar term                                                        
+100.0 0.01  S:XI            0.000562         0.001046         -86.112658
+            S:IX            0.000562         0.001047         -86.226424
+            C:IX,XI         0.000537         0.001021         -90.185940
+      1.00  S:XI            0.001123         0.003011        -168.164417
+            S:IX            0.001123         0.003011        -168.169323
+            C:IX,XI         0.001098         0.002986        -172.000024
+      2.00  S:XI            0.001689         0.004995        -195.804315
+            S:IX            0.001689         0.004995        -195.815941
+            C:IX,XI         0.001664         0.004970        -198.752935
+      3.00  S:XI            0.002254         0.006980        -209.723795
+            S:IX            0.002254         0.006980        -209.720941
+            C:IX,XI         0.002229         0.006955        -212.075711
+      4.00  S:XI            0.002820         0.008966        -218.011472
+            S:IX            0.002820         0.008966        -217.992494
+            C:IX,XI         0.002795         0.008941        -219.953736

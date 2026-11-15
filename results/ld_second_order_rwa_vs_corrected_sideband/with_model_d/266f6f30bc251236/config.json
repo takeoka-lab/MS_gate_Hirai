@@ -1,0 +1,33 @@
+{
+  "abc_config_sha256": "6c0f70983e00c9e503e5e79f790ce8ae2405d8b95733ff6516228e3dc4498d5d",
+  "abc_parent_id": "6c0f70983e00c9e5",
+  "absolute_ld_order": 3,
+  "cases": [
+    "no_noise",
+    "all_noise"
+  ],
+  "model": "D",
+  "motional_rwa": false,
+  "nbar_values": [
+    0.01,
+    1.0,
+    2.0,
+    3.0,
+    4.0
+  ],
+  "numerics": {
+    "fastest_period_steps": 24,
+    "mode_frequency_hz": 4900000.0,
+    "solver_atol": 1e-12,
+    "solver_method": "vern9",
+    "solver_rtol": 1e-09
+  },
+  "numpy_version": "2.0.2",
+  "qutip_version": "5.0.4",
+  "sources": {
+    "ld_second_order_no_motional_rwa": "81e3a8532a93b1c8f2f55dcfaa89786f35b5cf2cee8d7c908170e4751085c6db",
+    "ld_third_order_no_motional_rwa": "9994cdc654070e14eb153bb47c077e3a273e6d99f89c755b33d794f8cb4760de",
+    "ms_gate_functions": "badb10cb85cd46f9941aebfe7aaf91dd579e30d54001390ed5c73e1899721e5a",
+    "pauli_channel_distance": "cc64b19fa7aa8740b93009bdea6f53d5ffed2abf2e743e603b240e932373288d"
+  }
+}
