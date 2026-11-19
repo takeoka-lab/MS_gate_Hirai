@@ -1,0 +1,77 @@
+{
+  "n_bar": 4.0,
+  "gate_time_s": 0.0001,
+  "hughes_delta_min_before_compression_hz": 22245.459873243974,
+  "assumption": "Stationary reduced spin channel; thermal motion reset each gate",
+  "convention": "E = G U^-1; U = exp(+i pi XX/4); per-gate twirling of E",
+  "diagnostics": [
+    {
+      "condition": "Nominal rectangular",
+      "source": "/workspace/results/matched_pulse_calibration_sweep/100us/standard_nominal_4.npz",
+      "amplitude_scale": 1.0,
+      "projection_chi_frobenius_change": 8.505606597254255e-16,
+      "projection_status": {
+        "iterations": 1,
+        "min_choi_eigenvalue": 2.1477314314498716e-07,
+        "tp_frobenius_error": 4.036918408880948e-17,
+        "relative_final_step": 8.448826683042902e-16
+      },
+      "chi_trace_error": 0.0,
+      "choi_hermiticity_error": 4.3002864995758606e-16,
+      "choi_min_eigenvalue": 2.1477314313748806e-07,
+      "choi_tp_frobenius_error": 3.386293256474584e-16,
+      "cptp_within_tolerance": true
+    },
+    {
+      "condition": "Calibrated rectangular",
+      "source": "/workspace/results/matched_pulse_calibration_sweep/100us/standard_4.npz",
+      "amplitude_scale": 1.049773033019913,
+      "projection_chi_frobenius_change": 5.004950722464917e-16,
+      "projection_status": {
+        "iterations": 1,
+        "min_choi_eigenvalue": 2.1606128189401133e-07,
+        "tp_frobenius_error": 2.0138709511334398e-19,
+        "relative_final_step": 3.851086753440396e-16
+      },
+      "chi_trace_error": 1.7105694144590052e-49,
+      "choi_hermiticity_error": 7.022016520105686e-16,
+      "choi_min_eigenvalue": 2.1606128183472337e-07,
+      "choi_tp_frobenius_error": 4.299898116282321e-16,
+      "cptp_within_tolerance": true
+    },
+    {
+      "condition": "Nominal Hughes",
+      "source": "/workspace/results/matched_pulse_calibration_sweep/100us/nominal_hughes_22245_n4.npz",
+      "amplitude_scale": 1.0,
+      "projection_chi_frobenius_change": 1.513943133473371e-08,
+      "projection_status": {
+        "iterations": 4,
+        "min_choi_eigenvalue": -2.4677913821634325e-12,
+        "tp_frobenius_error": 2.491906549027628e-16,
+        "relative_final_step": 7.226086357092466e-12
+      },
+      "chi_trace_error": 2.2958874039497803e-41,
+      "choi_hermiticity_error": 2.9113408345255725e-16,
+      "choi_min_eigenvalue": -2.4677172877881504e-12,
+      "choi_tp_frobenius_error": 3.335247584927939e-16,
+      "cptp_within_tolerance": true
+    },
+    {
+      "condition": "Calibrated Hughes",
+      "source": "/workspace/results/matched_pulse_calibration_sweep/100us/smooth_detuning_4.npz",
+      "amplitude_scale": 1.0466869763675324,
+      "projection_chi_frobenius_change": 7.756931999824778e-16,
+      "projection_status": {
+        "iterations": 1,
+        "min_choi_eigenvalue": 4.850884365321161e-08,
+        "tp_frobenius_error": 1.1102230898350917e-16,
+        "relative_final_step": 7.021093163791433e-16
+      },
+      "chi_trace_error": 5.739718509874451e-42,
+      "choi_hermiticity_error": 2.719787195838354e-16,
+      "choi_min_eigenvalue": 4.850884364854588e-08,
+      "choi_tp_frobenius_error": 1.2029071783094281e-19,
+      "cptp_within_tolerance": true
+    }
+  ]
+}
