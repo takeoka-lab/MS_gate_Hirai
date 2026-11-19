@@ -388,49 +388,43 @@ channel. In particular, a collective dissipative interpretation is
 assessed using the complete generator and the residual of
 Eq.~\eqref{eq:methods_reduced_generator}.
 
-\subsection{Comparison with the Pauli-twirled channel}
+\subsection{Diamond distance to the Pauli-twirled channel}
 \label{subsec:pauli_comparison}
 
-For each channel before and after calibration, we construct its own
-Pauli-twirled approximation,
+At a gate duration of $100\,\mu\mathrm{s}$, we compare three drive
+conditions: the nominal pulse, the amplitude-calibrated pulse, and the
+shaped pulse with amplitude calibration. We evaluate each condition at
+$\bar n\in\{0.01,1,2,3,4\}$, calibrating the amplitude separately at
+each $\bar n$ for the two calibrated conditions.
+
+For each reconstructed CPTP post-gate error channel $\mathcal E$, we
+form its Pauli twirl in the two-qubit Pauli basis,
 \begin{equation}
- \mathcal T(\mathcal E)(\rho)
- =\frac1{16}\sum_{P\in\{I,X,Y,Z\}^{\otimes2}}
-   P^\dagger\mathcal E(P\rho P^\dagger)P
- =\sum_\mu\chi_{\mu\mu}P_\mu\rho P_\mu^\dagger.
+ \mathcal E_{\mathrm P}(\rho)
+ =\frac{1}{16}\sum_{P\in\{I,X,Y,Z\}^{\otimes 2}}
+ P^\dagger\mathcal E(P\rho P^\dagger)P
+ =\sum_\mu\chi_{\mu\mu}P_\mu\rho P_\mu^\dagger .
  \label{eq:methods_twirl}
 \end{equation}
-Thus $\chi_{\mathrm P}=\operatorname{diag}(\chi)$ and
-$R_{\mathrm P}=\operatorname{diag}(R)$. Twirling is applied to the
-channel, not to its logarithmic generator. The average gate infidelity
-relative to $U_\star$ is
-\begin{equation}
- r=1-F_{\mathrm{avg}}(\mathcal G,\mathcal U_\star)
-   =\frac45(1-\chi_{II,II}).
-\end{equation}
-It is unchanged by Pauli twirling and therefore cannot quantify the
-accuracy of that approximation.
-
-We instead evaluate the diamond distance
+Twirling preserves $\chi_{II,II}$ and hence the average gate
+infidelity $4(1-\chi_{II,II})/5$. To quantify the effect of discarding
+the off-diagonal elements, we compute the diamond distance
 \begin{equation}
  \epsilon_{\mathrm P}
-   =\frac12\|\mathcal E-\mathcal T(\mathcal E)\|_\diamond,
+ =\tfrac12\lVert\mathcal E-\mathcal E_{\mathrm P}\rVert_\diamond .
  \label{eq:methods_diamond}
 \end{equation}
-using primal and dual semidefinite programs~\cite{WatrousDiamond} and
-retaining their numerical bounds and gap. As complementary diagnostics,
-we report
-\begin{equation}
- D_F=\|R-R_{\mathrm P}\|_F,\qquad
- f_F=\frac{D_F}{\|R-I_{16}\|_F},\qquad
- D_J=\frac12\left\|\frac{J(\mathcal E)-J(\mathcal T(\mathcal E))}{4}
-        \right\|_1.
- \label{eq:methods_distances}
-\end{equation}
-Here $\|\cdot\|_1$ is the trace norm and $f_F$ is undefined for the
-identity channel. These distances describe the error in replacing a
-single physical channel by its Pauli approximation. Logical error rates
-of a particular QEC circuit are not computed in this analysis.
+For a single channel use, $\epsilon_{\mathrm P}$ is the largest absolute
+change in the probability of a measurement outcome, optimized over joint
+inputs and measurements on the system and a reference.
+
+We compute numerical lower and upper bounds on $\epsilon_{\mathrm P}$
+using primal and dual semidefinite programs~\cite{WatrousDiamond}.
+For a chosen absolute tolerance $\tau$, we accept a sampled operating
+point if the upper bound is at most $\tau$ and reject it if the lower
+bound exceeds $\tau$. Points with insufficient numerical precision
+are left unresolved. We apply this criterion separately at each
+sampled $\bar n$.
 
 \subsection{Numerical settings}
 \label{subsec:numerics}
